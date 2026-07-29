@@ -505,6 +505,7 @@ footer{
     <h3 id="aktEditTitle">Pridať aktuálnu linku</h3>
     <div class="fg"><label>URL *</label><input type="url" id="aUrl" placeholder="https://..."/></div>
     <div class="fg"><label>Názov *</label><input type="text" id="aName" placeholder="napr. MS v hokeji 2025"/></div>
+    <div class="fg"><label>Názov (EN)</label><input type="text" id="aNameEn" placeholder="len ak sa líši od slovenského"/></div>
     <div class="fg"><label>Platné do (nepovinné — po tomto dni sa linka verejnosti sama skryje)</label><input type="date" id="aEnd"/></div>
     <div class="fg"><label>Emoji ikona</label><input type="text" id="aIcon" placeholder="🏒" maxlength="4"/></div>
     <div class="mo-acts">
@@ -14061,6 +14062,7 @@ function openAddAkt(){
   document.getElementById('aktEditTitle').textContent = 'Pridať aktuálnu linku';
   document.getElementById('aIcon').value = '';
   document.getElementById('aName').value = '';
+  document.getElementById('aNameEn').value = '';
   document.getElementById('aUrl').value  = '';
   document.getElementById('aEnd').value  = '';
   document.getElementById('aktualneEditMo').classList.add('open');
@@ -14074,6 +14076,7 @@ function openEditAkt(id){
   document.getElementById('aktEditTitle').textContent = 'Upraviť linku';
   document.getElementById('aIcon').value = a.icon||'';
   document.getElementById('aName').value = a.name;
+  document.getElementById('aNameEn').value = a.name_en||'';
   document.getElementById('aUrl').value  = a.url;
   document.getElementById('aEnd').value  = a.endsAt||'';
   document.getElementById('aktualneEditMo').classList.add('open');
@@ -14082,15 +14085,18 @@ function openEditAkt(id){
 function saveAkt(){
   const icon = document.getElementById('aIcon').value.trim();
   const name = document.getElementById('aName').value.trim();
+  const nameEn = document.getElementById('aNameEn').value.trim();
   const url  = document.getElementById('aUrl').value.trim();
   const endsAt = document.getElementById('aEnd').value; // '' = bez obmedzenia
   if(!name||!url){ alert('Vyplň názov a URL.'); return; }
   if(!DB.aktualne) DB.aktualne=[];
   if(editingAktId){
     const a = DB.aktualne.find(x=>x.id===editingAktId);
-    if(a){ a.icon=icon; a.name=name; a.url=url; a.endsAt=endsAt; }
+    if(a){ a.icon=icon; a.name=name; a.url=url; a.endsAt=endsAt; if(nameEn) a.name_en=nameEn; else delete a.name_en; }
   } else {
-    DB.aktualne.push({id:'a'+Date.now(), icon, name, url, endsAt, addedAt: Date.now()});
+    const item = {id:'a'+Date.now(), icon, name, url, endsAt, addedAt: Date.now()};
+    if(nameEn) item.name_en = nameEn;
+    DB.aktualne.push(item);
   }
   save(); renderAktualne(); renderAktList();
   closeMo('aktualneEditMo');
@@ -14119,8 +14125,7 @@ function renderAktualne(){
   const now = Date.now();
   // "Platné do": po tomto dni (vrátane) sa linka verejnosti skryje; admin ju vidí vysivenú. Bez dátumu = visí navždy.
   const isExpired = a => a.endsAt && now > new Date(a.endsAt+'T23:59:59').getTime();
-  const byLang = a => (a.lang||'sk')===SITE_LANG;
-  const items = adminMode ? DB.aktualne : DB.aktualne.filter(a=>byLang(a)&&!isExpired(a));
+  const items = adminMode ? DB.aktualne : DB.aktualne.filter(a=>!isExpired(a));
   const scroll = document.getElementById('aktualneScroll');
   const count  = document.getElementById('aktualneCount');
   count.textContent = items.length ? `(${items.length})` : '';
@@ -14136,7 +14141,7 @@ function renderAktualne(){
     <a class="akt-card${exp?' akt-expired':''}" href="${a.url}" target="_blank" rel="noopener"${exp?' title="Skončené — verejnosť túto linku nevidí"':''}>
       ${isNew&&!exp?'<span class="akt-new">NEW</span>':''}
       <span class="akt-icon">${a.icon||'📌'}</span>
-      <span>${a.name}</span>
+      <span>${(IS_EN && a.name_en) ? a.name_en : a.name}</span>
     </a>`;
   }).join('');
   updateAktFade();
