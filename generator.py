@@ -38,6 +38,7 @@ import sys
 import unicodedata
 from datetime import date
 from html import escape
+from urllib.parse import urlsplit
 
 # ------------------------------------------------------------
 # KONFIGURÁCIA
@@ -45,6 +46,14 @@ from html import escape
 LANG = os.environ.get("SITE_LANG", "sk")   # "sk" alebo "en"
 OUT_PREFIX = os.environ.get("OUT_PREFIX", "")
 BASE_URL = os.environ.get("BASE_URL", "").rstrip("/")
+
+# Absolútna cesta ku koreňu webu (podľa nej appka vyrába pekné adresy).
+# POZOR: web nemusí byť v koreni domény! Slovenský beží na www.sportlinky.sk
+# (koreň "/"), anglický na sportlinks226.github.io/sportlinking/ (koreň
+# "/sportlinking/"). Preto sa berie z BASE_URL, ktorú dodá GitHub Actions.
+_base_path = urlsplit(BASE_URL).path.strip("/") if BASE_URL else ""
+_root_parts = [p for p in (_base_path, OUT_PREFIX.strip("/")) if p]
+SITE_ABS_ROOT = "/" + ("/".join(_root_parts) + "/" if _root_parts else "")
 
 UI = {
     "sk": {
@@ -243,11 +252,12 @@ PAGE = """<!DOCTYPE html>
 {desc_html}
 {folders_html}
 {links_html}
-<a class="appbtn" href="{app_href}">{open_app} →</a>
+<a class="appbtn" id="appbtn" style="display:none" href="{app_href}">{open_app} →</a>
+<noscript><style>#appbtn{{display:inline-block!important}}</style></noscript>
 <footer>{site_title} — {footer}</footer>
 </div>
 {dyn_js}
-<script data-goatcounter="https://{goat}.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
+{takeover}
 </body>
 </html>
 """
@@ -255,8 +265,10 @@ PAGE = """<!DOCTYPE html>
 # Dynamický JS: banner + Aktuálne z data.json.
 # __ANC__ = id priečinkov od koreňa po túto stránku (cielenie bannerov),
 # __ROOT__ = relatívna cesta ku koreňu webu, __AKT_LABEL__ = nadpis pásu.
+# POZOR: spúšťa sa LEN ako záloha, ak sa nepodarí prevziať appku (viď TAKEOVER).
+# Pri úspešnom prevzatí si bannery aj Aktuálne vykreslí appka sama.
 DYN_JS = """<script>
-(function(){
+function __dyn(){
   var ANC=__ANC__;
   fetch("__ROOT__data.json",{cache:"no-store"}).then(function(r){return r.json()}).then(function(d){
     var today=new Date().toISOString().slice(0,10);
@@ -305,6 +317,40 @@ DYN_JS = """<script>
       }).join("");
     }
   }).catch(function(e){});
+}
+</script>
+
+<!-- PREVZATIE APPKOU: statická stránka (ktorú vidí Google) sa hneď po načítaní
+     nahradí plnou interaktívnou aplikáciou. Adresa v prehliadači sa NEMENÍ,
+     návštevník z Googlu tak skončí rovno v appke bez jediného kliknutia.
+     Ak sa to z akéhokoľvek dôvodu nepodarí, ukáže sa pôvodné tlačidlo
+     a dokreslia sa bannery + Aktuálne tak ako predtým. -->"""
+
+# __ROOT__ = relatívna cesta ku koreňu, odkiaľ sa stiahne appka.
+# Koreň webu už má appka zapísaný v sebe (dopĺňa ho main() pri kopírovaní),
+# takže tu ju stačí prevziať tak, ako je.
+TAKEOVER = """<script>
+(function(){
+  var btn=document.getElementById("appbtn"), done=false;
+  function fallback(){
+    if(done) return;
+    if(btn) btn.style.display="inline-block";
+    try{ __dyn(); }catch(e){}
+    var s=document.createElement("script");
+    s.async=true; s.src="//gc.zgo.at/count.js";
+    s.setAttribute("data-goatcounter","https://__GOAT__.goatcounter.com/count");
+    document.body.appendChild(s);
+  }
+  try{
+    fetch("__ROOT__index.html").then(function(r){
+      if(!r.ok) throw new Error("app");
+      return r.text();
+    }).then(function(h){
+      if(h.indexOf("let SITE_ROOT =")<0) throw new Error("marker");
+      done=true;
+      document.open(); document.write(h); document.close();
+    }).catch(fallback);
+  }catch(e){ fallback(); }
 })();
 </script>"""
 
@@ -389,6 +435,10 @@ def render_page(node, path, children, by_id, paths, site_title):
               .replace("__LANG__", LANG)
               .replace("__AKT_LABEL__", escape(T["aktualne"])))
 
+    takeover = (TAKEOVER
+                .replace("__ROOT__", root)
+                .replace("__GOAT__", GOAT))
+
     return PAGE.format(
         lang=LANG,
         title=page_title,
@@ -408,7 +458,7 @@ def render_page(node, path, children, by_id, paths, site_title):
         footer=T["footer"],
         site_title=escape(site_title),
         dyn_js=dyn_js,
-        goat=GOAT,
+        takeover=takeover,
     )
 
 
@@ -517,7 +567,25 @@ def main():
                 og_dyn = (f'<meta property="og:url" content="{BASE_URL}/"/>\n'
                           f'<meta property="og:image" content="{BASE_URL}/og-image.png"/>')
                 html = html.replace("<!--OG_DYNAMIC-->", og_dyn, 1)
+            # Appke povedz, kde je koreň webu — podľa neho vyrába pekné adresy.
+            # Bez toho by web v podpriečinku (anglická verzia na
+            # sportlinks226.github.io/sportlinking/) vyrábal adresy od koreňa
+            # domény a odkazy by nikam neviedli.
+            marker = 'let SITE_ROOT = "";'
+            if marker not in html:
+                raise SystemExit(
+                    "CHYBA: v index.html chýba riadok 'let SITE_ROOT = \"\";' — "
+                    "appka nevie, kde je koreň webu. Skontroluj index.html.")
+            html = html.replace(marker, f'let SITE_ROOT = "{SITE_ABS_ROOT}";')
+
             with open(os.path.join(out, "index.html"), "w", encoding="utf-8") as f:
+                f.write(html)
+
+            # 404.html — poistka pre adresy bez vlastnej statickej stránky
+            # (napr. rozostavané prázdne sekcie alebo preklep v adrese).
+            # GitHub Pages ju vráti namiesto chybovej hlášky; je to tá istá
+            # appka, ktorá si zo skutočnej adresy zistí, ktorú sekciu otvoriť.
+            with open(os.path.join(out, "404.html"), "w", encoding="utf-8") as f:
                 f.write(html)
         for fname in ("data.json", "og-image.png",
                       "banner-sportlinking-1.png", "banner-sportlinking-2.png"):

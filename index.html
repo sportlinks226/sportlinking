@@ -13076,6 +13076,10 @@ const DEFAULT = {
 // ============================================================
 // STATE
 // ============================================================
+// Koreň webu. Prázdny reťazec = appka beží priamo v koreni (alebo z disku).
+// Statická SEO stránka sem pri "prevzatí" appky doplní absolútnu cestu ku
+// koreňu (napr. "/") — generator.py hľadá presne tento riadok, NEMENIŤ formát.
+let SITE_ROOT = "";
 let DB = {};
 let adminMode = false;
 let curId = null;      // null = root
@@ -13086,7 +13090,7 @@ async function load(){
   // 1) Na webe: skús načítať publikované dáta zo súboru data.json
   let published = null;
   try{
-    const r = await fetch('data.json', {cache:'no-store'});
+    const r = await fetch(SITE_ROOT + 'data.json', {cache:'no-store'});
     if(r.ok){
       const d = await r.json();
       if(d && d.nodes){ published = d; }
@@ -13241,13 +13245,26 @@ function ensureSlugs(){
   walk(null);
   return changed;
 }
-function hashForId(id){
+// PEKNÉ ADRESY: na webe (http/https) používa appka skutočné adresy typu
+// /hokej/sutaze/ — presne tie, ktoré má Google v indexe. Návštevník z Googlu
+// tak pristane rovno v appke a adresa v prehliadači sa nemení.
+// Pri otvorení súboru z disku (file://) pekné adresy technicky nefungujú,
+// tam zostáva pôvodné #-routovanie. Staré zdieľané #/-adresy fungujú ďalej.
+const PATH_ROUTING = (location.protocol === 'http:' || location.protocol === 'https:');
+const BASE_PATH = SITE_ROOT || '/';
+
+function pathForId(id){
   if(id === null) return '';
-  return '#/' + getPath(id).map(n=>nodeSlug(n)).join('/');
+  return getPath(id).map(n=>nodeSlug(n)).join('/');
 }
-function idForHash(hash){
-  if(!hash || !hash.startsWith('#/')) return null;
-  const parts = hash.slice(2).split('/').filter(Boolean);
+// adresa, ktorá sa zapíše do riadku prehliadača
+function urlForId(id){
+  if(!PATH_ROUTING) return (id === null) ? location.pathname + location.search
+                                         : '#/' + pathForId(id);
+  return (id === null) ? BASE_PATH : BASE_PATH + pathForId(id) + '/';
+}
+// spoločné rozlúštenie cesty (zoznam slugov) na id priečinka
+function idForSlugs(parts){
   let cur = null;
   for(const part of parts){
     const next = getChildren(cur).find(n => n.type==='folder' && nodeSlug(n)===part);
@@ -13256,11 +13273,30 @@ function idForHash(hash){
   }
   return cur;
 }
-function initFromHash(){
-  const hid = idForHash(location.hash);
-  if(hid !== null){
-    curId = hid;
-    try{ history.replaceState({curId: hid}, '', location.hash); }catch(e){}
+function idForHash(hash){
+  if(!hash || !hash.startsWith('#/')) return null;
+  return idForSlugs(hash.slice(2).split('/').filter(Boolean));
+}
+function idForPath(){
+  let p = location.pathname;
+  if(BASE_PATH !== '/' && p.indexOf(BASE_PATH) === 0) p = p.slice(BASE_PATH.length);
+  const parts = p.split('/').filter(Boolean).map(function(s){
+    try{ return decodeURIComponent(s); }catch(e){ return s; }
+  });
+  // posledný kus môže byť názov súboru (index.html, 404.html) — ignoruj ho
+  if(parts.length && /\.[a-z0-9]+$/i.test(parts[parts.length-1])) parts.pop();
+  return idForSlugs(parts);
+}
+function initFromUrl(){
+  let id = PATH_ROUTING ? idForPath() : null;
+  if(id === null && location.hash.indexOf('#/') === 0) id = idForHash(location.hash);
+  curId = id;
+  if(PATH_ROUTING){
+    // #admin a podobné nehashovacie kotvy zachovaj, #/cestu zahoď (nahradí ju cesta)
+    const keep = (location.hash && location.hash.indexOf('#/') !== 0) ? location.hash : '';
+    try{ history.replaceState({curId: id}, '', urlForId(id) + location.search + keep); }catch(e){}
+  }else if(id !== null){
+    try{ history.replaceState({curId: id}, '', location.hash); }catch(e){}
   }
 }
 
@@ -13268,7 +13304,7 @@ function navigate(id, fromPopState){
   curId = id;
   document.getElementById('srch').value = '';
   if(!fromPopState){
-    const url = (id === null) ? location.pathname + location.search : hashForId(id);
+    const url = urlForId(id) + (PATH_ROUTING && id !== null ? location.search : '');
     try{ history.pushState({curId: id}, '', url); }
     catch(e){ history.pushState({curId: id}, '', ''); }
   }
@@ -13277,7 +13313,8 @@ function navigate(id, fromPopState){
 }
 
 window.addEventListener('popstate', function(e){
-  const id = (e.state && e.state.curId !== undefined) ? e.state.curId : idForHash(location.hash);
+  const id = (e.state && e.state.curId !== undefined) ? e.state.curId
+           : (PATH_ROUTING ? idForPath() : idForHash(location.hash));
   navigate(id, true);
 });
 
@@ -13347,8 +13384,36 @@ function renderIcon(icon, flagSize){
 // ============================================================
 // RENDER
 // ============================================================
+// Titulok, popis a canonical podľa otvorenej sekcie. DÔLEŽITÉ PRE GOOGLE:
+// keď statická SEO stránka odovzdá miesto appke, titulok musí zostať sekčný
+// („Plážový futbal — Športové Linky"), nie všeobecný názov webu.
+let ORIG_DESC = null;
+function updateHead(){
+  const site = (IS_EN ? (DB.title_en||DB.title) : DB.title) || '';
+  const n = curId ? DB.nodes.find(x=>x.id===curId) : null;
+  document.title = n ? (nName(n) + (site ? ' — ' + site : '')) : (site || document.title);
+  const m = document.querySelector('meta[name="description"]');
+  if(m){
+    if(ORIG_DESC === null) ORIG_DESC = m.content;
+    let d = n ? nDesc(n) : '';
+    if(n && !d){ // sekcia bez popisu — rovnaká náhrada ako v generator.py
+      const kids = getChildren(n.id);
+      const nf = kids.filter(k=>k.type==='folder').length;
+      const nl = kids.filter(k=>k.type==='link').length;
+      d = IS_EN ? nName(n)+' — sports links: '+nf+' subcategories, '+nl+' links.'
+                : nName(n)+' — športové linky: '+nf+' podkategórií, '+nl+' liniek.';
+    }
+    m.content = d || ORIG_DESC;
+  }
+  if(!PATH_ROUTING) return;
+  let l = document.querySelector('link[rel="canonical"]');
+  if(!l){ l = document.createElement('link'); l.rel = 'canonical'; document.head.appendChild(l); }
+  l.href = location.origin + urlForId(curId);
+}
+
 function render(){
   updateLinkCount();
+  updateHead();
   renderBreadcrumb();
   const q = document.getElementById('srch').value.trim().toLowerCase();
   if(q){ renderSearch(q); return; }
@@ -14192,7 +14257,7 @@ load().then(()=>{
       (IS_EN ? (DB.subtitle_en||DB.subtitle) : DB.subtitle)||'';
     document.title = IS_EN ? (DB.title_en||DB.title) : DB.title;
   }
-  initFromHash(); // ak adresa obsahuje #/cestu, otvor rovno daný priečinok
+  initFromUrl(); // otvor priečinok podľa adresy (/hokej/sutaze/ alebo staré #/hokej/sutaze)
   render();
   renderAktualne();
   renderBannerSlot();
