@@ -195,7 +195,9 @@ footer{
 .card-link .fav{width:24px;height:24px;border-radius:5px;object-fit:contain;background:var(--bg);flex-shrink:0}
 .card-link .fav-fb{width:24px;height:24px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:18px}
 .card-link .cl-name{font-weight:600;font-size:0.88rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.card-link .cl-desc{font-size:0.78rem;color:var(--muted);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.card-link .cl-desc{font-size:0.78rem;color:var(--muted);margin-top:1px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;white-space:normal;overflow:hidden}
+/* vo vysledkoch hladania zostava cesta na jednom riadku */
+.card-link .cl-desc.sr-path{display:block;white-space:nowrap;text-overflow:ellipsis}
 
 /* ===== ANIMÁCIA KARIET — jemné vynorenie pri vstupe do sekcie ===== */
 @keyframes cardIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
@@ -13208,6 +13210,8 @@ const SITE_LANG = "sk";
 const IS_EN = SITE_LANG === "en";
 function nName(n){ return (IS_EN && n.name_en) ? n.name_en : (n.name||''); }
 function nDesc(n){ return (IS_EN && n.desc_en) ? n.desc_en : (n.desc||''); }
+// bezpecny text do HTML atributu (title="...") — aby uvodzovky nerozbili znacku
+function attrEsc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 // priečinky, ktorých deti (krajiny) sa v EN radia podľa anglickej abecedy
 const CONTINENTS_SK = new Set(["Európa","Ázia","Afrika","Južná Amerika",
   "Severná Amerika","Severná a Stredná Amerika","Oceánia","Ázia & Oceánia"]);
@@ -13525,7 +13529,7 @@ function renderLevel(){
             <button class="ibtn" onclick="openEdit('${n.id}')">✏️</button>
             <button class="ibtn d" onclick="delNode('${n.id}')">🗑</button>
           </div>
-          <a href="${n.url}" target="_blank" rel="noopener" ${adminMode?'onclick="return false"':''}>
+          <a href="${n.url}" target="_blank" rel="noopener" title="${attrEsc(nDesc(n))}" ${adminMode?'onclick="return false"':''}>
             ${favHtml(n, host)}
             <div>
               <div class="cl-name">${(n.icon && !SOCIAL_FAV.test(host) && !/^[a-z]{2}(-[a-z]{2,4})?$/.test(n.icon))?n.icon+' ':''}${nName(n)}</div>
