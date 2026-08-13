@@ -13532,7 +13532,7 @@ function renderLevel(){
           <a href="${n.url}" target="_blank" rel="noopener" title="${attrEsc(nDesc(n))}" ${adminMode?'onclick="return false"':''}>
             ${favHtml(n, host)}
             <div>
-              <div class="cl-name">${(n.icon && !SOCIAL_FAV.test(host) && !/^[a-z]{2}(-[a-z]{2,4})?$/.test(n.icon))?n.icon+' ':''}${nName(n)}</div>
+              <div class="cl-name">${(n.icon && !SOCIAL_FAV.test(host) && !NO_FAVICON_HOSTS.test(host) && !/^[a-z]{2}(-[a-z]{2,4})?$/.test(n.icon))?n.icon+' ':''}${nName(n)}</div>
               <div class="cl-desc">${nDesc(n)}</div>
             </div>
           </a>
@@ -13613,20 +13613,23 @@ function renderSearch(q){
 // ============================================================
 // FAVICON FALLBACK
 // ============================================================
-// Sociálne siete: ich favicona je logo siete (FB/IG…), nie federácie/klubu.
-// Pri týchto doménach faviconu nenačítavame — ukážeme ikonu linky
-// (kód krajiny "gh" → vlajka, alebo emoji), inak ikonu nadradeného priečinka.
-const SOCIAL_FAV = /(^|\.)(facebook\.com|fb\.com|instagram\.com|x\.com|twitter\.com|youtube\.com|youtu\.be|tiktok\.com)$/;
+// Sociálne siete a stránky bez vlastného webu klubu: ich favicona je logo
+// siete/federácie, nie klubu. Pri týchto doménach faviconu nenačítavame —
+// ukážeme vlastnú ikonu linky ak je nastavená, inak vždy jednotné 🔗
+// (NIE ikonu nadradeného priečinka — tá, napr. vlajka krajiny, by sa
+// v krajinách so slabou webovou pokrytosťou opakovala pri kope klubov
+// a pôsobila by zavádzajúco).
+const SOCIAL_FAV = /(^|\.)(facebook\.com|fb\.com|instagram\.com|x\.com|twitter\.com|youtube\.com|youtu\.be|tiktok\.com|wikipedia\.org)$/;
+const NO_FAVICON_HOSTS = /(^|\.)(vereine\.oefb\.at|vereine\.fussballoesterreich\.at)$/;
 function favHtml(n, host){
-  const parentIcon = DB.nodes.find(x=>x.id===n.parentId)?.icon || '🔗';
-  if(SOCIAL_FAV.test(host)){
-    return `<span class="fav-fb">${renderIcon(n.icon||parentIcon,'24x18')||'🔗'}</span>`;
+  if(SOCIAL_FAV.test(host) || NO_FAVICON_HOSTS.test(host)){
+    return `<span class="fav-fb">${renderIcon(n.icon,'24x18')||'🔗'}</span>`;
   }
-  return `<img class="fav" src="https://www.google.com/s2/favicons?domain=${host}&sz=64" alt="" loading="lazy" data-fallback="${n.icon||parentIcon}" onerror="favError(this)" onload="favLoaded(this)"/>`;
+  return `<img class="fav" src="https://www.google.com/s2/favicons?domain=${host}&sz=64" alt="" loading="lazy" data-fallback="${n.icon||''}" onerror="favError(this)" onload="favLoaded(this)"/>`;
 }
 function favError(img){
-  const fb = img.getAttribute('data-fallback')||'🔗';
-  // ak je náhradná ikona kód krajiny ("sk"), ukáž vlajku — nie text
+  const fb = img.getAttribute('data-fallback')||'';
+  // ak je náhradná ikona kód krajiny ("sk"), ukáž vlajku — inak jednotné 🔗
   img.outerHTML = `<span class="fav-fb">${renderIcon(fb,'24x18')||'🔗'}</span>`;
 }
 function favLoaded(img){
