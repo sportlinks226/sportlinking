@@ -13385,6 +13385,21 @@ function renderIcon(icon, flagSize){
   return icon;
 }
 
+// Priečinok bez vlastnej ikony (napr. ligová súťaž) zdedí vlajku od najbližšieho
+// nadradeného priečinka, ktorý má kód krajiny. Vďaka tomu netreba pri každej
+// novej lige dopĺňať vlajku ručne. Ak je najbližšia ikona emoji (sekcie ako
+// Médiá, Ostatné športy), nededí sa nič — zostane pôvodný vzhľad.
+function nodeIcon(n){
+  if(!n) return '';
+  if(n.icon) return n.icon;
+  let p = DB.nodes.find(x => x.id === n.parentId), guard = 0;
+  while(p && guard++ < 12){
+    if(p.icon) return /^[a-z]{2}(-[a-z]{2,4})?$/.test(p.icon) ? p.icon : '';
+    p = DB.nodes.find(x => x.id === p.parentId);
+  }
+  return '';
+}
+
 // ============================================================
 // RENDER
 // ============================================================
@@ -13440,7 +13455,7 @@ function renderBreadcrumb(){
 
   path.forEach(node => {
     html += `<span class="bc-sep">›</span>`;
-    html += `<span class="bc-item ${node.id===curId?'active':''}" onclick="navigate('${node.id}')">${renderIcon(node.icon,'16x12')} ${nName(node)}</span>`;
+    html += `<span class="bc-item ${node.id===curId?'active':''}" onclick="navigate('${node.id}')">${renderIcon(nodeIcon(node),'16x12')} ${nName(node)}</span>`;
   });
 
   bc.innerHTML = html;
@@ -13481,7 +13496,7 @@ function renderLevel(){
               <button class="ibtn" title="Upraviť" onclick="event.stopPropagation();openEdit('${n.id}')">✏️</button>
               <button class="ibtn d" title="Zmazať" onclick="event.stopPropagation();delNode('${n.id}')">🗑</button>
             </div>
-            <div class="c-icon">${renderIcon(n.icon,'40x30')||''}</div>
+            <div class="c-icon">${renderIcon(nodeIcon(n),'40x30')||''}</div>
             <div class="c-name">${nName(n)}</div>
             <div class="c-count">${cnt}</div>
             <div class="c-arrow">→</div>
@@ -13504,7 +13519,7 @@ function renderLevel(){
               <button class="ibtn" onclick="event.stopPropagation();openEdit('${n.id}')">✏️</button>
               <button class="ibtn d" onclick="event.stopPropagation();delNode('${n.id}')">🗑</button>
             </div>
-            <div class="cf-icon">${renderIcon(n.icon,'24x18')||''}</div>
+            <div class="cf-icon">${renderIcon(nodeIcon(n),'24x18')||''}</div>
             <div class="cf-info">
               <div class="cf-name">${nName(n)}</div>
               <div class="cf-count">${cnt}</div>
@@ -13588,7 +13603,7 @@ function renderSearch(q){
     folders.forEach(n=>{
       const path = getPath(n.id).map(p=>nName(p)).join(' › ');
       html += `<div class="card-folder" onclick="navigate('${n.id}')">
-        <div class="cf-icon">${renderIcon(n.icon,'24x18')||''}</div>
+        <div class="cf-icon">${renderIcon(nodeIcon(n),'24x18')||''}</div>
         <div class="cf-info"><div class="cf-name">${nName(n)}</div><div class="cf-count sr-path">${path}</div></div>
         <div class="cf-arrow">›</div></div>`;
     });
