@@ -13215,6 +13215,10 @@ function attrEsc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/"/g,'&q
 // priečinky, ktorých deti (krajiny) sa v EN radia podľa anglickej abecedy
 const CONTINENTS_SK = new Set(["Európa","Ázia","Afrika","Južná Amerika",
   "Severná Amerika","Severná a Stredná Amerika","Oceánia","Ázia & Oceánia"]);
+// uzly, ktoré ostávajú na začiatku zoznamu aj v EN (nezaradia sa do abecedy)
+const PINNED_EN = new Set([
+  "f_bas_klu_eu_esp","f_bas_klu_eu_ger","f_bas_klu_eu_ita","f_bas_klu_eu_fra"
+]);
 
 // ============================================================
 // NAVIGATION
@@ -13329,7 +13333,11 @@ function getChildren(parentId){
   if(IS_EN && parentId !== null){
     const p = DB.nodes.find(n=>n.id===parentId);
     if(p && CONTINENTS_SK.has(p.name)){
-      arr = arr.slice().sort((a,b)=>nName(a).localeCompare(nName(b),'en'));
+      // pripnuté uzly ostávajú vpredu (podľa order), zvyšok abecedne po anglicky
+      const pinned = arr.filter(n=>PINNED_EN.has(n.id));
+      const rest = arr.filter(n=>!PINNED_EN.has(n.id))
+                      .sort((a,b)=>nName(a).localeCompare(nName(b),'en'));
+      arr = pinned.concat(rest);
     }
   }
   return arr;
