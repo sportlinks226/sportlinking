@@ -1,10 +1,15 @@
+# GitHub Actions pre ANGLICKÝ web (sportlinking.com).
+# Pri každej zmene v repozitári + každý deň o 5:00 ráno si stiahne
+# aktuálny data.json zo slovenského webu a vygeneruje anglické stránky.
+# UMIESTNENIE V REPOZITÁRI: .github/workflows/build.yml
+
 name: Build & Deploy (EN)
 
 on:
   push:
     branches: [main]
   schedule:
-    - cron: "0 3 * * *"
+    - cron: "0 3 * * *"   # denne 3:00 UTC (5:00 v lete u nás) — prevezme zmeny dát
   workflow_dispatch:
 
 permissions:
@@ -29,12 +34,15 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Stiahni data
+      - name: Stiahni aktuálne dáta zo slovenského webu
         run: |
-          curl -fsSL --retry 3 "https://www.sportlinky.sk/data.json" -o data.json
-          python -c "import json; d=json.load(open('data.json')); print('OK', d.get('version'))"
+          # Prívesok ?build=... je zakaždým iný, takže sa obíde cache na ceste
+          # (bez neho vracala sieť GitHubu staré dáta a EN web sa staval zo
+          # starej verzie, kým sa cache sama neprečistila).
+          curl -fsSL --retry 3 "https://www.sportlinky.sk/data.json?build=$GITHUB_RUN_ID" -o data.json
+          python -c "import json; d=json.load(open('data.json')); print('data.json OK, verzia', d.get('version'), ',', len(d.get('nodes',[])), 'uzlov')"
 
-      - name: Generuj stranky
+      - name: Vygeneruj anglické stránky
         run: python generator.py --out _site
         env:
           BASE_URL: ${{ steps.pages.outputs.base_url }}
