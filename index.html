@@ -13082,6 +13082,11 @@ const DEFAULT = {
 // Statická SEO stránka sem pri "prevzatí" appky doplní absolútnu cestu ku
 // koreňu (napr. "/") — generator.py hľadá presne tento riadok, NEMENIŤ formát.
 let SITE_ROOT = "";
+// Verzia publikovaných dát. Pri builde ju sem doplní generator.py (hľadá presne
+// tento riadok, NEMENIŤ formát). Vďaka nej sa data.json sťahuje ako
+// "data.json?v=138" — prehliadač si ho môže odložiť do pamäte a pri novej
+// verzii si sám stiahne čerstvý. Prázdne = beží sa lokálne (bez cache).
+let DATA_VER = "";
 let DB = {};
 let adminMode = false;
 let curId = null;      // null = root
@@ -13091,13 +13096,20 @@ let nodeType = 'folder';
 async function load(){
   // 1) Na webe: skús načítať publikované dáta zo súboru data.json
   let published = null;
-  try{
-    const r = await fetch(SITE_ROOT + 'data.json', {cache:'no-store'});
-    if(r.ok){
-      const d = await r.json();
-      if(d && d.nodes){ published = d; }
-    }
-  }catch(e){ /* lokálny súbor (file://) alebo data.json neexistuje — pokračuj nižšie */ }
+  // Na publikovanom webe má adresa číslo verzie (data.json?v=138) — súbor sa
+  // smie cachovať, nová verzia = nová adresa = čerstvé stiahnutie.
+  // Bez verzie (lokálny súbor, admin) ostáva pôvodné no-store.
+  const dataUrl = SITE_ROOT + 'data.json' + (DATA_VER ? '?v=' + DATA_VER : '');
+  const dataOpt = DATA_VER ? {} : {cache:'no-store'};
+  for(let pokus = 0; pokus < 2 && !published; pokus++){
+    try{
+      const r = await fetch(dataUrl, dataOpt);
+      if(r.ok){
+        const d = await r.json();
+        if(d && d.nodes){ published = d; }
+      }
+    }catch(e){ /* lokálny súbor (file://) alebo data.json neexistuje — skús ešte raz */ }
+  }
   if(published){
     const sW = localStorage.getItem('sportStrom');
     const storedW = sW ? JSON.parse(sW) : null;
@@ -13271,12 +13283,16 @@ function urlForId(id){
                                          : '#/' + pathForId(id);
   return (id === null) ? BASE_PATH : BASE_PATH + pathForId(id) + '/';
 }
-// spoločné rozlúštenie cesty (zoznam slugov) na id priečinka
+// spoločné rozlúštenie cesty (zoznam slugov) na id priečinka.
+// CESTA_CELA hovorí, či sa podarilo rozlúštiť CELÚ cestu. Ak nie (napr. sa
+// nestihol načítať data.json), adresa sa NESMIE prepísať — viď initFromUrl.
+let CESTA_CELA = true;
 function idForSlugs(parts){
   let cur = null;
+  CESTA_CELA = true;
   for(const part of parts){
     const next = getChildren(cur).find(n => n.type==='folder' && nodeSlug(n)===part);
-    if(!next) return cur; // cesta ďalej neexistuje — zostaň, kde sme sa dostali
+    if(!next){ CESTA_CELA = false; return cur; } // cesta ďalej neexistuje — zostaň, kde sme sa dostali
     cur = next.id;
   }
   return cur;
@@ -13297,8 +13313,13 @@ function idForPath(){
 }
 function initFromUrl(){
   let id = PATH_ROUTING ? idForPath() : null;
+  const cestaOk = !PATH_ROUTING || CESTA_CELA; // rozlúštila sa celá cesta z adresy?
   if(id === null && location.hash.indexOf('#/') === 0) id = idForHash(location.hash);
   curId = id;
+  // SEO: ak sa cesta z adresy nedala rozlúštiť celá (napr. sa nestihol načítať
+  // data.json), adresu NEPREPISUJ. Prepis na vyšší priečinok Google vyhodnotí
+  // ako „Stránka s presmerovaním" a stránku nezaindexuje.
+  if(PATH_ROUTING && !cestaOk) return;
   if(PATH_ROUTING){
     // #admin a podobné nehashovacie kotvy zachovaj, #/cestu zahoď (nahradí ju cesta)
     const keep = (location.hash && location.hash.indexOf('#/') !== 0) ? location.hash : '';

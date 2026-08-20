@@ -270,7 +270,7 @@ PAGE = """<!DOCTYPE html>
 DYN_JS = """<script>
 function __dyn(){
   var ANC=__ANC__;
-  fetch("__ROOT__data.json",{cache:"no-store"}).then(function(r){return r.json()}).then(function(d){
+  fetch("__DATAURL__").then(function(r){return r.json()}).then(function(d){
     var today=new Date().toISOString().slice(0,10);
     var bs=(d.banners||[]).filter(function(b){
       if((b.lang||"sk")!=="__LANG__")return false;
@@ -329,6 +329,16 @@ function __dyn(){
 # __ROOT__ = relatívna cesta ku koreňu, odkiaľ sa stiahne appka.
 # Koreň webu už má appka zapísaný v sebe (dopĺňa ho main() pri kopírovaní),
 # takže tu ju stačí prevziať tak, ako je.
+# Verzia publikovaných dát — dopĺňa ju main() z data.json. Používa sa na
+# adresu "data.json?v=138", vďaka ktorej sa smie súbor cachovať.
+DATA_VER = ""
+
+# POZOR: appka sa preberá AŽ KEĎ je isté, že sa dá stiahnuť aj data.json.
+# Keby sa prevzala skôr a dáta by neprišli (Googlebot má na vykreslenie krátky
+# limit), appka by bežala na starých zapečených dátach, nenašla by cestu z
+# adresy a prepísala by ju vyššie — Google to hlásil ako „Stránka s
+# presmerovaním" a stránku nezaindexoval. Keď sa dáta nestihnú, zostane
+# zobrazená táto statická stránka: má správny obsah aj canonical.
 TAKEOVER = """<script>
 (function(){
   var btn=document.getElementById("appbtn"), done=false;
@@ -342,10 +352,21 @@ TAKEOVER = """<script>
     document.body.appendChild(s);
   }
   try{
-    fetch("__ROOT__index.html").then(function(r){
-      if(!r.ok) throw new Error("app");
-      return r.text();
-    }).then(function(h){
+    Promise.all([
+      fetch("__ROOT__index.html").then(function(r){
+        if(!r.ok) throw new Error("app");
+        return r.text();
+      }),
+      // dáta sa musia dať stiahnuť, inak appku nepreberáme (viď komentár vyššie);
+      // appka si ich potom vezme z pamäte prehliadača, nesťahuje ich druhýkrát
+      fetch("__DATAURL__").then(function(r){
+        if(!r.ok) throw new Error("data");
+        return r.json();
+      }).then(function(d){
+        if(!d || !d.nodes) throw new Error("data");
+      })
+    ]).then(function(res){
+      var h = res[0];
       if(h.indexOf("let SITE_ROOT =")<0) throw new Error("marker");
       done=true;
       document.open(); document.write(h); document.close();
@@ -429,13 +450,17 @@ def render_page(node, path, children, by_id, paths, site_title):
 
     # dynamický JS: banner + Aktuálne z data.json (ANC = id-čka od koreňa po túto stránku)
     anc_ids = [n["id"] for n in reversed(chain)]
+    data_url = f"{root}data.json" + (f"?v={DATA_VER}" if DATA_VER else "")
+
     dyn_js = (DYN_JS
               .replace("__ANC__", json.dumps(anc_ids))
+              .replace("__DATAURL__", data_url)
               .replace("__ROOT__", root)
               .replace("__LANG__", LANG)
               .replace("__AKT_LABEL__", escape(T["aktualne"])))
 
     takeover = (TAKEOVER
+                .replace("__DATAURL__", data_url)
                 .replace("__ROOT__", root)
                 .replace("__GOAT__", GOAT))
 
@@ -474,6 +499,8 @@ def main():
         out = os.path.join(out, OUT_PREFIX)
 
     data = load_data("data.json")
+    global DATA_VER
+    DATA_VER = str(data.get("version", "") or "")
     if LANG == "en":
         site_title = data.get("title_en") or data.get("title", "Sportlinking")
     else:
@@ -577,6 +604,16 @@ def main():
                     "CHYBA: v index.html chýba riadok 'let SITE_ROOT = \"\";' — "
                     "appka nevie, kde je koreň webu. Skontroluj index.html.")
             html = html.replace(marker, f'let SITE_ROOT = "{SITE_ABS_ROOT}";')
+
+            # Appke povedz verziu dát — sťahuje si data.json?v=NNN, takže si ho
+            # prehliadač smie odložiť do pamäte a pri novej verzii si stiahne
+            # čerstvý. Bez toho by sa 3,6 MB ťahalo pri každom otvorení stránky.
+            ver_marker = 'let DATA_VER = "";'
+            if ver_marker not in html:
+                raise SystemExit(
+                    "CHYBA: v index.html chýba riadok 'let DATA_VER = \"\";' — "
+                    "appka by data.json sťahovala stále odznova. Skontroluj index.html.")
+            html = html.replace(ver_marker, f'let DATA_VER = "{DATA_VER}";')
 
             with open(os.path.join(out, "index.html"), "w", encoding="utf-8") as f:
                 f.write(html)
