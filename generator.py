@@ -559,6 +559,14 @@ def main():
         with open(os.path.join(out, "robots.txt"), "w", encoding="utf-8") as f:
             f.write(f"User-agent: *\nAllow: /\nSitemap: {BASE_URL}/sitemap.xml\n")
 
+        # version.txt — pár bajtov s číslom verzie dát. Appka si ho pýta bez
+        # cache pri každom otvorení. Keď má návštevník v pamäti prehliadača
+        # starý index.html (a v ňom staré DATA_VER), takto sa aj tak dozvie,
+        # že web má novšie dáta, a stiahne si ich. Bez tohto by videl staré
+        # linky, kým sa mu cache sama neprečistí.
+        with open(os.path.join(out, "version.txt"), "w", encoding="utf-8") as f:
+            f.write(DATA_VER + "\n")
+
         # skopíruj aplikáciu a dáta; do index.html doplň og:url a og:image
         # (marker <!--OG_DYNAMIC--> — absolútna adresa je známa až pri builde)
         if os.path.exists("index.html"):
