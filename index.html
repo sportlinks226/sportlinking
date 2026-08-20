@@ -13082,6 +13082,11 @@ const DEFAULT = {
 // Statická SEO stránka sem pri "prevzatí" appky doplní absolútnu cestu ku
 // koreňu (napr. "/") — generator.py hľadá presne tento riadok, NEMENIŤ formát.
 let SITE_ROOT = "";
+// Verzia publikovaných dát. Pri builde ju sem doplní generator.py (hľadá presne
+// tento riadok, NEMENIŤ formát). Vďaka nej sa data.json sťahuje ako
+// "data.json?v=138" — prehliadač si ho môže odložiť do pamäte a pri novej
+// verzii si sám stiahne čerstvý. Prázdne = beží sa lokálne (bez cache).
+let DATA_VER = "";
 let DB = {};
 let adminMode = false;
 let curId = null;      // null = root
@@ -13091,13 +13096,41 @@ let nodeType = 'folder';
 async function load(){
   // 1) Na webe: skús načítať publikované dáta zo súboru data.json
   let published = null;
-  try{
-    const r = await fetch(SITE_ROOT + 'data.json', {cache:'no-store'});
-    if(r.ok){
-      const d = await r.json();
-      if(d && d.nodes){ published = d; }
-    }
-  }catch(e){ /* lokálny súbor (file://) alebo data.json neexistuje — pokračuj nižšie */ }
+  // Na publikovanom webe má adresa číslo verzie (data.json?v=138) — súbor sa
+  // smie cachovať, nová verzia = nová adresa = čerstvé stiahnutie.
+  // Bez verzie (lokálny súbor, admin) ostáva pôvodné no-store.
+  //
+  // POISTKA PROTI STAREJ STRÁNKE V PAMÄTI PREHLIADAČA:
+  // číslo verzie je zapečené v tomto HTML súbore. Keď má prehliadač uložený
+  // starý index.html (mobil ho vie držať aj dni), pýtal by si staré dáta a
+  // návštevník by nové linky nevidel. Preto sa najprv spýtame na version.txt
+  // (pár bajtov, bez cache, vyrába ho generator.py pri builde) — ak je na webe
+  // novšia verzia než v tomto súbore, stiahne sa rovno tá. Keď version.txt
+  // nie je alebo sa nestihne, ide sa po starom s DATA_VER.
+  let verData = DATA_VER;
+  if(DATA_VER){
+    try{
+      const ctrl = new AbortController();
+      const stopka = setTimeout(()=>ctrl.abort(), 2500);
+      const rv = await fetch(SITE_ROOT + 'version.txt', {cache:'no-store', signal:ctrl.signal});
+      clearTimeout(stopka);
+      if(rv.ok){
+        const t = (await rv.text()).trim();
+        if(/^\d+$/.test(t) && parseInt(t,10) > parseInt(DATA_VER,10)) verData = t;
+      }
+    }catch(e){ /* version.txt chýba alebo sa nestihol — pokračuj s DATA_VER */ }
+  }
+  const dataUrl = SITE_ROOT + 'data.json' + (verData ? '?v=' + verData : '');
+  const dataOpt = verData ? {} : {cache:'no-store'};
+  for(let pokus = 0; pokus < 2 && !published; pokus++){
+    try{
+      const r = await fetch(dataUrl, dataOpt);
+      if(r.ok){
+        const d = await r.json();
+        if(d && d.nodes){ published = d; }
+      }
+    }catch(e){ /* lokálny súbor (file://) alebo data.json neexistuje — skús ešte raz */ }
+  }
   if(published){
     const sW = localStorage.getItem('sportStrom');
     const storedW = sW ? JSON.parse(sW) : null;
@@ -13215,6 +13248,10 @@ function attrEsc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/"/g,'&q
 // priečinky, ktorých deti (krajiny) sa v EN radia podľa anglickej abecedy
 const CONTINENTS_SK = new Set(["Európa","Ázia","Afrika","Južná Amerika",
   "Severná Amerika","Severná a Stredná Amerika","Oceánia","Ázia & Oceánia"]);
+// uzly, ktoré ostávajú na začiatku zoznamu aj v EN (nezaradia sa do abecedy)
+const PINNED_EN = new Set([
+  "f_bas_klu_eu_esp","f_bas_klu_eu_ger","f_bas_klu_eu_ita","f_bas_klu_eu_fra"
+]);
 
 // ============================================================
 // NAVIGATION
@@ -13267,12 +13304,16 @@ function urlForId(id){
                                          : '#/' + pathForId(id);
   return (id === null) ? BASE_PATH : BASE_PATH + pathForId(id) + '/';
 }
-// spoločné rozlúštenie cesty (zoznam slugov) na id priečinka
+// spoločné rozlúštenie cesty (zoznam slugov) na id priečinka.
+// CESTA_CELA hovorí, či sa podarilo rozlúštiť CELÚ cestu. Ak nie (napr. sa
+// nestihol načítať data.json), adresa sa NESMIE prepísať — viď initFromUrl.
+let CESTA_CELA = true;
 function idForSlugs(parts){
   let cur = null;
+  CESTA_CELA = true;
   for(const part of parts){
     const next = getChildren(cur).find(n => n.type==='folder' && nodeSlug(n)===part);
-    if(!next) return cur; // cesta ďalej neexistuje — zostaň, kde sme sa dostali
+    if(!next){ CESTA_CELA = false; return cur; } // cesta ďalej neexistuje — zostaň, kde sme sa dostali
     cur = next.id;
   }
   return cur;
@@ -13293,8 +13334,13 @@ function idForPath(){
 }
 function initFromUrl(){
   let id = PATH_ROUTING ? idForPath() : null;
+  const cestaOk = !PATH_ROUTING || CESTA_CELA; // rozlúštila sa celá cesta z adresy?
   if(id === null && location.hash.indexOf('#/') === 0) id = idForHash(location.hash);
   curId = id;
+  // SEO: ak sa cesta z adresy nedala rozlúštiť celá (napr. sa nestihol načítať
+  // data.json), adresu NEPREPISUJ. Prepis na vyšší priečinok Google vyhodnotí
+  // ako „Stránka s presmerovaním" a stránku nezaindexuje.
+  if(PATH_ROUTING && !cestaOk) return;
   if(PATH_ROUTING){
     // #admin a podobné nehashovacie kotvy zachovaj, #/cestu zahoď (nahradí ju cesta)
     const keep = (location.hash && location.hash.indexOf('#/') !== 0) ? location.hash : '';
@@ -13329,7 +13375,11 @@ function getChildren(parentId){
   if(IS_EN && parentId !== null){
     const p = DB.nodes.find(n=>n.id===parentId);
     if(p && CONTINENTS_SK.has(p.name)){
-      arr = arr.slice().sort((a,b)=>nName(a).localeCompare(nName(b),'en'));
+      // pripnuté uzly ostávajú vpredu (podľa order), zvyšok abecedne po anglicky
+      const pinned = arr.filter(n=>PINNED_EN.has(n.id));
+      const rest = arr.filter(n=>!PINNED_EN.has(n.id))
+                      .sort((a,b)=>nName(a).localeCompare(nName(b),'en'));
+      arr = pinned.concat(rest);
     }
   }
   return arr;
@@ -13383,6 +13433,21 @@ function renderIcon(icon, flagSize){
     return `<img src="https://flagcdn.com/${s}/${icon}.png" style="border-radius:2px;vertical-align:middle;" alt="" loading="lazy"/>`;
   }
   return icon;
+}
+
+// Priečinok bez vlastnej ikony (napr. ligová súťaž) zdedí vlajku od najbližšieho
+// nadradeného priečinka, ktorý má kód krajiny. Vďaka tomu netreba pri každej
+// novej lige dopĺňať vlajku ručne. Ak je najbližšia ikona emoji (sekcie ako
+// Médiá, Ostatné športy), nededí sa nič — zostane pôvodný vzhľad.
+function nodeIcon(n){
+  if(!n) return '';
+  if(n.icon) return n.icon;
+  let p = DB.nodes.find(x => x.id === n.parentId), guard = 0;
+  while(p && guard++ < 12){
+    if(p.icon) return /^[a-z]{2}(-[a-z]{2,4})?$/.test(p.icon) ? p.icon : '';
+    p = DB.nodes.find(x => x.id === p.parentId);
+  }
+  return '';
 }
 
 // ============================================================
@@ -13440,7 +13505,7 @@ function renderBreadcrumb(){
 
   path.forEach(node => {
     html += `<span class="bc-sep">›</span>`;
-    html += `<span class="bc-item ${node.id===curId?'active':''}" onclick="navigate('${node.id}')">${renderIcon(node.icon,'16x12')} ${nName(node)}</span>`;
+    html += `<span class="bc-item ${node.id===curId?'active':''}" onclick="navigate('${node.id}')">${renderIcon(nodeIcon(node),'16x12')} ${nName(node)}</span>`;
   });
 
   bc.innerHTML = html;
@@ -13481,7 +13546,7 @@ function renderLevel(){
               <button class="ibtn" title="Upraviť" onclick="event.stopPropagation();openEdit('${n.id}')">✏️</button>
               <button class="ibtn d" title="Zmazať" onclick="event.stopPropagation();delNode('${n.id}')">🗑</button>
             </div>
-            <div class="c-icon">${renderIcon(n.icon,'40x30')||''}</div>
+            <div class="c-icon">${renderIcon(nodeIcon(n),'40x30')||''}</div>
             <div class="c-name">${nName(n)}</div>
             <div class="c-count">${cnt}</div>
             <div class="c-arrow">→</div>
@@ -13504,7 +13569,7 @@ function renderLevel(){
               <button class="ibtn" onclick="event.stopPropagation();openEdit('${n.id}')">✏️</button>
               <button class="ibtn d" onclick="event.stopPropagation();delNode('${n.id}')">🗑</button>
             </div>
-            <div class="cf-icon">${renderIcon(n.icon,'24x18')||''}</div>
+            <div class="cf-icon">${renderIcon(nodeIcon(n),'24x18')||''}</div>
             <div class="cf-info">
               <div class="cf-name">${nName(n)}</div>
               <div class="cf-count">${cnt}</div>
@@ -13532,7 +13597,7 @@ function renderLevel(){
           <a href="${n.url}" target="_blank" rel="noopener" title="${attrEsc(nDesc(n))}" ${adminMode?'onclick="return false"':''}>
             ${favHtml(n, host)}
             <div>
-              <div class="cl-name">${(n.icon && !SOCIAL_FAV.test(host) && !/^[a-z]{2}(-[a-z]{2,4})?$/.test(n.icon))?n.icon+' ':''}${nName(n)}</div>
+              <div class="cl-name">${(n.icon && !SOCIAL_FAV.test(host) && !NO_FAVICON_HOSTS.test(host) && !/^[a-z]{2}(-[a-z]{2,4})?$/.test(n.icon))?n.icon+' ':''}${nName(n)}</div>
               <div class="cl-desc">${nDesc(n)}</div>
             </div>
           </a>
@@ -13588,7 +13653,7 @@ function renderSearch(q){
     folders.forEach(n=>{
       const path = getPath(n.id).map(p=>nName(p)).join(' › ');
       html += `<div class="card-folder" onclick="navigate('${n.id}')">
-        <div class="cf-icon">${renderIcon(n.icon,'24x18')||''}</div>
+        <div class="cf-icon">${renderIcon(nodeIcon(n),'24x18')||''}</div>
         <div class="cf-info"><div class="cf-name">${nName(n)}</div><div class="cf-count sr-path">${path}</div></div>
         <div class="cf-arrow">›</div></div>`;
     });
@@ -13613,20 +13678,23 @@ function renderSearch(q){
 // ============================================================
 // FAVICON FALLBACK
 // ============================================================
-// Sociálne siete: ich favicona je logo siete (FB/IG…), nie federácie/klubu.
-// Pri týchto doménach faviconu nenačítavame — ukážeme ikonu linky
-// (kód krajiny "gh" → vlajka, alebo emoji), inak ikonu nadradeného priečinka.
-const SOCIAL_FAV = /(^|\.)(facebook\.com|fb\.com|instagram\.com|x\.com|twitter\.com|youtube\.com|youtu\.be|tiktok\.com)$/;
+// Sociálne siete a stránky bez vlastného webu klubu: ich favicona je logo
+// siete/federácie, nie klubu. Pri týchto doménach faviconu nenačítavame —
+// ukážeme vlastnú ikonu linky ak je nastavená, inak vždy jednotné 🔗
+// (NIE ikonu nadradeného priečinka — tá, napr. vlajka krajiny, by sa
+// v krajinách so slabou webovou pokrytosťou opakovala pri kope klubov
+// a pôsobila by zavádzajúco).
+const SOCIAL_FAV = /(^|\.)(facebook\.com|fb\.com|instagram\.com|x\.com|twitter\.com|youtube\.com|youtu\.be|tiktok\.com|wikipedia\.org)$/;
+const NO_FAVICON_HOSTS = /(^|\.)(vereine\.oefb\.at|vereine\.fussballoesterreich\.at)$/;
 function favHtml(n, host){
-  const parentIcon = DB.nodes.find(x=>x.id===n.parentId)?.icon || '🔗';
-  if(SOCIAL_FAV.test(host)){
-    return `<span class="fav-fb">${renderIcon(n.icon||parentIcon,'24x18')||'🔗'}</span>`;
+  if(SOCIAL_FAV.test(host) || NO_FAVICON_HOSTS.test(host)){
+    return `<span class="fav-fb">${renderIcon(n.icon,'24x18')||'🔗'}</span>`;
   }
-  return `<img class="fav" src="https://www.google.com/s2/favicons?domain=${host}&sz=64" alt="" loading="lazy" data-fallback="${n.icon||parentIcon}" onerror="favError(this)" onload="favLoaded(this)"/>`;
+  return `<img class="fav" src="https://www.google.com/s2/favicons?domain=${host}&sz=64" alt="" loading="lazy" data-fallback="${n.icon||''}" onerror="favError(this)" onload="favLoaded(this)"/>`;
 }
 function favError(img){
-  const fb = img.getAttribute('data-fallback')||'🔗';
-  // ak je náhradná ikona kód krajiny ("sk"), ukáž vlajku — nie text
+  const fb = img.getAttribute('data-fallback')||'';
+  // ak je náhradná ikona kód krajiny ("sk"), ukáž vlajku — inak jednotné 🔗
   img.outerHTML = `<span class="fav-fb">${renderIcon(fb,'24x18')||'🔗'}</span>`;
 }
 function favLoaded(img){
