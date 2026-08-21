@@ -456,6 +456,7 @@ footer{
   <span class="f-wordmark" onclick="navigate(null)" title="Domov"><span class="wm-w">ŠPORTOVÉ</span><span class="wm-r">LINKY</span><span class="wm-r">.</span></span>
   <span class="f-note">© 2026 · Všetky športové weby sveta na jednom mieste<br>
   Databáza liniek je chránená právom na ochranu databáz (smernica 96/9/ES). Jej kopírovanie alebo systematické vyťažovanie bez súhlasu prevádzkovateľa je zakázané.</span>
+
 </footer>
 
 <!-- ADMIN BAR -->
@@ -13156,8 +13157,22 @@ async function load(){
     }
     // prevzatie publikovaných dát (nič rozpracované, alebo web je novší)
     DB = published;
-    localStorage.setItem('sportStrom', JSON.stringify(DB));
-    localStorage.removeItem('sportStromDirty');
+    // POZOR — NEODSTRAŇOVAŤ TENTO try/catch:
+    // Safari na iPhone dáva stránke do pamäte len ~5 MB a naše dáta sú väčšie
+    // (reťazec sa navyše počíta po 2 bajtoch na znak). Uloženie tam vyhodí
+    // QuotaExceededError. Kým to nebolo ošetrené, chyba zhodila CELÝ štart
+    // appky — nevykreslili sa sekcie, pás Aktuálne ani bannery (20.8.2026).
+    // Uloženie je len pohodlie; čerstvé dáta máme zo servera, takže keď sa
+    // nezmestia, pamäť radšej vyprázdnime a pokračujeme.
+    try{
+      localStorage.setItem('sportStrom', JSON.stringify(DB));
+      localStorage.removeItem('sportStromDirty');
+    }catch(e){
+      try{
+        localStorage.removeItem('sportStrom');
+        localStorage.removeItem('sportStromDirty');
+      }catch(e2){}
+    }
     return;
   }
   // 2) Lokálne: localStorage / zapečené DEFAULT (pôvodné správanie)
@@ -13182,7 +13197,8 @@ async function load(){
         a.click();
       }
       DB = JSON.parse(JSON.stringify(DEFAULT));
-      localStorage.setItem('sportStrom', JSON.stringify(DB)); // poznač si novú verziu — okno sa už nezobrazí
+      // try/catch kvôli limitu pamäte v Safari — viď komentár vyššie
+      try{ localStorage.setItem('sportStrom', JSON.stringify(DB)); }catch(e){} // poznač si novú verziu — okno sa už nezobrazí
     }
   } else {
     DB = JSON.parse(JSON.stringify(DEFAULT));
@@ -13204,8 +13220,16 @@ function save(force){
       }
     }catch(e){}
   }
-  localStorage.setItem('sportStrom', JSON.stringify(DB));
-  localStorage.setItem('sportStromDirty', '1'); // rozpracované nezverejnené úpravy
+  // try/catch kvôli limitu pamäte prehliadača (Safari ~5 MB) — bez neho by
+  // chyba zhodila celú úpravu bez slova. Radšej to povedz nahlas.
+  try{
+    localStorage.setItem('sportStrom', JSON.stringify(DB));
+    localStorage.setItem('sportStromDirty', '1'); // rozpracované nezverejnené úpravy
+  }catch(e){
+    alert('POZOR: Prehliadač nedokázal odložiť dáta do pamäte — sú už príliš veľké.\n\n' +
+          'Úprava je v tomto okne, ale NEPREŽIJE obnovenie stránky.\n' +
+          'Hneď klikni na 🚀 Publikovať a stiahni si data.json.');
+  }
   updateVerBadge();
   return true;
 }
