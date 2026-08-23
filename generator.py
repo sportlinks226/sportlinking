@@ -88,7 +88,7 @@ CONTINENTS = {"Európa", "Ázia", "Afrika", "Južná Amerika", "Severná Amerika
 # VÝNIMKY z abecedného radenia v EN — priečinky, ktoré sa síce volajú ako kontinent,
 # ale ich obsah NIE SÚ krajiny (napr. Súťaže › Európa: poradie = úroveň súťaže).
 # MUSÍ zostať zhodné s NO_EN_ALPHA v sport-strom.html.
-NO_EN_ALPHA = {"f_bas_sut_eu"}
+NO_EN_ALPHA = {"f_bas_sut_eu", "f_bas_sut_oc"}
 
 # GoatCounter kód (oddelené štatistiky pre SK a EN web)
 GOAT = os.environ.get("GOAT_CODE", "sportlinky" if LANG == "sk" else "sportlinking")
