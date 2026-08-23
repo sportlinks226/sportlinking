@@ -85,6 +85,11 @@ ACCENT_HOVER = "#c73535" if LANG == "sk" else "#2f6bc4"
 CONTINENTS = {"Európa", "Ázia", "Afrika", "Južná Amerika", "Severná Amerika",
               "Severná a Stredná Amerika", "Oceánia", "Ázia & Oceánia"}
 
+# VÝNIMKY z abecedného radenia v EN — priečinky, ktoré sa síce volajú ako kontinent,
+# ale ich obsah NIE SÚ krajiny (napr. Súťaže › Európa: poradie = úroveň súťaže).
+# MUSÍ zostať zhodné s NO_EN_ALPHA v sport-strom.html.
+NO_EN_ALPHA = {"f_bas_sut_eu"}
+
 # GoatCounter kód (oddelené štatistiky pre SK a EN web)
 GOAT = os.environ.get("GOAT_CODE", "sportlinky" if LANG == "sk" else "sportlinking")
 
@@ -146,7 +151,8 @@ def build_tree(nodes: list):
         lst.sort(key=lambda x: x.get("order", 0))
         # EN: krajiny vnútri kontinentov podľa anglickej abecedy
         parent = by_id.get(pid)
-        if LANG == "en" and parent is not None and parent.get("name") in CONTINENTS:
+        if (LANG == "en" and parent is not None and pid not in NO_EN_ALPHA
+                and parent.get("name") in CONTINENTS):
             lst.sort(key=lambda x: node_name(x).lower())
     return children, by_id
 

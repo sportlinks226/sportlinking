@@ -13277,6 +13277,10 @@ const CONTINENTS_SK = new Set(["Európa","Ázia","Afrika","Južná Amerika",
 const PINNED_EN = new Set([
   "f_bas_klu_eu_esp","f_bas_klu_eu_ger","f_bas_klu_eu_ita","f_bas_klu_eu_fra"
 ]);
+// VÝNIMKY z abecedného radenia v EN — priečinky, ktoré sa síce volajú ako kontinent,
+// ale ich obsah NIE SÚ krajiny (napr. Súťaže › Európa: poradie = úroveň súťaže).
+// Uvádza sa ID priečinka, takže pravidlo platí aj pre linky pridané neskôr.
+const NO_EN_ALPHA = new Set(["f_bas_sut_eu"]);
 
 // ============================================================
 // NAVIGATION
@@ -13397,7 +13401,7 @@ function getChildren(parentId){
   let arr = DB.nodes.filter(n=>n.parentId===parentId);
   if(IS_EN) arr = arr.filter(n=>n.en!==false); // en:false — skryté na EN webe
   arr.sort((a,b)=>a.order-b.order);
-  if(IS_EN && parentId !== null){
+  if(IS_EN && parentId !== null && !NO_EN_ALPHA.has(parentId)){
     const p = DB.nodes.find(n=>n.id===parentId);
     if(p && CONTINENTS_SK.has(p.name)){
       // pripnuté uzly ostávajú vpredu (podľa order), zvyšok abecedne po anglicky
