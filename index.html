@@ -13281,6 +13281,10 @@ const PINNED_EN = new Set([
 // ale ich obsah NIE SÚ krajiny (napr. Súťaže › Európa: poradie = úroveň súťaže).
 // Uvádza sa ID priečinka, takže pravidlo platí aj pre linky pridané neskôr.
 const NO_EN_ALPHA = new Set(["f_bas_sut_eu", "f_bas_sut_oc", "f_bas_sut_na", "f_bas_sut_ja"]);
+// "Live This Week" — priečinok len pre anglický web (enOnly:true v dátach).
+// Nemá vlastné linky: obsah mu naživo dodáva pole DB.aktualne, čiže tie isté
+// linky, ktoré sú v lište na domovskej stránke. MUSÍ sedieť s LIVE_ID v generator.py.
+const LIVE_ID = "f_ltw";
 
 // ============================================================
 // NAVIGATION
@@ -13397,9 +13401,23 @@ window.addEventListener('popstate', function(e){
   navigate(id, true);
 });
 
+function liveWeekLinks(){
+  // Aktuálne linky ako bežné uzly typu link. Nikde sa neukladajú — vznikajú
+  // pri každom prekreslení, takže priečinok je vždy zhodný s lištou.
+  const now = Date.now();
+  return (DB.aktualne||[])
+    .filter(a=>!(a.endsAt && now > new Date(a.endsAt+'T23:59:59').getTime()))
+    .map((a,i)=>({id:'akt_'+i, type:'link', parentId:LIVE_ID, url:a.url,
+                  name:a.name, name_en:a.name_en||a.name,
+                  icon:a.icon||'', desc:'', desc_en:'', order:i}));
+}
 function getChildren(parentId){
+  // Live This Week sa napĺňa z Aktuálnych; v admine ostáva prázdny, aby sa
+  // doň omylom nedali pridávať vlastné linky.
+  if(IS_EN && parentId===LIVE_ID && !adminMode) return liveWeekLinks();
   let arr = DB.nodes.filter(n=>n.parentId===parentId);
-  if(IS_EN) arr = arr.filter(n=>n.en!==false); // en:false — skryté na EN webe
+  if(IS_EN) arr = arr.filter(n=>n.en!==false);      // en:false — skryté na EN webe
+  else if(!adminMode) arr = arr.filter(n=>!n.enOnly); // enOnly:true — len EN web (v admine vidno)
   arr.sort((a,b)=>a.order-b.order);
   if(IS_EN && parentId !== null && !NO_EN_ALPHA.has(parentId)){
     const p = DB.nodes.find(n=>n.id===parentId);

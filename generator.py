@@ -72,7 +72,7 @@ UI = {
         "open_app": "Open in the interactive app",
         "meta_folder": "{name} — sports links: {nfold} subcategories, {nlink} links.",
         "footer": "A clear directory of sports websites. The link database is protected by database rights (Directive 96/9/EC); copying or systematic extraction without the operator's consent is prohibited.",
-        "aktualne": "Trending",
+        "aktualne": "Live this week",
     },
 }
 T = UI[LANG]
@@ -89,6 +89,12 @@ CONTINENTS = {"Európa", "Ázia", "Afrika", "Južná Amerika", "Severná Amerika
 # ale ich obsah NIE SÚ krajiny (napr. Súťaže › Európa: poradie = úroveň súťaže).
 # MUSÍ zostať zhodné s NO_EN_ALPHA v sport-strom.html.
 NO_EN_ALPHA = {"f_bas_sut_eu", "f_bas_sut_oc", "f_bas_sut_na", "f_bas_sut_ja"}
+
+# "Live This Week" — priečinok, ktorý existuje LEN na anglickom webe (enOnly:true)
+# a nemá vlastné linky: napĺňa sa naživo z poľa "aktualne" (tie isté linky, aké
+# sú v lište na domovskej stránke). Skončené udalosti sa pri builde vynechajú.
+# MUSÍ zostať zhodné s LIVE_ID v sport-strom.html.
+LIVE_ID = "f_ltw"
 
 # GoatCounter kód (oddelené štatistiky pre SK a EN web)
 GOAT = os.environ.get("GOAT_CODE", "sportlinky" if LANG == "sk" else "sportlinking")
@@ -125,8 +131,33 @@ def node_name(node: dict) -> str:
 
 
 def visible(node: dict) -> bool:
-    """en:false skryje uzol (aj s podstromom) na anglickom webe."""
-    return LANG == "sk" or node.get("en") is not False
+    """en:false skryje uzol (aj s podstromom) na anglickom webe.
+    enOnly:true je opak — uzol sa ukáže LEN na anglickom webe."""
+    if LANG == "sk":
+        return node.get("enOnly") is not True
+    return node.get("en") is not False
+
+
+def live_week_links(aktualne: list) -> list:
+    """Z poľa "aktualne" vyrobí linky pre priečinok Live This Week.
+    Sú to bežné uzly typu link, len nie sú uložené v data.json — vznikajú
+    pri každom builde nanovo, takže sekcia je vždy taká čerstvá ako lišta."""
+    today = date.today().isoformat()
+    out = []
+    for i, a in enumerate(aktualne):
+        if a.get("endsAt") and today > a["endsAt"]:
+            continue          # skončená udalosť sa na stránku nedostane
+        out.append({
+            "id": "akt_%d" % i,
+            "type": "link",
+            "parentId": LIVE_ID,
+            "name": a.get("name", ""),
+            "name_en": a.get("name_en") or a.get("name", ""),
+            "url": a.get("url", ""),
+            "icon": a.get("icon", "") or "",
+            "order": i,
+        })
+    return out
 
 
 def load_data(path: str) -> dict:
@@ -314,12 +345,12 @@ function __dyn(){
     }
     showSlot("bslot",1);
     showSlot("bslot2",2);
-    var ak=(d.aktualne||[]).filter(function(a){return (a.lang||"sk")==="__LANG__"&&!(a.endsAt&&today>a.endsAt)});
+    var ak=(d.aktualne||[]).filter(function(a){return !(a.endsAt&&today>a.endsAt)});
     if(ak.length){
       var el2=document.getElementById("akt");
       el2.hidden=false;
       el2.innerHTML='<span class="lbl">__AKT_LABEL__</span>'+ak.map(function(a){
-        return '<a href="'+a.url+'" target="_blank" rel="noopener">'+(a.icon?a.icon+" ":"")+a.name+'</a>';
+        return '<a href="'+a.url+'" target="_blank" rel="noopener">'+(a.icon?a.icon+" ":"")+(("__LANG__"==="en"&&a.name_en)?a.name_en:a.name)+'</a>';
       }).join("");
     }
   }).catch(function(e){});
@@ -513,6 +544,13 @@ def main():
         site_title = data.get("title", "Športové Linky")
     nodes = data.get("nodes", [])
     children, by_id = build_tree(nodes)
+
+    # Live This Week (len EN): priečinok je v dátach prázdny, obsah mu dodá
+    # pole "aktualne". Musí sa to stať TU — pred kontrolou prázdnych priečinkov
+    # aj pred sitemapou, aby stránka vôbec vznikla.
+    if LANG == "en" and LIVE_ID in by_id:
+        children[LIVE_ID] = live_week_links(data.get("aktualne", []))
+
     paths = folder_paths(children)
 
     # POISTKA: stránku dostanú len priečinky s aspoň 1 linkou v podstrome.
@@ -594,7 +632,7 @@ def main():
                     ('Naviguj sa cez kategórie', 'Navigate through the categories'),
                     ('🔍  Hľadaj kdekoľvek v strome...', '🔍  Search anywhere in the tree...'),
                     ('animation:pulse 1.5s infinite"></span>\n      Aktuálne',
-                     'animation:pulse 1.5s infinite"></span>\n      Trending'),
+                     'animation:pulse 1.5s infinite"></span>\n      Live this week'),
                     ('© 2026 · Všetky športové weby sveta na jednom mieste<br>\n  Databáza liniek je chránená právom na ochranu databáz (smernica 96/9/ES). Jej kopírovanie alebo systematické vyťažovanie bez súhlasu prevádzkovateľa je zakázané.',
                      '© 2026 · All the world\'s sports websites in one place<br>\n  The link database is protected by database rights (Directive 96/9/EC). Copying or systematic extraction without the operator\'s consent is prohibited.'),
                     ('https://sportlinky.goatcounter.com/count',
