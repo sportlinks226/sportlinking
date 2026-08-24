@@ -1,9 +1,18 @@
 {
-  "version": 159,
+  "version": 168,
   "passwordHash": "3a2e92ef4684bc7a5644ebbd47b4b65b428a40f01e7a5e9b7abaaa6f7207f0f6",
   "title": "Športové Linky",
   "subtitle": "Naviguj sa cez kategórie",
   "aktualne": [
+    {
+      "id": "a1787566310663",
+      "icon": "🎖️",
+      "name": "Stredomorské hry",
+      "url": "https://taranto2026.microplustimingservices.com/#/general-schedule?lang=en",
+      "endsAt": "2026-09-03",
+      "addedAt": 1787566310663,
+      "name_en": "Mediterranean games"
+    },
     {
       "id": "a1787231185844",
       "icon": "🚴",
@@ -12,15 +21,6 @@
       "endsAt": "2026-09-13",
       "addedAt": 1787231185844,
       "name_en": "La Vuelta"
-    },
-    {
-      "id": "a1787229030927",
-      "icon": "🏎️",
-      "name": "F1 VC Holandska",
-      "url": "https://www.dutchgp.com/en/",
-      "endsAt": "2026-08-23",
-      "addedAt": 1787229030927,
-      "name_en": "F1 Dutch GP"
     },
     {
       "id": "a1787232192049",
@@ -32,29 +32,29 @@
       "name_en": "Field hockey WCH"
     },
     {
-      "id": "a1787232326604",
-      "icon": "🏸",
-      "name": "Badminton MS",
-      "url": "https://bwfworldchampionships.bwfbadminton.com/results/5601/bwf-world-championships-2026/2026-08-20",
-      "endsAt": "2026-08-23",
-      "addedAt": 1787232326604,
-      "name_en": "Badminton WCH"
+      "id": "a1787575260335",
+      "icon": "🚣",
+      "name": "Veslovanie MS",
+      "url": "https://worldrowing.com/event/2026-world-rowing-championships/",
+      "endsAt": "2026-08-30",
+      "addedAt": 1787575260335,
+      "name_en": "Rowing WCH"
     },
     {
-      "id": "a1787231023180",
-      "icon": "🏃",
-      "name": "Diamantová liga",
-      "url": "https://lausanne.diamondleague.com/programme-results/",
-      "endsAt": "2026-08-21",
-      "addedAt": 1787231023180,
-      "name_en": "Diamond league"
+      "id": "a1787566429432",
+      "icon": "⚽",
+      "name": "Liga Majstrov",
+      "url": "https://www.uefa.com/uefachampionsleague/",
+      "endsAt": "2026-08-27",
+      "addedAt": 1787566429432,
+      "name_en": "Champions league"
     },
     {
       "id": "a1784634663367",
       "icon": "⚽",
       "name": "Európska liga",
       "url": "https://www.uefa.com/uefaeuropaleague/",
-      "endsAt": "2026-08-20",
+      "endsAt": "2026-08-27",
       "addedAt": 1784634663367,
       "name_en": "European league"
     },
@@ -63,7 +63,7 @@
       "icon": "⚽",
       "name": "Konferenčná liga",
       "url": "https://www.uefa.com/uefaconferenceleague/",
-      "endsAt": "2026-08-20",
+      "endsAt": "2026-08-27",
       "addedAt": 1784634702063,
       "name_en": "Conference league"
     },
@@ -84,12 +84,28 @@
       "addedAt": 1784539153202
     },
     {
-      "id": "a1783874074020",
+      "id": "a1787566609331",
       "icon": "🎾",
-      "name": "ATP Cincinnati",
-      "url": "https://cincinnatiopen.com/",
-      "endsAt": "2026-08-23",
-      "addedAt": 1783874074020
+      "name": "US Open",
+      "url": "https://www.usopen.org/en_US/scores/index.html",
+      "endsAt": "2026-09-13",
+      "addedAt": 1787566609331
+    },
+    {
+      "id": "a1787566668793",
+      "icon": "🎾",
+      "name": "ATP Winston Salem",
+      "url": "https://www.winstonsalemopen.com/en",
+      "endsAt": "2026-08-30",
+      "addedAt": 1787566668793
+    },
+    {
+      "id": "a1787566720239",
+      "icon": "🎾",
+      "name": "WTA Monterrey",
+      "url": "https://www.wtatennis.com/tournaments/1039/monterrey/2026",
+      "endsAt": "2026-08-30",
+      "addedAt": 1787566720239
     },
     {
       "id": "a1784541154016",
@@ -98,42 +114,6 @@
       "url": "https://www.wnba.com/",
       "endsAt": "",
       "addedAt": 1784541154016
-    },
-    {
-      "id": "a1786310493274",
-      "icon": "🏀",
-      "name": "Basketbal ME U16 ženy div.B",
-      "url": "https://www.fiba.basketball/en/events/fiba-u16-womens-eurobasket-2026-division-b",
-      "endsAt": "2026-08-23",
-      "addedAt": 1786310493274,
-      "name_en": "Basketball ECH U16 women div.B"
-    },
-    {
-      "id": "a1786310669306",
-      "icon": "🏀",
-      "name": "Basketbal Asia cup U18 muži",
-      "url": "https://www.fiba.basketball/en/events/fiba-u18-asia-cup-2026",
-      "endsAt": "2026-08-23",
-      "addedAt": 1786310669307,
-      "name_en": "Basketball Asia cup U18 men"
-    },
-    {
-      "id": "a1787229212111",
-      "icon": "🏀",
-      "name": "OH kvalifikácia ženy",
-      "url": "https://www.fiba.basketball/en/events/fiba-womens-olympic-pre-qualifying-tournament-2026-guadalajara-mexico",
-      "endsAt": "2026-08-23",
-      "addedAt": 1787229212111,
-      "name_en": "OG quali women"
-    },
-    {
-      "id": "a1787229661208",
-      "icon": "🏐",
-      "name": "NORCECA ženy",
-      "url": "https://norceca.net/2026%20Competition%20&%20Activities/NORCECA%20Continental%20Championship%202026/Women/2026-%20Women%20Continental%20Championship.htm",
-      "endsAt": "2026-08-30",
-      "addedAt": 1787229661208,
-      "name_en": "NORCECA women"
     },
     {
       "id": "a1787232089997",
@@ -145,48 +125,47 @@
       "name_en": "Volleyball women ECH"
     },
     {
+      "id": "a1787584810061",
+      "icon": "🏐",
+      "name": "Volejbal MS U17 muží",
+      "url": "https://en.volleyballworld.com/volleyball/competitions/boys-u17-world-championship",
+      "endsAt": "2026-09-06",
+      "addedAt": 1787584810061,
+      "name_en": "Volleball U17 WCH men"
+    },
+    {
+      "id": "a1787576593112",
+      "icon": "🏐",
+      "name": "NORCECA Final 6 muži",
+      "url": "https://norceca.info/event/2026-norceca-mens-final-six/",
+      "endsAt": "",
+      "addedAt": 1787576593112,
+      "name_en": "NORCECA Final 6 men"
+    },
+    {
+      "id": "a1787229661208",
+      "icon": "🏐",
+      "name": "NORCECA ženy",
+      "url": "https://norceca.net/2026%20Competition%20&%20Activities/NORCECA%20Continental%20Championship%202026/Women/2026-%20Women%20Continental%20Championship.htm",
+      "endsAt": "2026-08-30",
+      "addedAt": 1787229661208,
+      "name_en": "NORCECA women"
+    },
+    {
+      "id": "a1787575368226",
+      "icon": "🎱",
+      "name": "Snooker Wuhan open",
+      "url": "https://www.wst.tv/matches",
+      "endsAt": "2026-08-30",
+      "addedAt": 1787575368226
+    },
+    {
       "id": "a1785147664719",
       "icon": "🏓",
       "name": "TT Star series",
       "url": "https://ttstar.cz/en/results/",
       "endsAt": "",
       "addedAt": 1785147664719
-    },
-    {
-      "id": "a1786311663283",
-      "icon": "⛳",
-      "name": "PGA BMW Championship",
-      "url": "https://bmwchampionship.com/",
-      "endsAt": "2026-08-23",
-      "addedAt": 1786311663283,
-      "name_en": "PGA Golf Fedex Championship"
-    },
-    {
-      "id": "a1786311772902",
-      "icon": "⛳",
-      "name": "LPGA CPKC open",
-      "url": "https://www.cpkcwomensopen.com/",
-      "endsAt": "2026-08-23",
-      "addedAt": 1786311772902,
-      "name_en": "LPGA Golf Portland Classic"
-    },
-    {
-      "id": "a1786309279414",
-      "icon": "🏇",
-      "name": "Jazdectvo MS",
-      "url": "https://www.aachen2026.com/",
-      "endsAt": "2026-08-23",
-      "addedAt": 1786309279414,
-      "name_en": "Equestrian WCH"
-    },
-    {
-      "id": "a1786310916664",
-      "icon": "♟️",
-      "name": "Šachy Sinquefield cup",
-      "url": "https://grandchesstour.org/tours/2026/tournaments/2026-sinquefield-cup/",
-      "endsAt": "2026-08-22",
-      "addedAt": 1786310916664,
-      "name_en": "Chess Sinquefield cup"
     },
     {
       "id": "a1784541193793",
@@ -203,6 +182,15 @@
       "url": "https://www.nfl.com/schedules",
       "endsAt": "2026-08-30",
       "addedAt": 1787231762400
+    },
+    {
+      "id": "a1787576719374",
+      "icon": "🏃",
+      "name": "Diamantová liga Zurich",
+      "url": "https://zurich.diamondleague.com/en/programme-results/",
+      "endsAt": "2026-08-30",
+      "addedAt": 1787576719374,
+      "name_en": "Diamond league Zurich"
     }
   ],
   "banners": [
@@ -406,11 +394,12 @@
       "type": "folder",
       "icon": "🏀",
       "name": "Kluby",
-      "desc": "",
+      "desc": "Weby basketbalových klubov — NBA, WNBA a NCAA, európske ligy a juhoamerické súťaže",
       "order": 1,
       "slug": "kluby",
       "name_en": "Clubs",
-      "slug_en": "clubs"
+      "slug_en": "clubs",
+      "desc_en": "Basketball club websites — the NBA, WNBA and NCAA, European leagues and South American competitions"
     },
     {
       "id": "f_bas_aso",
@@ -431,11 +420,12 @@
       "type": "folder",
       "icon": "🏀",
       "name": "Správy a Štatistiky",
-      "desc": "",
+      "desc": "Basketbalové štatistiky a spravodajstvo — Basketball-Reference, NBA Advanced Stats, Eurohoops a ďalšie",
       "order": 3,
       "slug": "spravy-a-statistiky",
       "name_en": "News & Statistics",
-      "slug_en": "news-statistics"
+      "slug_en": "news-statistics",
+      "desc_en": "Basketball statistics and news — Basketball-Reference, NBA Advanced Stats, Eurohoops and more"
     },
     {
       "id": "f_had",
@@ -1038,11 +1028,12 @@
       "type": "folder",
       "icon": "🏆",
       "name": "Súťaže",
-      "desc": "",
+      "desc": "Futbalové súťaže sveta — MS a ME, Liga majstrov, kontinentálne poháre a národné ligy podľa kontinentov",
       "order": 0,
       "slug": "sutaze",
       "name_en": "Competitions",
-      "slug_en": "competitions"
+      "slug_en": "competitions",
+      "desc_en": "World football competitions — the World Cup and Euros, the Champions League, continental cups and national leagues by continent"
     },
     {
       "id": "f_fut_klu",
@@ -1050,11 +1041,12 @@
       "type": "folder",
       "icon": "👕",
       "name": "Kluby",
-      "desc": "",
+      "desc": "Weby futbalových klubov z celého sveta — vyše 200 krajín od Anglicka a Španielska po najmenšie ostrovné ligy",
       "order": 1,
       "slug": "kluby",
       "name_en": "Clubs",
-      "slug_en": "clubs"
+      "slug_en": "clubs",
+      "desc_en": "Football club websites from around the world — over 200 countries, from England and Spain to the smallest island leagues"
     },
     {
       "id": "f_fut_aso",
@@ -1179,11 +1171,12 @@
       "type": "folder",
       "icon": "⚽",
       "name": "Európa",
-      "desc": "",
+      "desc": "Európske futbalové kluby z 54 krajín — Premier League, La Liga, Bundesliga, Serie A aj menšie národné ligy",
       "order": 0,
       "slug": "europa",
       "name_en": "Europe",
-      "slug_en": "europe"
+      "slug_en": "europe",
+      "desc_en": "European football clubs from 54 countries — the Premier League, La Liga, Bundesliga, Serie A and smaller national leagues"
     },
     {
       "id": "f_fut_klu_na",
@@ -1191,11 +1184,12 @@
       "type": "folder",
       "icon": "⚽",
       "name": "Severná a Stredná Amerika",
-      "desc": "",
+      "desc": "Futbalové kluby Severnej Ameriky a Karibiku — MLS, Liga MX a ligy 41 krajín regiónu",
       "order": 4,
       "slug": "severna-a-stredna-amerika",
       "name_en": "North & Central America",
-      "slug_en": "north-central-america"
+      "slug_en": "north-central-america",
+      "desc_en": "Football clubs of North America and the Caribbean — MLS, Liga MX and the leagues of 41 countries"
     },
     {
       "id": "f_fut_klu_ja",
@@ -1203,11 +1197,12 @@
       "type": "folder",
       "icon": "⚽",
       "name": "Južná Amerika",
-      "desc": "",
+      "desc": "Juhoamerické futbalové kluby — brazílska Série A, argentínska Liga Profesional a ligy všetkých 10 krajín",
       "order": 2,
       "slug": "juzna-amerika",
       "name_en": "South America",
-      "slug_en": "south-america"
+      "slug_en": "south-america",
+      "desc_en": "South American football clubs — Brazil's Série A, Argentina's Liga Profesional and the leagues of all 10 countries"
     },
     {
       "id": "f_fut_klu_af",
@@ -1215,11 +1210,12 @@
       "type": "folder",
       "icon": "⚽",
       "name": "Afrika",
-      "desc": "",
+      "desc": "Africké futbalové kluby z 51 krajín — egyptská Premier League, marocká Botola, juhoafrická Betway Premiership a ďalšie",
       "order": 3,
       "slug": "afrika",
       "name_en": "Africa",
-      "slug_en": "africa"
+      "slug_en": "africa",
+      "desc_en": "African football clubs from 51 countries — the Egyptian Premier League, Morocco's Botola, South Africa's Betway Premiership and more"
     },
     {
       "id": "f_fut_klu_az",
@@ -1227,11 +1223,12 @@
       "type": "folder",
       "icon": "⚽",
       "name": "Ázia",
-      "desc": "",
+      "desc": "Ázijské futbalové kluby z 39 krajín — japonská J.League, Saudi Pro League, kórejská K League a ďalšie",
       "order": 1,
       "slug": "azia",
       "name_en": "Asia",
-      "slug_en": "asia"
+      "slug_en": "asia",
+      "desc_en": "Asian football clubs from 39 countries — Japan's J.League, the Saudi Pro League, Korea's K League and more"
     },
     {
       "id": "f_fut_klu_oc",
@@ -1239,11 +1236,12 @@
       "type": "folder",
       "icon": "⚽",
       "name": "Oceánia",
-      "desc": "",
+      "desc": "Futbalové kluby Oceánie — novozélandská národná liga a súťaže tichomorských ostrovov",
       "order": 5,
       "slug": "oceania",
       "name_en": "Oceania",
-      "slug_en": "oceania"
+      "slug_en": "oceania",
+      "desc_en": "Football clubs of Oceania — the New Zealand national league and Pacific island competitions"
     },
     {
       "id": "f_fut_aso_gl",
@@ -11864,11 +11862,12 @@
       "type": "folder",
       "icon": "ar",
       "name": "Argentína",
-      "desc": "",
+      "desc": "Argentínske športové médiá — Olé, TyC Sports a veľké denníky",
       "order": 0,
       "slug": "argentina",
       "name_en": "Argentina",
-      "slug_en": "argentina"
+      "slug_en": "argentina",
+      "desc_en": "Argentine sports media — Olé, TyC Sports and major dailies"
     },
     {
       "id": "f_med_ja_bo",
@@ -11888,11 +11887,12 @@
       "type": "folder",
       "icon": "br",
       "name": "Brazília",
-      "desc": "",
+      "desc": "Brazílske športové médiá — Globo Esporte, Lance a UOL",
       "order": 1,
       "slug": "brazilia",
       "name_en": "Brazil",
-      "slug_en": "brazil"
+      "slug_en": "brazil",
+      "desc_en": "Brazilian sports media — Globo Esporte, Lance and UOL"
     },
     {
       "id": "f_med_ja_cl",
@@ -12865,11 +12865,12 @@
       "type": "folder",
       "icon": "lb",
       "name": "Libanon",
-      "desc": "",
+      "desc": "Libanonské športové médiá — televízie, denníky a portály",
       "order": 20,
       "slug": "libanon",
       "name_en": "Lebanon",
-      "slug_en": "lebanon"
+      "slug_en": "lebanon",
+      "desc_en": "Lebanese sports media — TV channels, dailies and portals"
     },
     {
       "id": "f_med_as_my",
@@ -12877,11 +12878,12 @@
       "type": "folder",
       "icon": "my",
       "name": "Malajzia",
-      "desc": "",
+      "desc": "Malajzijské športové médiá — futbal, Astro a národné denníky",
       "order": 21,
       "slug": "malajzia",
       "name_en": "Malaysia",
-      "slug_en": "malaysia"
+      "slug_en": "malaysia",
+      "desc_en": "Malaysian sports media — football, Astro and national dailies"
     },
     {
       "id": "f_med_as_mv",
@@ -12889,11 +12891,12 @@
       "type": "folder",
       "icon": "mv",
       "name": "Maldivy",
-      "desc": "",
+      "desc": "Maldivské športové médiá a spravodajské portály",
       "order": 22,
       "slug": "maldivy",
       "name_en": "Maldives",
-      "slug_en": "maldives"
+      "slug_en": "maldives",
+      "desc_en": "Maldivian sports media and news portals"
     },
     {
       "id": "f_med_as_mm",
@@ -12901,11 +12904,12 @@
       "type": "folder",
       "icon": "mm",
       "name": "Mjanmarsko",
-      "desc": "",
+      "desc": "Mjanmarské športové médiá — futbalová liga a denníky",
       "order": 23,
       "slug": "mjanmarsko",
       "name_en": "Myanmar",
-      "slug_en": "myanmar"
+      "slug_en": "myanmar",
+      "desc_en": "Myanmar sports media — the football league and dailies"
     },
     {
       "id": "f_med_as_mn",
@@ -12913,11 +12917,12 @@
       "type": "folder",
       "icon": "mn",
       "name": "Mongolsko",
-      "desc": "",
+      "desc": "Mongolské športové portály, televízie a denníky",
       "order": 24,
       "slug": "mongolsko",
       "name_en": "Mongolia",
-      "slug_en": "mongolia"
+      "slug_en": "mongolia",
+      "desc_en": "Mongolian sports portals, TV channels and dailies"
     },
     {
       "id": "f_med_as_np",
@@ -12925,11 +12930,12 @@
       "type": "folder",
       "icon": "np",
       "name": "Nepál",
-      "desc": "",
+      "desc": "Nepálske športové médiá — futbal, kriket a denníky",
       "order": 25,
       "slug": "nepal",
       "name_en": "Nepal",
-      "slug_en": "nepal"
+      "slug_en": "nepal",
+      "desc_en": "Nepali sports media — football, cricket and dailies"
     },
     {
       "id": "f_med_as_om",
@@ -12937,11 +12943,12 @@
       "type": "folder",
       "icon": "om",
       "name": "Omán",
-      "desc": "",
+      "desc": "Ománske športové médiá — futbal, kriket a denníky",
       "order": 26,
       "slug": "oman",
       "name_en": "Oman",
-      "slug_en": "oman"
+      "slug_en": "oman",
+      "desc_en": "Omani sports media — football, cricket and dailies"
     },
     {
       "id": "f_med_as_pk",
@@ -12949,10 +12956,11 @@
       "type": "folder",
       "icon": "pk",
       "name": "Pakistan",
-      "desc": "",
+      "desc": "Pakistanské športové médiá — kriket, Geo Super a denníky",
       "order": 27,
       "slug": "pakistan",
-      "slug_en": "pakistan"
+      "slug_en": "pakistan",
+      "desc_en": "Pakistani sports media — cricket, Geo Super and dailies"
     },
     {
       "id": "f_med_as_ps",
@@ -12960,11 +12968,12 @@
       "type": "folder",
       "icon": "ps",
       "name": "Palestína",
-      "desc": "",
+      "desc": "Palestínske športové portály a denníky",
       "order": 28,
       "slug": "palestina",
       "name_en": "Palestine",
-      "slug_en": "palestine"
+      "slug_en": "palestine",
+      "desc_en": "Palestinian sports portals and dailies"
     },
     {
       "id": "f_med_as_sa",
@@ -12972,11 +12981,12 @@
       "type": "folder",
       "icon": "sa",
       "name": "Saudská Arábia",
-      "desc": "",
+      "desc": "Saudské športové médiá — Saudi Pro League, Arriyadiyah a denníky",
       "order": 29,
       "slug": "saudska-arabia",
       "name_en": "Saudi Arabia",
-      "slug_en": "saudi-arabia"
+      "slug_en": "saudi-arabia",
+      "desc_en": "Saudi sports media — the Saudi Pro League, Arriyadiyah and dailies"
     },
     {
       "id": "f_med_as_sg",
@@ -12984,11 +12994,12 @@
       "type": "folder",
       "icon": "sg",
       "name": "Singapur",
-      "desc": "",
+      "desc": "Singapurské športové médiá — Straits Times, SPL a viacjazyčné denníky",
       "order": 30,
       "slug": "singapur",
       "name_en": "Singapore",
-      "slug_en": "singapore"
+      "slug_en": "singapore",
+      "desc_en": "Singaporean sports media — The Straits Times, the SPL and multilingual dailies"
     },
     {
       "id": "f_med_as_lk",
@@ -12996,11 +13007,12 @@
       "type": "folder",
       "icon": "lk",
       "name": "Srí Lanka",
-      "desc": "",
+      "desc": "Srílanské športové médiá — kriket, ThePapare a denníky",
       "order": 31,
       "slug": "sri-lanka",
       "name_en": "Sri Lanka",
-      "slug_en": "sri-lanka"
+      "slug_en": "sri-lanka",
+      "desc_en": "Sri Lankan sports media — cricket, ThePapare and dailies"
     },
     {
       "id": "f_med_as_sy",
@@ -13008,11 +13020,12 @@
       "type": "folder",
       "icon": "sy",
       "name": "Sýria",
-      "desc": "",
+      "desc": "Sýrske športové médiá — tlačové agentúry a denníky",
       "order": 32,
       "slug": "syria",
       "name_en": "Syria",
-      "slug_en": "syria"
+      "slug_en": "syria",
+      "desc_en": "Syrian sports media — news agencies and dailies"
     },
     {
       "id": "f_med_as_tj",
@@ -13020,11 +13033,12 @@
       "type": "folder",
       "icon": "tj",
       "name": "Tadžikistan",
-      "desc": "",
+      "desc": "Tadžické športové médiá — Varzish TV a spravodajské portály",
       "order": 33,
       "slug": "tadzikistan",
       "name_en": "Tajikistan",
-      "slug_en": "tajikistan"
+      "slug_en": "tajikistan",
+      "desc_en": "Tajik sports media — Varzish TV and news portals"
     },
     {
       "id": "f_med_as_tw",
@@ -13032,10 +13046,11 @@
       "type": "folder",
       "icon": "tw",
       "name": "Taiwan",
-      "desc": "",
+      "desc": "Taiwanské športové médiá — bejzbal CPBL, basketbal a portály",
       "order": 34,
       "slug": "taiwan",
-      "slug_en": "taiwan"
+      "slug_en": "taiwan",
+      "desc_en": "Taiwanese sports media — CPBL baseball, basketball and portals"
     },
     {
       "id": "f_med_as_th",
@@ -13043,11 +13058,12 @@
       "type": "folder",
       "icon": "th",
       "name": "Thajsko",
-      "desc": "",
+      "desc": "Thajské športové médiá — Siam Sport, Thai League a denníky",
       "order": 35,
       "slug": "thajsko",
       "name_en": "Thailand",
-      "slug_en": "thailand"
+      "slug_en": "thailand",
+      "desc_en": "Thai sports media — Siam Sport, the Thai League and dailies"
     },
     {
       "id": "f_med_as_tm",
@@ -13055,11 +13071,12 @@
       "type": "folder",
       "icon": "tm",
       "name": "Turkménsko",
-      "desc": "",
+      "desc": "Turkménske športové rubriky spravodajských portálov",
       "order": 36,
       "slug": "turkmensko",
       "name_en": "Turkmenistan",
-      "slug_en": "turkmenistan"
+      "slug_en": "turkmenistan",
+      "desc_en": "Turkmen sports sections of news portals"
     },
     {
       "id": "f_med_as_ae",
@@ -13067,11 +13084,12 @@
       "type": "folder",
       "icon": "ae",
       "name": "SAE",
-      "desc": "",
+      "desc": "Emirátske športové médiá — Sport360, Dubai Sports a denníky",
       "order": 37,
       "slug": "spojene-arabske-emiraty",
       "name_en": "United Arab Emirates",
-      "slug_en": "united-arab-emirates"
+      "slug_en": "united-arab-emirates",
+      "desc_en": "Emirati sports media — Sport360, Dubai Sports and dailies"
     },
     {
       "id": "f_med_as_uz",
@@ -13079,10 +13097,11 @@
       "type": "folder",
       "icon": "uz",
       "name": "Uzbekistan",
-      "desc": "",
+      "desc": "Uzbecké športové portály — futbalová liga PFL a spravodajstvo",
       "order": 38,
       "slug": "uzbekistan",
-      "slug_en": "uzbekistan"
+      "slug_en": "uzbekistan",
+      "desc_en": "Uzbek sports portals — the PFL football league and news"
     },
     {
       "id": "f_med_as_vn",
@@ -13090,10 +13109,11 @@
       "type": "folder",
       "icon": "vn",
       "name": "Vietnam",
-      "desc": "",
+      "desc": "Vietnamské športové médiá — futbal, portály a denníky",
       "order": 39,
       "slug": "vietnam",
-      "slug_en": "vietnam"
+      "slug_en": "vietnam",
+      "desc_en": "Vietnamese sports media — football, portals and dailies"
     },
     {
       "id": "f_med_as_tl",
@@ -13101,11 +13121,12 @@
       "type": "folder",
       "icon": "tl",
       "name": "Východný Timor",
-      "desc": "",
+      "desc": "Východotimorské športové rubriky médií",
       "order": 40,
       "slug": "vychodny-timor",
       "name_en": "East Timor",
-      "slug_en": "east-timor"
+      "slug_en": "east-timor",
+      "desc_en": "East Timorese sports sections of news media"
     },
     {
       "id": "f_med_as_ye",
@@ -13113,11 +13134,12 @@
       "type": "folder",
       "icon": "ye",
       "name": "Jemen",
-      "desc": "",
+      "desc": "Jemenské športové médiá — televízie a denníky",
       "order": 41,
       "slug": "jemen",
       "name_en": "Yemen",
-      "slug_en": "yemen"
+      "slug_en": "yemen",
+      "desc_en": "Yemeni sports media — TV channels and dailies"
     },
     {
       "id": "f_med_oc_as",
@@ -58589,10 +58611,11 @@
       "type": "folder",
       "icon": "ar",
       "name": "Liga Profesional (Primera División)",
-      "desc": "",
+      "desc": "Najvyššia argentínska súťaž — 30 klubov vrátane Boca Juniors a River Plate, hrá sa v kalendárnom roku.",
       "order": 0,
       "slug": "liga-profesional",
-      "slug_en": "liga-profesional-primera-division"
+      "slug_en": "liga-profesional-primera-division",
+      "desc_en": "Top Argentine league — 30 clubs including Boca Juniors and River Plate, played over the calendar year."
     },
     {
       "id": "f_arg_l2",
@@ -58600,10 +58623,11 @@
       "type": "folder",
       "icon": "ar",
       "name": "Primera Nacional",
-      "desc": "",
+      "desc": "Druhá argentínska liga — 36 klubov bojujúcich o postup medzi elitu, vrátane Chacarita Juniors a Quilmes.",
       "order": 1,
       "slug": "primera-nacional",
-      "slug_en": "primera-nacional"
+      "slug_en": "primera-nacional",
+      "desc_en": "Second Argentine tier — 36 clubs fighting for promotion to the top flight, including Chacarita Juniors and Quilmes."
     },
     {
       "id": "f_arg_l3a",
@@ -58611,10 +58635,11 @@
       "type": "folder",
       "icon": "ar",
       "name": "Torneo Federal A",
-      "desc": "",
+      "desc": "Tretia argentínska úroveň pre kluby z provincií — 37 tímov mimo metropolitnej oblasti Buenos Aires.",
       "order": 2,
       "slug": "torneo-federal-a",
-      "slug_en": "torneo-federal-a"
+      "slug_en": "torneo-federal-a",
+      "desc_en": "Third Argentine tier for provincial clubs — 37 teams from outside the Buenos Aires metropolitan area."
     },
     {
       "id": "f_arg_l3b",
@@ -58622,10 +58647,11 @@
       "type": "folder",
       "icon": "ar",
       "name": "Primera B Metropolitana",
-      "desc": "",
+      "desc": "Tretia argentínska úroveň pre kluby z Buenos Aires a okolia — 22 tímov.",
       "order": 3,
       "slug": "primera-b-metropolitana",
-      "slug_en": "primera-b-metropolitana"
+      "slug_en": "primera-b-metropolitana",
+      "desc_en": "Third Argentine tier for clubs from Buenos Aires and its surroundings — 22 teams."
     },
     {
       "id": "f_arg_l1_k1",
@@ -60008,10 +60034,11 @@
       "type": "folder",
       "icon": "br",
       "name": "Série A (Betano)",
-      "desc": "",
+      "desc": "Najvyššia brazílska súťaž — 20 klubov vrátane Flamenga, Palmeirasu a Corinthians, hrá sa v kalendárnom roku.",
       "order": 0,
       "slug": "serie-a",
-      "slug_en": "serie-a-betano"
+      "slug_en": "serie-a-betano",
+      "desc_en": "Top Brazilian league — 20 clubs including Flamengo, Palmeiras and Corinthians, played over the calendar year."
     },
     {
       "id": "f_bra_l2",
@@ -60019,10 +60046,11 @@
       "type": "folder",
       "icon": "br",
       "name": "Série B",
-      "desc": "",
+      "desc": "Druhá brazílska liga — 20 klubov bojujúcich o postup, vrátane Ceará a Sport Recife.",
       "order": 1,
       "slug": "serie-b",
-      "slug_en": "serie-b"
+      "slug_en": "serie-b",
+      "desc_en": "Second Brazilian tier — 20 clubs fighting for promotion, including Ceará and Sport Recife."
     },
     {
       "id": "f_bra_l3",
@@ -60030,10 +60058,11 @@
       "type": "folder",
       "icon": "br",
       "name": "Série C",
-      "desc": "",
+      "desc": "Tretia brazílska liga — 20 klubov vrátane tradičných mien ako Santa Cruz, Paysandu a Figueirense.",
       "order": 2,
       "slug": "serie-c",
-      "slug_en": "serie-c"
+      "slug_en": "serie-c",
+      "desc_en": "Third Brazilian tier — 20 clubs including traditional names such as Santa Cruz, Paysandu and Figueirense."
     },
     {
       "id": "f_bra_l1_k1",
@@ -60701,10 +60730,11 @@
       "type": "folder",
       "icon": "cl",
       "name": "Liga de Primera",
-      "desc": "",
+      "desc": "Najvyššia čilská súťaž — 16 klubov vrátane Colo-Colo a oboch univerzitných tímov zo Santiaga.",
       "order": 0,
       "slug": "liga-de-primera",
-      "slug_en": "liga-de-primera"
+      "slug_en": "liga-de-primera",
+      "desc_en": "Top Chilean league — 16 clubs including Colo-Colo and both university sides from Santiago."
     },
     {
       "id": "f_chl_l2",
@@ -60712,10 +60742,11 @@
       "type": "folder",
       "icon": "cl",
       "name": "Liga de Ascenso",
-      "desc": "",
+      "desc": "Druhá čilská liga — 16 klubov bojujúcich o postup, vrátane Cobreloa a Unión Española.",
       "order": 1,
       "slug": "liga-de-ascenso",
-      "slug_en": "liga-de-ascenso"
+      "slug_en": "liga-de-ascenso",
+      "desc_en": "Second Chilean tier — 16 clubs fighting for promotion, including Cobreloa and Unión Española."
     },
     {
       "id": "f_chl_l1_k1",
@@ -61075,10 +61106,11 @@
       "type": "folder",
       "icon": "pe",
       "name": "Liga 1",
-      "desc": "",
+      "desc": "Najvyššia peruánska súťaž — 18 klubov vrátane Alianzy Lima, Universitaria a Sportingu Cristal.",
       "order": 0,
       "slug": "liga-1",
-      "slug_en": "liga-1"
+      "slug_en": "liga-1",
+      "desc_en": "Top Peruvian league — 18 clubs including Alianza Lima, Universitario and Sporting Cristal."
     },
     {
       "id": "f_per_l2",
@@ -61086,10 +61118,11 @@
       "type": "folder",
       "icon": "pe",
       "name": "Liga 2",
-      "desc": "",
+      "desc": "Druhá peruánska liga — 18 klubov bojujúcich o postup do Ligy 1.",
       "order": 1,
       "slug": "liga-2",
-      "slug_en": "liga-2"
+      "slug_en": "liga-2",
+      "desc_en": "Second Peruvian tier — 18 clubs fighting for promotion to Liga 1."
     },
     {
       "id": "f_per_l1_k1",
@@ -61493,10 +61526,11 @@
       "type": "folder",
       "icon": "bo",
       "name": "División Profesional",
-      "desc": "",
+      "desc": "Najvyššia bolívijská súťaž — 16 klubov vrátane Club Bolívar a The Strongest z La Pazu.",
       "order": 0,
       "slug": "division-profesional",
-      "slug_en": "division-profesional"
+      "slug_en": "division-profesional",
+      "desc_en": "Top Bolivian league — 16 clubs including Club Bolívar and The Strongest from La Paz."
     },
     {
       "id": "f_bol_l1_k1",
@@ -61680,10 +61714,11 @@
       "type": "folder",
       "icon": "ec",
       "name": "Serie A",
-      "desc": "",
+      "desc": "Najvyššia ekvádorská súťaž — 16 klubov vrátane LDU Quito, Barcelona SC a Independiente del Valle.",
       "order": 0,
       "slug": "serie-a",
-      "slug_en": "serie-a"
+      "slug_en": "serie-a",
+      "desc_en": "Top Ecuadorian league — 16 clubs including LDU Quito, Barcelona SC and Independiente del Valle."
     },
     {
       "id": "f_ecu_l1_k1",
@@ -61867,10 +61902,11 @@
       "type": "folder",
       "icon": "ec",
       "name": "Serie B",
-      "desc": "",
+      "desc": "Druhá ekvádorská liga — 12 klubov bojujúcich o postup do Serie A.",
       "order": 1,
       "slug": "serie-b",
-      "slug_en": "serie-b"
+      "slug_en": "serie-b",
+      "desc_en": "Second Ecuadorian tier — 12 clubs fighting for promotion to Serie A."
     },
     {
       "id": "f_ecu_l2_k1",
@@ -62010,10 +62046,11 @@
       "type": "folder",
       "icon": "ve",
       "name": "Primera División",
-      "desc": "",
+      "desc": "Najvyššia venezuelská súťaž — 14 klubov vrátane Caracas FC a Deportiva Táchira.",
       "order": 0,
       "slug": "primera-division",
-      "slug_en": "primera-division"
+      "slug_en": "primera-division",
+      "desc_en": "Top Venezuelan league — 14 clubs including Caracas FC and Deportivo Táchira."
     },
     {
       "id": "f_ven_l1_k1",
@@ -62175,10 +62212,11 @@
       "type": "folder",
       "icon": "ve",
       "name": "Segunda División",
-      "desc": "",
+      "desc": "Druhá venezuelská liga — 17 klubov vrátane rezervných tímov prvoligových klubov.",
       "order": 1,
       "slug": "segunda-division",
-      "slug_en": "segunda-division"
+      "slug_en": "segunda-division",
+      "desc_en": "Second Venezuelan tier — 17 clubs including reserve teams of top-flight sides."
     },
     {
       "id": "f_ven_l2_k1",
@@ -62373,10 +62411,11 @@
       "type": "folder",
       "icon": "co",
       "name": "Categoría Primera A",
-      "desc": "",
+      "desc": "Najvyššia kolumbijská súťaž — 20 klubov vrátane Atlética Nacional, Millonarios a América de Cali.",
       "order": 1,
       "slug": "primera-a",
-      "slug_en": "categoria-primera-a"
+      "slug_en": "categoria-primera-a",
+      "desc_en": "Top Colombian league — 20 clubs including Atlético Nacional, Millonarios and América de Cali."
     },
     {
       "id": "f_col_l2",
@@ -62384,10 +62423,11 @@
       "type": "folder",
       "icon": "co",
       "name": "Categoría Primera B",
-      "desc": "",
+      "desc": "Druhá kolumbijská liga — 16 klubov bojujúcich o postup medzi elitu.",
       "order": 2,
       "slug": "primera-b",
-      "slug_en": "categoria-primera-b"
+      "slug_en": "categoria-primera-b",
+      "desc_en": "Second Colombian tier — 16 clubs fighting for promotion to the top flight."
     },
     {
       "id": "f_col_l1_k1",
@@ -62791,10 +62831,11 @@
       "type": "folder",
       "icon": "uy",
       "name": "Liga AUF Uruguaya",
-      "desc": "",
+      "desc": "Najvyššia uruguajská súťaž — 16 klubov na čele s Peñarolom a Nacionalom.",
       "order": 1,
       "slug": "liga-auf-uruguaya",
-      "slug_en": "liga-auf-uruguaya"
+      "slug_en": "liga-auf-uruguaya",
+      "desc_en": "Top Uruguayan league — 16 clubs led by Peñarol and Nacional."
     },
     {
       "id": "f_uru_l2",
@@ -62802,10 +62843,11 @@
       "type": "folder",
       "icon": "uy",
       "name": "Segunda División",
-      "desc": "",
+      "desc": "Druhá uruguajská liga — 14 klubov bojujúcich o postup do najvyššej súťaže.",
       "order": 2,
       "slug": "segunda-division",
-      "slug_en": "segunda-division"
+      "slug_en": "segunda-division",
+      "desc_en": "Second Uruguayan tier — 14 clubs fighting for promotion to the top flight."
     },
     {
       "id": "f_uru_l1_k1",
@@ -63143,10 +63185,11 @@
       "type": "folder",
       "icon": "py",
       "name": "Copa de Primera (Primera División)",
-      "desc": "",
+      "desc": "Najvyššia paraguajská súťaž — 12 klubov na čele s Olimpiou a Cerro Porteño.",
       "order": 1,
       "slug": "primera-division",
-      "slug_en": "copa-de-primera-primera-division"
+      "slug_en": "copa-de-primera-primera-division",
+      "desc_en": "Top Paraguayan league — 12 clubs led by Olimpia and Cerro Porteño."
     },
     {
       "id": "f_par_l2",
@@ -63154,10 +63197,11 @@
       "type": "folder",
       "icon": "py",
       "name": "División Intermedia",
-      "desc": "",
+      "desc": "Druhá paraguajská liga — 16 klubov bojujúcich o postup do Primera División.",
       "order": 2,
       "slug": "division-intermedia",
-      "slug_en": "division-intermedia"
+      "slug_en": "division-intermedia",
+      "desc_en": "Second Paraguayan tier — 16 clubs fighting for promotion to the Primera División."
     },
     {
       "id": "f_par_l1_k1",
@@ -63473,10 +63517,11 @@
       "type": "folder",
       "icon": "dz",
       "name": "Ligue 1",
-      "desc": "",
+      "desc": "Najvyššia alžírska súťaž — 16 klubov vrátane MC Alger, CR Belouizdad a JS Kabylie.",
       "order": 0,
       "slug": "ligue-1",
-      "slug_en": "ligue-1"
+      "slug_en": "ligue-1",
+      "desc_en": "Top Algerian league — 16 clubs including MC Alger, CR Belouizdad and JS Kabylie."
     },
     {
       "id": "f_alg_l1_k1",
@@ -63660,10 +63705,11 @@
       "type": "folder",
       "icon": "bw",
       "name": "Premier League",
-      "desc": "",
+      "desc": "Najvyššia botswanská súťaž — 16 klubov vrátane Gaborone United, Township Rollers a Jwaneng Galaxy.",
       "order": 0,
       "slug": "premier-league",
-      "slug_en": "premier-league"
+      "slug_en": "premier-league",
+      "desc_en": "Top Botswana league — 16 clubs including Gaborone United, Township Rollers and Jwaneng Galaxy."
     },
     {
       "id": "f_bwa_l1_k1",
@@ -63847,10 +63893,11 @@
       "type": "folder",
       "icon": "bf",
       "name": "Premier League",
-      "desc": "",
+      "desc": "Najvyššia súťaž Burkiny Faso — 16 klubov vrátane ASFA-Yennenga, Rail Club de Kadiogo a Salitas FC.",
       "order": 0,
       "slug": "premier-league",
-      "slug_en": "premier-league"
+      "slug_en": "premier-league",
+      "desc_en": "Top league of Burkina Faso — 16 clubs including ASFA-Yennenga, Rail Club de Kadiogo and Salitas FC."
     },
     {
       "id": "f_bfa_l1_k1",
@@ -64034,10 +64081,11 @@
       "type": "folder",
       "icon": "ao",
       "name": "Girabola",
-      "desc": "",
+      "desc": "Najvyššia angolská súťaž — 16 klubov na čele s Petro de Luanda a Primeiro de Agosto.",
       "order": 0,
       "slug": "girabola",
-      "slug_en": "girabola"
+      "slug_en": "girabola",
+      "desc_en": "Top Angolan league — 16 clubs led by Petro de Luanda and Primeiro de Agosto."
     },
     {
       "id": "f_ago_l1_k1",
@@ -64221,10 +64269,11 @@
       "type": "folder",
       "icon": "bj",
       "name": "Ligue 1 (Championnat National)",
-      "desc": "",
+      "desc": "Najvyššia beninská súťaž — 18 klubov vrátane Coton FC, Buffles FC du Borgou a AS Dragons de l'Ouémé.",
       "order": 0,
       "slug": "ligue-1",
-      "slug_en": "ligue-1-championnat-national"
+      "slug_en": "ligue-1-championnat-national",
+      "desc_en": "Top Beninese league — 18 clubs including Coton FC, Buffles FC du Borgou and AS Dragons de l'Ouémé."
     },
     {
       "id": "f_ben_l1_k1",
@@ -64430,10 +64479,11 @@
       "type": "folder",
       "icon": "bi",
       "name": "Primus League (Ligue A)",
-      "desc": "",
+      "desc": "Najvyššia burundská súťaž — 16 klubov vrátane Vital'O FC, Aigle Noir CS a Flambeau du Centre.",
       "order": 0,
       "slug": "primus-league",
-      "slug_en": "primus-league-ligue-a"
+      "slug_en": "primus-league-ligue-a",
+      "desc_en": "Top Burundian league — 16 clubs including Vital'O FC, Aigle Noir CS and Flambeau du Centre."
     },
     {
       "id": "f_bdi_l1_k1",
@@ -64617,10 +64667,11 @@
       "type": "folder",
       "icon": "td",
       "name": "Ligue Nationale de Football (Championnat National)",
-      "desc": "",
+      "desc": "Najvyššia čadská súťaž — 12 klubov vrátane TP Elect Sport a Foullah Edifice FC.",
       "order": 0,
       "slug": "ligue-nationale",
-      "slug_en": "ligue-nationale-de-football-championnat-national"
+      "slug_en": "ligue-nationale-de-football-championnat-national",
+      "desc_en": "Top Chadian league — 12 clubs including TP Elect Sport and Foullah Edifice FC."
     },
     {
       "id": "f_tcd_l1_k1",
@@ -64760,10 +64811,11 @@
       "type": "folder",
       "icon": "et",
       "name": "Ethiopian Premier League",
-      "desc": "",
+      "desc": "Najvyššia etiópska súťaž — 20 klubov vrátane Kidus Giorgis, Fasil Kenema a Ethiopia Bunna.",
       "order": 0,
       "slug": "ethiopian-premier-league",
-      "slug_en": "ethiopian-premier-league"
+      "slug_en": "ethiopian-premier-league",
+      "desc_en": "Top Ethiopian league — 20 clubs including Kidus Giorgis, Fasil Kenema and Ethiopia Bunna."
     },
     {
       "id": "f_eth_l1_k1",
@@ -64991,10 +65043,11 @@
       "type": "folder",
       "icon": "ga",
       "name": "National Foot 1",
-      "desc": "",
+      "desc": "Najvyššia gabonská súťaž — 14 klubov vrátane AS Mangasport, Bouenguidi Sports a FC 105 Libreville.",
       "order": 0,
       "slug": "national-foot-1",
-      "slug_en": "national-foot-1"
+      "slug_en": "national-foot-1",
+      "desc_en": "Top Gabonese league — 14 clubs including AS Mangasport, Bouenguidi Sports and FC 105 Libreville."
     },
     {
       "id": "f_gab_l1_k1",
@@ -65156,10 +65209,11 @@
       "type": "folder",
       "icon": "eg",
       "name": "Egyptian Premier League",
-      "desc": "",
+      "desc": "Najvyššia egyptská súťaž — 21 klubov na čele s Al Ahly, Zamalekom a Pyramids FC.",
       "order": 0,
       "slug": "egyptian-premier-league",
-      "slug_en": "egyptian-premier-league"
+      "slug_en": "egyptian-premier-league",
+      "desc_en": "Top Egyptian league — 21 clubs led by Al Ahly, Zamalek and Pyramids FC."
     },
     {
       "id": "f_egy_l2",
@@ -65167,10 +65221,11 @@
       "type": "folder",
       "icon": "eg",
       "name": "Egyptian Second Division A",
-      "desc": "",
+      "desc": "Druhá egyptská liga — 18 klubov bojujúcich o postup medzi elitu.",
       "order": 1,
       "slug": "egyptian-second-division-a",
-      "slug_en": "egyptian-second-division-a"
+      "slug_en": "egyptian-second-division-a",
+      "desc_en": "Second Egyptian tier — 18 clubs fighting for promotion to the top flight."
     },
     {
       "id": "f_egy_l1_k1",
@@ -65957,10 +66012,11 @@
       "type": "folder",
       "icon": "gm",
       "name": "GFA League",
-      "desc": "",
+      "desc": "Najvyššia gambijská súťaž — 16 klubov vrátane Real de Banjul, Gambia Ports Authority a Brikama United.",
       "order": 0,
       "slug": "gfa-league",
-      "slug_en": "gfa-league"
+      "slug_en": "gfa-league",
+      "desc_en": "Top Gambian league — 16 clubs including Real de Banjul, Gambia Ports Authority and Brikama United."
     },
     {
       "id": "f_gmb_l1_k1",
@@ -66160,10 +66216,11 @@
       "type": "folder",
       "icon": "gh",
       "name": "Premier League",
-      "desc": "",
+      "desc": "Najvyššia ghanská súťaž — 18 klubov vrátane Asante Kotoko, Hearts of Oak a Medeama SC.",
       "order": 0,
       "slug": "premier-league",
-      "slug_en": "premier-league"
+      "slug_en": "premier-league",
+      "desc_en": "Top Ghanaian league — 18 clubs including Asante Kotoko, Hearts of Oak and Medeama SC."
     },
     {
       "id": "f_gha_l1_k1",
@@ -66387,10 +66444,11 @@
       "type": "folder",
       "icon": "gn",
       "name": "Ligue 1",
-      "desc": "",
+      "desc": "Najvyššia guinejská súťaž — 14 klubov na čele s Horoya AC, Hafia FC a AS Kaloum Star.",
       "order": 0,
       "slug": "ligue-1",
-      "slug_en": "ligue-1"
+      "slug_en": "ligue-1",
+      "desc_en": "Top Guinean league — 14 clubs led by Horoya AC, Hafia FC and AS Kaloum Star."
     },
     {
       "id": "f_gin_l1_k1",
@@ -66566,10 +66624,11 @@
       "type": "folder",
       "icon": "za",
       "name": "Betway Premiership",
-      "desc": "",
+      "desc": "Najvyššia juhoafrická súťaž — 16 klubov vrátane Mamelodi Sundowns, Orlando Pirates a Kaizer Chiefs.",
       "order": 0,
       "slug": "betway-premiership",
-      "slug_en": "betway-premiership"
+      "slug_en": "betway-premiership",
+      "desc_en": "Top South African league — 16 clubs including Mamelodi Sundowns, Orlando Pirates and Kaizer Chiefs."
     },
     {
       "id": "f_zaf_l2",
@@ -66577,10 +66636,11 @@
       "type": "folder",
       "icon": "za",
       "name": "Motsepe Foundation Championship",
-      "desc": "",
+      "desc": "Druhá juhoafrická liga — 16 klubov bojujúcich o postup do Premiership, vrátane Cape Town City a Black Leopards.",
       "order": 1,
       "slug": "motsepe-foundation-championship",
-      "slug_en": "motsepe-foundation-championship"
+      "slug_en": "motsepe-foundation-championship",
+      "desc_en": "Second South African tier — 16 clubs fighting for promotion to the Premiership, including Cape Town City and Black Leopards."
     },
     {
       "id": "f_zaf_l1_k1",
@@ -66972,10 +67032,11 @@
       "type": "folder",
       "icon": "ke",
       "name": "Premier League",
-      "desc": "",
+      "desc": "Najvyššia kenská súťaž — 18 klubov vrátane Gor Mahia, AFC Leopards a Tusker FC.",
       "order": 1,
       "slug": "premier-league",
-      "slug_en": "premier-league"
+      "slug_en": "premier-league",
+      "desc_en": "Top Kenyan league — 18 clubs including Gor Mahia, AFC Leopards and Tusker FC."
     },
     {
       "id": "f_ken_l1_k1",
@@ -67199,10 +67260,11 @@
       "type": "folder",
       "icon": "cd",
       "name": "Ligue 1 (Linafoot)",
-      "desc": "",
+      "desc": "Najvyššia súťaž Demokratickej republiky Kongo — 30 klubov na čele s TP Mazembe, AS Vita Club a DC Motema Pembe.",
       "order": 1,
       "slug": "ligue-1",
-      "slug_en": "ligue-1"
+      "slug_en": "ligue-1",
+      "desc_en": "Top league of the Democratic Republic of the Congo — 30 clubs led by TP Mazembe, AS Vita Club and DC Motema Pembe."
     },
     {
       "id": "f_cod_l1_k1",
@@ -67570,10 +67632,11 @@
       "type": "folder",
       "icon": "ls",
       "name": "Premier League",
-      "desc": "",
+      "desc": "Najvyššia súťaž Lesotha — 16 klubov vrátane Bantu FC, Matlama FC a Lioli FC.",
       "order": 1,
       "slug": "premier-league",
-      "slug_en": "premier-league"
+      "slug_en": "premier-league",
+      "desc_en": "Top league of Lesotho — 16 clubs including Bantu FC, Matlama FC and Lioli FC."
     },
     {
       "id": "f_lso_l1_k1",
@@ -67773,10 +67836,11 @@
       "type": "folder",
       "icon": "cm",
       "name": "Elite One",
-      "desc": "",
+      "desc": "Najvyššia kamerunská súťaž — 14 klubov vrátane Coton Sport de Garoua, Canon Yaoundé a PWD Bamenda.",
       "order": 1,
       "slug": "elite-one",
-      "slug_en": "elite-one"
+      "slug_en": "elite-one",
+      "desc_en": "Top Cameroonian league — 14 clubs including Coton Sport de Garoua, Canon Yaoundé and PWD Bamenda."
     },
     {
       "id": "f_cmr_l2",
@@ -67784,10 +67848,11 @@
       "type": "folder",
       "icon": "cm",
       "name": "Elite Two",
-      "desc": "",
+      "desc": "Druhá kamerunská liga — 16 klubov bojujúcich o postup do Elite One, vrátane US Douala a Tonnerre Yaoundé.",
       "order": 2,
       "slug": "elite-two",
-      "slug_en": "elite-two"
+      "slug_en": "elite-two",
+      "desc_en": "Second Cameroonian tier — 16 clubs fighting for promotion to Elite One, including US Douala and Tonnerre Yaoundé."
     },
     {
       "id": "f_cmr_l1_k1",
@@ -68155,11 +68220,11 @@
       "type": "folder",
       "icon": "cv",
       "name": "Campeonato Nacional",
-      "desc": "Najvyššia kapverdská súťaž — záverečný turnaj majstrov jednotlivých ostrovov, 12 klubov.",
+      "desc": "Najvyššia kapverdská súťaž — záverečný turnaj majstrov jednotlivých ostrovov, 12 klubov vrátane CS Mindelense a Boavista FC da Praia.",
       "order": 1,
       "slug": "campeonato-nacional",
       "name_en": "Campeonato Nacional",
-      "desc_en": "Top Cape Verdean competition — a final tournament between the champions of the individual islands, 12 clubs.",
+      "desc_en": "Top Cape Verdean competition — a final tournament between the champions of the individual islands, 12 clubs including CS Mindelense and Boavista FC da Praia.",
       "slug_en": "campeonato-nacional"
     },
     {
@@ -68312,11 +68377,11 @@
       "type": "folder",
       "icon": "lr",
       "name": "LFA First Division",
-      "desc": "Najvyššia liberijská súťaž — 14 klubov, hrá sa systémom jeseň – jar.",
+      "desc": "Najvyššia liberijská súťaž — 14 klubov vrátane LISCR FC, FC Fassell a Watanga FC.",
       "order": 1,
       "slug": "lfa-first-division",
       "name_en": "LFA First Division",
-      "desc_en": "Top Liberian league — 14 clubs, played in an autumn-to-spring season.",
+      "desc_en": "Top Liberian league — 14 clubs including LISCR FC, FC Fassell and Watanga FC.",
       "slug_en": "lfa-first-division"
     },
     {
@@ -68493,11 +68558,11 @@
       "type": "folder",
       "icon": "ly",
       "name": "Libyan Premier League",
-      "desc": "Najvyššia líbyjská súťaž — 36 klubov v štyroch skupinách, najlepší postupujú do finálovej fázy.",
+      "desc": "Najvyššia líbyjská súťaž — 36 klubov v štyroch skupinách vrátane Al-Ahli Tripoli, Al-Ittihad Tripoli a Al-Ahli Benghazi, najlepší postupujú do finálovej fázy.",
       "order": 1,
       "slug": "libyan-premier-league",
       "name_en": "Libyan Premier League",
-      "desc_en": "Top Libyan league — 36 clubs in four groups, with the best advancing to a final stage.",
+      "desc_en": "Top Libyan league — 36 clubs in four groups including Al-Ahli Tripoli, Al-Ittihad Tripoli and Al-Ahli Benghazi, with the best advancing to the final stage.",
       "slug_en": "libyan-premier-league"
     },
     {
@@ -68938,11 +69003,11 @@
       "type": "folder",
       "icon": "mw",
       "name": "FDH Bank Premiership",
-      "desc": "Najvyššia malawijská súťaž, známa aj ako Super League — 16 klubov, hrá sa v kalendárnom roku.",
+      "desc": "Najvyššia malawijská súťaž — 16 klubov vrátane FCB Nyasa Big Bullets, Mighty Wanderers a Silver Strikers, hrá sa v kalendárnom roku.",
       "order": 1,
       "slug": "fdh-bank-premiership",
       "name_en": "FDH Bank Premiership",
-      "desc_en": "Top Malawian league, also known as the Super League — 16 clubs, played over the calendar year.",
+      "desc_en": "Top Malawian league — 16 clubs including FCB Nyasa Big Bullets, Mighty Wanderers and Silver Strikers, played over the calendar year.",
       "slug_en": "fdh-bank-premiership"
     },
     {
@@ -69143,11 +69208,11 @@
       "type": "folder",
       "icon": "ml",
       "name": "Ligue 1",
-      "desc": "Najvyššia malijská súťaž — 14 klubov, väčšina z hlavného mesta Bamako.",
+      "desc": "Najvyššia malijská súťaž — 14 klubov na čele so Stade Malien a Djoliba AC, väčšina z hlavného mesta Bamako.",
       "order": 1,
       "slug": "ligue-1",
       "name_en": "Ligue 1",
-      "desc_en": "Top Malian league — 14 clubs, most of them from the capital Bamako.",
+      "desc_en": "Top Malian league — 14 clubs led by Stade Malien and Djoliba AC, most of them from the capital Bamako.",
       "slug_en": "ligue-1"
     },
     {
@@ -69324,11 +69389,11 @@
       "type": "folder",
       "icon": "ma",
       "name": "Botola Pro 1",
-      "desc": "Najvyssia futbalova liga Maroka.",
+      "desc": "Najvyššia marocká súťaž — 16 klubov vrátane Rajy Casablanca, Wydadu AC a AS FAR.",
       "order": 1,
       "slug": "botola-pro-1",
       "name_en": "Botola Pro 1",
-      "desc_en": "Morocco's top football division."
+      "desc_en": "Top Moroccan league — 16 clubs including Raja Casablanca, Wydad AC and AS FAR."
     },
     {
       "id": "f_mar_l2",
@@ -69336,11 +69401,11 @@
       "type": "folder",
       "icon": "ma",
       "name": "Botola Pro 2",
-      "desc": "Druha najvyssia futbalova liga Maroka.",
+      "desc": "Druhá marocká liga — 16 klubov bojujúcich o postup medzi elitu, vrátane Moghrebu Tetouan a KAC Kenitra.",
       "order": 2,
       "slug": "botola-pro-2",
       "name_en": "Botola Pro 2",
-      "desc_en": "Morocco's second-tier football division."
+      "desc_en": "Second Moroccan tier — 16 clubs fighting for promotion to the top flight, including Moghreb Tetouan and KAC Kenitra."
     },
     {
       "id": "f_mar_l1_k1",
@@ -69732,11 +69797,11 @@
       "type": "folder",
       "icon": "mu",
       "name": "National Super League",
-      "desc": "Najvyssia futbalova liga Maurícia.",
+      "desc": "Najvyššia maurícijská súťaž — 10 klubov vrátane Pamplemousses SC, Cercle de Joachim SC a AS Port-Louis 2000.",
       "order": 1,
       "slug": "national-super-league",
       "name_en": "National Super League",
-      "desc_en": "Mauritius's top football division."
+      "desc_en": "Top Mauritian league — 10 clubs including Pamplemousses SC, Cercle de Joachim SC and AS Port-Louis 2000."
     },
     {
       "id": "f_mus_l1_k1",
@@ -69864,11 +69929,11 @@
       "type": "folder",
       "icon": "mr",
       "name": "Ligue 1",
-      "desc": "Najvyssia futbalova liga Mauretanie.",
+      "desc": "Najvyššia mauritánska súťaž — 14 klubov na čele s FC Nouadhibou a FC Tevragh-Zeina.",
       "order": 1,
       "slug": "ligue-1",
       "name_en": "Ligue 1",
-      "desc_en": "Mauritania's top football division."
+      "desc_en": "Top Mauritanian league — 14 clubs led by FC Nouadhibou and FC Tevragh-Zeina."
     },
     {
       "id": "f_mrt_l1_k1",
@@ -70044,11 +70109,11 @@
       "type": "folder",
       "icon": "mz",
       "name": "Mocambola",
-      "desc": "Najvyssia futbalova liga Mozambiku.",
+      "desc": "Najvyššia mozambická súťaž — 14 klubov vrátane Costa do Sol, UD Songo a Black Bulls.",
       "order": 1,
       "slug": "mocambola",
       "name_en": "Mocambola",
-      "desc_en": "Mozambique's top football division."
+      "desc_en": "Top Mozambican league — 14 clubs including Costa do Sol, UD Songo and Black Bulls."
     },
     {
       "id": "f_moz_l1_k1",
@@ -70224,11 +70289,11 @@
       "type": "folder",
       "icon": "ne",
       "name": "Super Ligue",
-      "desc": "Najvyššia nigerská súťaž, 14 klubov (sezóna 2025/26).",
+      "desc": "Najvyššia nigerská súťaž — 14 klubov vrátane Sahel SC, AS FAN a ASN Nigelec.",
       "order": 1,
       "slug": "super-ligue",
       "name_en": "Super Ligue",
-      "desc_en": "Niger's top football competition, 14 clubs (2025/26 season).",
+      "desc_en": "Top Nigerien league — 14 clubs including Sahel SC, AS FAN and ASN Nigelec.",
       "slug_en": "super-ligue"
     },
     {
@@ -70405,11 +70470,11 @@
       "type": "folder",
       "icon": "ng",
       "name": "Nigeria Premier Football League",
-      "desc": "Najvyššia nigérijská súťaž, 20 klubov (sezóna 2025/26).",
+      "desc": "Najvyššia nigérijská súťaž — 20 klubov vrátane Enyimby, Rivers United a Enugu Rangers.",
       "order": 1,
       "slug": "npfl",
       "name_en": "Nigeria Premier Football League",
-      "desc_en": "Nigeria's top football competition, 20 clubs (2025/26 season).",
+      "desc_en": "Top Nigerian league — 20 clubs including Enyimba, Rivers United and Enugu Rangers.",
       "slug_en": "npfl"
     },
     {
@@ -70658,11 +70723,11 @@
       "type": "folder",
       "icon": "ci",
       "name": "Ligue 1",
-      "desc": "Najvyššia ivorijská súťaž, 16 klubov (sezóna 2025/26).",
+      "desc": "Najvyššia ivorijská súťaž — 16 klubov vrátane ASEC Mimosas, Africa Sports National a Stade d'Abidjan.",
       "order": 1,
       "slug": "ligue-1",
       "name_en": "Ligue 1",
-      "desc_en": "Ivory Coast's top football competition, 16 clubs (2025/26 season).",
+      "desc_en": "Top Ivorian league — 16 clubs including ASEC Mimosas, Africa Sports National and Stade d'Abidjan.",
       "slug_en": "ligue-1"
     },
     {
@@ -70863,11 +70928,11 @@
       "type": "folder",
       "icon": "rw",
       "name": "Rwanda Premier League",
-      "desc": "Najvyššia rwandská súťaž, 16 klubov (sezóna 2025/26).",
+      "desc": "Najvyššia rwandská súťaž — 16 klubov vrátane APR, Rayon Sports a AS Kigali.",
       "order": 1,
       "slug": "rwanda-premier-league",
       "name_en": "Rwanda Premier League",
-      "desc_en": "Rwanda's top football competition, 16 clubs (2025/26 season).",
+      "desc_en": "Top Rwandan league — 16 clubs including APR, Rayon Sports and AS Kigali.",
       "slug_en": "rwanda-premier-league"
     },
     {
@@ -71068,11 +71133,11 @@
       "type": "folder",
       "icon": "sn",
       "name": "Ligue 1",
-      "desc": "Najvyššia senegalská súťaž, 16 klubov (sezóna 2025/26).",
+      "desc": "Najvyššia senegalská súťaž — 16 klubov vrátane ASC Jaraaf, Casa Sports a Génération Foot.",
       "order": 1,
       "slug": "ligue-1",
       "name_en": "Ligue 1",
-      "desc_en": "Senegal's top football competition, 16 clubs (2025/26 season).",
+      "desc_en": "Top Senegalese league — 16 clubs including ASC Jaraaf, Casa Sports and Génération Foot.",
       "slug_en": "ligue-1"
     },
     {
@@ -71273,11 +71338,11 @@
       "type": "folder",
       "icon": "sc",
       "name": "Premier League",
-      "desc": "Najvyššia seychelská súťaž, 10 klubov (sezóna 2025/26).",
+      "desc": "Najvyššia seychelská súťaž — 10 klubov vrátane St Michel United, Cote d'Or FC a Foresters FC.",
       "order": 1,
       "slug": "premier-league",
       "name_en": "Premier League",
-      "desc_en": "Seychelles' top football competition, 10 clubs (2025/26 season).",
+      "desc_en": "Top Seychellois league — 10 clubs including St Michel United, Cote d'Or FC and Foresters FC.",
       "slug_en": "premier-league"
     },
     {
@@ -71406,11 +71471,11 @@
       "type": "folder",
       "icon": "sl",
       "name": "Premier League",
-      "desc": "Najvyššia sierraleonská súťaž, 18 klubov (sezóna 2025/26).",
+      "desc": "Najvyššia sierraleonská súťaž — 18 klubov vrátane East End Lions, Mighty Blackpool a Bo Rangers.",
       "order": 1,
       "slug": "premier-league",
       "name_en": "Premier League",
-      "desc_en": "Sierra Leone's top football competition, 18 clubs (2025/26 season).",
+      "desc_en": "Top Sierra Leonean league — 18 clubs including East End Lions, Mighty Blackpool and Bo Rangers.",
       "slug_en": "premier-league"
     },
     {
@@ -71635,11 +71700,11 @@
       "type": "folder",
       "icon": "so",
       "name": "Somali National League",
-      "desc": "Najvyššia somálska súťaž, 12 klubov (sezóna 2025/26).",
+      "desc": "Najvyššia somálska súťaž — 12 klubov vrátane Heegan FC, Elman FC a Dekedda SC.",
       "order": 1,
       "slug": "somali-national-league",
       "name_en": "Somali National League",
-      "desc_en": "Somalia's top football competition, 12 clubs (2025/26 season).",
+      "desc_en": "Top Somali league — 12 clubs including Heegan FC, Elman FC and Dekedda SC.",
       "slug_en": "somali-national-league"
     },
     {
@@ -71792,11 +71857,11 @@
       "type": "folder",
       "icon": "sd",
       "name": "Premier League — Elitná skupina",
-      "desc": "Záverečná Elitná skupina najvyššej sudánskej súťaže, 8 klubov (sezóna 2025/26 prebieha v netradičnom regionálnom formáte kvôli prebiehajúcej občianskej vojne).",
+      "desc": "Záverečná elitná skupina najvyššej sudánskej súťaže — 8 klubov vrátane Al Hilal Omdurman a El Merreikh Omdurman; liga sa pre občiansku vojnu hrá v regionálnom formáte.",
       "order": 1,
       "slug": "premier-league",
       "name_en": "Premier League — Elite Group",
-      "desc_en": "The final Elite Group of Sudan's top football competition, 8 clubs (the 2025/26 season runs in an unusual regional format due to the ongoing civil war).",
+      "desc_en": "Final elite group of Sudan's top league — 8 clubs including Al Hilal Omdurman and El Merreikh Omdurman; the league is played in a regional format because of the civil war.",
       "slug_en": "premier-league"
     },
     {
@@ -71901,11 +71966,11 @@
       "type": "folder",
       "icon": "tz",
       "name": "Premier League",
-      "desc": "Najvyššia tanzánska súťaž (pevninská časť), 16 klubov (sezóna 2026/27, zoradené abecedne).",
+      "desc": "Najvyššia tanzánska súťaž (pevninská časť) — 16 klubov vrátane Simba SC, Young Africans SC a Azam FC.",
       "order": 1,
       "slug": "premier-league",
       "name_en": "Premier League",
-      "desc_en": "Tanzania's top football competition (mainland), 16 clubs (2026/27 season, listed alphabetically).",
+      "desc_en": "Top Tanzanian league (mainland) — 16 clubs including Simba SC, Young Africans SC and Azam FC.",
       "slug_en": "premier-league"
     },
     {
@@ -72106,11 +72171,11 @@
       "type": "folder",
       "icon": "tg",
       "name": "Championnat National",
-      "desc": "Najvyššia togská futbalová súťaž, 14 klubov (sezóna 2025/26, zoradené abecedne).",
+      "desc": "Najvyššia togská súťaž — 14 klubov vrátane ASKO de Kara, AC Semassi a Étoile Filante de Lomé.",
       "order": 1,
       "slug": "championnat-national",
       "name_en": "Championnat National",
-      "desc_en": "Togo's top football competition, 14 clubs (2025/26 season, listed alphabetically).",
+      "desc_en": "Top Togolese league — 14 clubs including ASKO de Kara, AC Semassi and Étoile Filante de Lomé.",
       "slug_en": "championnat-national"
     },
     {
@@ -72287,11 +72352,11 @@
       "type": "folder",
       "icon": "tn",
       "name": "Ligue Professionnelle 1",
-      "desc": "Najvyššia tuniská futbalová súťaž, 16 klubov (sezóna 2025/26, zoradené abecedne).",
+      "desc": "Najvyššia tuniská súťaž — 16 klubov vrátane Espérance de Tunis, Club Africain a CS Sfaxien.",
       "order": 1,
       "slug": "ligue-professionnelle-1",
       "name_en": "Ligue Professionnelle 1",
-      "desc_en": "Tunisia's top football competition, 16 clubs (2025/26 season, listed alphabetically).",
+      "desc_en": "Top Tunisian league — 16 clubs including Espérance de Tunis, Club Africain and CS Sfaxien.",
       "slug_en": "ligue-professionnelle-1"
     },
     {
@@ -72492,11 +72557,11 @@
       "type": "folder",
       "icon": "ug",
       "name": "Uganda Premier League",
-      "desc": "Najvyššia ugandská futbalová súťaž, 16 klubov (sezóna 2025/26, zoradené abecedne).",
+      "desc": "Najvyššia ugandská súťaž — 16 klubov vrátane SC Villa, Vipers SC a KCCA FC.",
       "order": 1,
       "slug": "uganda-premier-league",
       "name_en": "Uganda Premier League",
-      "desc_en": "Uganda's top football competition, 16 clubs (2025/26 season, listed alphabetically).",
+      "desc_en": "Top Ugandan league — 16 clubs including SC Villa, Vipers SC and KCCA FC.",
       "slug_en": "uganda-premier-league"
     },
     {
@@ -72697,11 +72762,11 @@
       "type": "folder",
       "icon": "zm",
       "name": "Super League",
-      "desc": "Najvyššia zambijská futbalová súťaž, 18 klubov (sezóna 2025/26, zoradené abecedne).",
+      "desc": "Najvyššia zambijská súťaž — 18 klubov vrátane Nkana, Power Dynamos a ZESCO United.",
       "order": 1,
       "slug": "super-league",
       "name_en": "Super League",
-      "desc_en": "Zambia's top football competition, 18 clubs (2025/26 season, listed alphabetically).",
+      "desc_en": "Top Zambian league — 18 clubs including Nkana, Power Dynamos and ZESCO United.",
       "slug_en": "super-league"
     },
     {
@@ -72926,11 +72991,11 @@
       "type": "folder",
       "icon": "zw",
       "name": "Premier Soccer League",
-      "desc": "Najvyššia zimbabwianska futbalová súťaž, 18 klubov (sezóna 2026, zoradené abecedne).",
+      "desc": "Najvyššia zimbabwianska súťaž — 18 klubov vrátane Dynamos, Highlanders a CAPS United.",
       "order": 1,
       "slug": "premier-soccer-league",
       "name_en": "Premier Soccer League",
-      "desc_en": "Zimbabwe's top football competition, 18 clubs (2026 season, listed alphabetically).",
+      "desc_en": "Top Zimbabwean league — 18 clubs including Dynamos, Highlanders and CAPS United.",
       "slug_en": "premier-soccer-league"
     },
     {
@@ -73155,11 +73220,11 @@
       "type": "folder",
       "icon": "mg",
       "name": "Pureplay Football League",
-      "desc": "Najvyššia futbalová súťaž na Madagaskare (predtým THB Champions League), sezóna 2025/26 v dvoch geografických skupinách Sever a Juh.",
+      "desc": "Najvyššia madagaskarská súťaž — 15 klubov v dvoch geografických skupinách, vrátane COSFA, Fosa Juniors FC a Elgeco Plus.",
       "order": 0,
       "slug": "pureplay-football-league",
       "name_en": "Pureplay Football League",
-      "desc_en": "Madagascar's top football division (formerly THB Champions League), 2025/26 season split into North and South geographic groups.",
+      "desc_en": "Top Malagasy league — 15 clubs in two geographical groups, including COSFA, Fosa Juniors FC and Elgeco Plus.",
       "slug_en": "pureplay-football-league"
     },
     {
@@ -73348,11 +73413,11 @@
       "type": "folder",
       "icon": "na",
       "name": "Namibia Premiership",
-      "desc": "Najvyššia futbalová súťaž v Namíbii, sezóna 2025/26 (majster African Stars, štvrtý titul v rade).",
+      "desc": "Najvyššia namíbijská súťaž — 16 klubov vrátane African Stars, Blue Waters a Tigers FC.",
       "order": 0,
       "slug": "namibia-premiership",
       "name_en": "Namibia Premiership",
-      "desc_en": "Namibia's top football division, 2025/26 season (champions African Stars, fourth consecutive title).",
+      "desc_en": "Top Namibian league — 16 clubs including African Stars, Blue Waters and Tigers FC.",
       "slug_en": "namibia-premiership"
     },
     {
@@ -73553,11 +73618,11 @@
       "type": "folder",
       "icon": "cg",
       "name": "Ligue 1",
-      "desc": "Najvyššia futbalová súťaž Konžskej republiky (Championnat National), sezóna 2025/26, 16 klubov.",
+      "desc": "Najvyššia súťaž Konžskej republiky — 16 klubov vrátane AC Léopards, Diables Noirs a Étoile du Congo.",
       "order": 0,
       "slug": "ligue-1",
       "name_en": "Ligue 1",
-      "desc_en": "The Republic of the Congo's top football division (Championnat National), 2025/26 season, 16 clubs.",
+      "desc_en": "Top league of the Republic of the Congo — 16 clubs including AC Léopards, Diables Noirs and Étoile du Congo.",
       "slug_en": "ligue-1"
     },
     {
@@ -73758,11 +73823,11 @@
       "type": "folder",
       "icon": "sz",
       "name": "Premier League of Eswatini",
-      "desc": "Najvyššia futbalová súťaž Eswatini (MTN Premier League), sezóna 2025/26 prebieha (stav k januáru 2026).",
+      "desc": "Najvyššia súťaž Eswatini — 16 klubov vrátane Mbabane Swallows, Mbabane Highlanders a Young Buffaloes.",
       "order": 0,
       "slug": "premier-league-of-eswatini",
       "name_en": "Premier League of Eswatini",
-      "desc_en": "Eswatini's top football division (MTN Premier League), 2025/26 season in progress (as of January 2026).",
+      "desc_en": "Top league of Eswatini — 16 clubs including Mbabane Swallows, Mbabane Highlanders and Young Buffaloes.",
       "slug_en": "premier-league-of-eswatini"
     },
     {
@@ -73963,11 +74028,11 @@
       "type": "folder",
       "icon": "dj",
       "name": "Première Division",
-      "desc": "Najvyššia futbalová súťaž Džibutska, dohraná sezóna 2025/26 (majster AS Ali Sabieh/Djibouti Télécom).",
+      "desc": "Najvyššia džibutská súťaž — 10 klubov vrátane AS Port, AS Ali Sabieh/Djibouti Télécom a FC Arta/SIHD.",
       "order": 0,
       "slug": "premiere-division",
       "name_en": "Première Division",
-      "desc_en": "Djibouti's top football division, completed 2025/26 season (champions AS Ali Sabieh/Djibouti Télécom).",
+      "desc_en": "Top Djiboutian league — 10 clubs including AS Port, AS Ali Sabieh/Djibouti Télécom and FC Arta/SIHD.",
       "slug_en": "premiere-division"
     },
     {
@@ -74096,11 +74161,11 @@
       "type": "folder",
       "icon": "gw",
       "name": "Liga Orange",
-      "desc": "Najvyššia futbalová súťaž v Guinei-Bissau (Liga Orange / I Divisão), dohraná sezóna 2025/26 (majster FC Canchungo).",
+      "desc": "Najvyššia súťaž Guiney-Bissau — 16 klubov vrátane Sport Bissau e Benfica, Sportingu da Guiné-Bissau a Portos de Bissau.",
       "order": 0,
       "slug": "liga-orange",
       "name_en": "Liga Orange",
-      "desc_en": "Guinea-Bissau's top football division (Liga Orange / I Divisão), completed 2025/26 season (champions FC Canchungo).",
+      "desc_en": "Top league of Guinea-Bissau — 16 clubs including Sport Bissau e Benfica, Sporting da Guiné-Bissau and Portos de Bissau.",
       "slug_en": "liga-orange"
     },
     {
@@ -74301,11 +74366,11 @@
       "type": "folder",
       "icon": "km",
       "name": "D1 Ngazidja",
-      "desc": "Regionálna najvyššia liga ostrova Ngazidja (Veľká Komora), sezóna 2025/26 — komorský šampionát sa hrá ako 3 samostatné ostrovné ligy (Ngazidja, Mwali, Ndzuani), ktorých víťazi si zahrajú záverečný turnaj o národný titul (2025/26 ho získal Fomboni FC z ostrova Mwali).",
+      "desc": "Najvyššia liga ostrova Ngazidja (Veľká Komora) — 12 klubov vrátane Volcan Club a Djabal FC; komorský šampionát tvoria tri ostrovné ligy, ktorých víťazi hrajú finálový turnaj o národný titul.",
       "order": 0,
       "slug": "d1-ngazidja",
       "name_en": "D1 Ngazidja",
-      "desc_en": "Top regional division of Ngazidja island (Grande Comore), 2025/26 season — the Comorian championship is played as 3 separate island leagues (Ngazidja, Mwali, Ndzuani), whose winners contest a final round for the national title (won in 2025/26 by Fomboni FC of Mwali island).",
+      "desc_en": "Top division of Ngazidja island (Grande Comore) — 12 clubs including Volcan Club and Djabal FC; the Comorian championship consists of three island leagues whose winners contest a final round for the national title.",
       "slug_en": "d1-ngazidja"
     },
     {
@@ -74458,11 +74523,11 @@
       "type": "folder",
       "icon": "gq",
       "name": "Liga Nacional — Región Continental",
-      "desc": "Kontinentálna skupina najvyššej futbalovej súťaže Rovníkovej Guiney, sezóna 2025/26 prebieha (kluby z pevninskej časti krajiny, Río Muni).",
+      "desc": "Kontinentálna skupina najvyššej súťaže Rovníkovej Guiney — 12 klubov z pevninskej časti krajiny (Río Muni), vrátane Akonanguí FC a CD Mongomo.",
       "order": 0,
       "slug": "liga-nacional-region-continental",
       "name_en": "Liga Nacional — Continental Region",
-      "desc_en": "Continental group of Equatorial Guinea's top football division, 2025/26 season in progress (clubs from the mainland part of the country, Río Muni).",
+      "desc_en": "Mainland group of Equatorial Guinea's top division — 12 clubs from the mainland (Río Muni), including Akonanguí FC and CD Mongomo.",
       "slug_en": "liga-nacional-region-continental"
     },
     {
@@ -74471,11 +74536,11 @@
       "type": "folder",
       "icon": "gq",
       "name": "Liga Nacional — Región Insular",
-      "desc": "Ostrovná skupina najvyššej futbalovej súťaže Rovníkovej Guiney, sezóna 2025/26 prebieha (kluby z hlavného mesta Malabo a okolia).",
+      "desc": "Ostrovná skupina najvyššej súťaže Rovníkovej Guiney — 12 klubov z hlavného mesta Malabo a okolia, vrátane Cano Sport Academy a CD Sony de Elá Nguema.",
       "order": 1,
       "slug": "liga-nacional-region-insular",
       "name_en": "Liga Nacional — Insular Region",
-      "desc_en": "Insular group of Equatorial Guinea's top football division, 2025/26 season in progress (clubs from the capital Malabo and surrounding area).",
+      "desc_en": "Island group of Equatorial Guinea's top division — 12 clubs from the capital Malabo and its surroundings, including Cano Sport Academy and CD Sony de Elá Nguema.",
       "slug_en": "liga-nacional-region-insular"
     },
     {
@@ -74772,11 +74837,11 @@
       "type": "folder",
       "icon": "st",
       "name": "Campeonato Nacional — Grupo São Tomé",
-      "desc": "Skupina ostrova São Tomé v najvyššej futbalovej súťaži krajiny, sezóna 2025/26 prebieha (12 klubov, víťaz postupuje do finále o národný titul).",
+      "desc": "Skupina ostrova São Tomé v najvyššej súťaži krajiny — 12 klubov vrátane Vitória FCR a UD Rei Amador, víťaz postupuje do finále o národný titul.",
       "order": 0,
       "slug": "campeonato-nacional-grupo-sao-tome",
       "name_en": "Campeonato Nacional — São Tomé Group",
-      "desc_en": "São Tomé island group of the country's top football division, 2025/26 season in progress (12 clubs, winner advances to the national title final).",
+      "desc_en": "São Tomé island group of the country's top division — 12 clubs including Vitória FCR and UD Rei Amador, with the winner advancing to the national title play-off.",
       "slug_en": "campeonato-nacional-grupo-sao-tome"
     },
     {
@@ -74785,11 +74850,11 @@
       "type": "folder",
       "icon": "st",
       "name": "Campeonato Nacional — Grupo Príncipe",
-      "desc": "Skupina ostrova Príncipe v najvyššej futbalovej súťaži krajiny, sezóna 2025/26 prebieha (6 klubov, víťaz postupuje do finále o národný titul).",
+      "desc": "Skupina ostrova Príncipe v najvyššej súťaži krajiny — 6 klubov vrátane SC Príncipe a GD Os Operários, víťaz postupuje do finále o národný titul.",
       "order": 1,
       "slug": "campeonato-nacional-grupo-principe",
       "name_en": "Campeonato Nacional — Príncipe Group",
-      "desc_en": "Príncipe island group of the country's top football division, 2025/26 season in progress (6 clubs, winner advances to the national title final).",
+      "desc_en": "Príncipe island group of the country's top division — 6 clubs including SC Príncipe and GD Os Operários, with the winner advancing to the national title play-off.",
       "slug_en": "campeonato-nacional-grupo-principe"
     },
     {
@@ -75014,11 +75079,11 @@
       "type": "folder",
       "icon": "nz",
       "name": "Dettol National League — Severná liga",
-      "desc": "Severná (Aucklandsko-Waikatská) regionálna skupina novozélandskej Národnej ligy, sezóna 2026 prebieha — 4 najlepšie tímy (plus rezervy Auckland FC) postupujú do záverečnej Championship fázy o titul.",
+      "desc": "Severná (Aucklandsko-Waikatská) regionálna skupina novozélandskej Národnej ligy — 12 klubov vrátane Auckland City FC, Eastern Suburbs a Western Springs; najlepšie tímy postupujú do záverečnej Championship fázy o titul.",
       "order": 0,
       "slug": "severna-liga",
       "name_en": "Dettol National League — Northern League",
-      "desc_en": "Northern (Auckland/Waikato) regional group of New Zealand's National League, 2026 season in progress — the top 4 teams (plus Auckland FC Reserves) advance to the Championship phase for the title.",
+      "desc_en": "Northern (Auckland/Waikato) regional group of New Zealand's National League — 12 clubs including Auckland City FC, Eastern Suburbs and Western Springs; the top teams advance to the Championship phase for the title.",
       "slug_en": "northern-league"
     },
     {
@@ -75027,11 +75092,11 @@
       "type": "folder",
       "icon": "nz",
       "name": "Dettol National League — Centrálna liga",
-      "desc": "Centrálna (Wellingtonská) regionálna skupina novozélandskej Národnej ligy, sezóna 2026 prebieha — 3 najlepšie tímy (plus rezervy Wellington Phoenix) postupujú do záverečnej Championship fázy o titul.",
+      "desc": "Centrálna (Wellingtonská) regionálna skupina novozélandskej Národnej ligy — 10 klubov vrátane Miramar Rangers, Wellington Olympic a Napier City Rovers; najlepšie tímy postupujú do záverečnej Championship fázy o titul.",
       "order": 1,
       "slug": "centralna-liga",
       "name_en": "Dettol National League — Central League",
-      "desc_en": "Central (Wellington) regional group of New Zealand's National League, 2026 season in progress — the top 3 teams (plus Wellington Phoenix Reserves) advance to the Championship phase for the title.",
+      "desc_en": "Central (Wellington) regional group of New Zealand's National League — 10 clubs including Miramar Rangers, Wellington Olympic and Napier City Rovers; the top teams advance to the Championship phase for the title.",
       "slug_en": "central-league"
     },
     {
@@ -75040,11 +75105,11 @@
       "type": "folder",
       "icon": "nz",
       "name": "Dettol National League — Južná liga",
-      "desc": "Južná (Južný ostrov) regionálna skupina novozélandskej Národnej ligy, sezóna 2026 prebieha — 2 najlepšie tímy postupujú do záverečnej Championship fázy o titul.",
+      "desc": "Južná (Južný ostrov) regionálna skupina novozélandskej Národnej ligy — 10 klubov vrátane Christchurch United, Cashmere Technical a Northern AFC; najlepšie tímy postupujú do záverečnej Championship fázy o titul.",
       "order": 2,
       "slug": "juzna-liga",
       "name_en": "Dettol National League — Southern League",
-      "desc_en": "Southern (South Island) regional group of New Zealand's National League, 2026 season in progress — the top 2 teams advance to the Championship phase for the title.",
+      "desc_en": "Southern (South Island) regional group of New Zealand's National League — 10 clubs including Christchurch United, Cashmere Technical and Northern AFC; the top teams advance to the Championship phase for the title.",
       "slug_en": "southern-league"
     },
     {
@@ -75461,8 +75526,8 @@
       "type": "folder",
       "icon": "ag",
       "name": "ABFA Premier League",
-      "desc": "",
-      "desc_en": "",
+      "desc": "Najvyššia súťaž Antiguy a Barbudy — 12 klubov vrátane Grenades, Old Road a Pigotts Bullets.",
+      "desc_en": "Top league of Antigua and Barbuda — 12 clubs including Grenades, Old Road and Pigotts Bullets.",
       "order": 1,
       "slug": "abfa-premier-league"
     },
@@ -75604,8 +75669,8 @@
       "type": "folder",
       "icon": "aw",
       "name": "Division di Honor",
-      "desc": "",
-      "desc_en": "",
+      "desc": "Najvyššia arubská súťaž — 10 klubov vrátane SV Britannia, SV Dakota a SV Racing Club Aruba.",
+      "desc_en": "Top Aruban league — 10 clubs including SV Britannia, SV Dakota and SV Racing Club Aruba.",
       "order": 1,
       "slug": "division-di-honor"
     },
@@ -75725,8 +75790,8 @@
       "type": "folder",
       "icon": "bb",
       "name": "Premier League",
-      "desc": "",
-      "desc_en": "",
+      "desc": "Najvyššia barbadoská súťaž — 10 klubov vrátane Weymouth Wales FC, Paradise FC a UWI Blackbirds.",
+      "desc_en": "Top Barbadian league — 10 clubs including Weymouth Wales FC, Paradise FC and UWI Blackbirds.",
       "order": 1,
       "slug": "premier-league"
     },
@@ -75846,8 +75911,8 @@
       "type": "folder",
       "icon": "bm",
       "name": "Premier Division",
-      "desc": "",
-      "desc_en": "",
+      "desc": "Najvyššia bermudská súťaž — 10 klubov vrátane Dandy Town Hornets, PHC Zebras a North Village Rams.",
+      "desc_en": "Top Bermudian league — 10 clubs including Dandy Town Hornets, PHC Zebras and North Village Rams.",
       "order": 1,
       "slug": "premier-division"
     },
@@ -75967,8 +76032,8 @@
       "type": "folder",
       "icon": "do",
       "name": "Liga Dominicana de Fútbol",
-      "desc": "",
-      "desc_en": "",
+      "desc": "Najvyššia dominikánska súťaž — 10 klubov vrátane Cibao FC, Atlética Pantoja a Moca FC.",
+      "desc_en": "Top Dominican league — 10 clubs including Cibao FC, Atlético Pantoja and Moca FC.",
       "order": 1,
       "slug": "liga-dominicana-de-futbol"
     },
@@ -76088,8 +76153,8 @@
       "type": "folder",
       "icon": "gt",
       "name": "Liga Nacional de Guatemala",
-      "desc": "",
-      "desc_en": "",
+      "desc": "Najvyššia guatemalská súťaž — 12 klubov vrátane Comunicaciones, Municipal a Antigua GFC.",
+      "desc_en": "Top Guatemalan league — 12 clubs including Comunicaciones, Municipal and Antigua GFC.",
       "order": 1,
       "slug": "liga-nacional-de-guatemala"
     },
@@ -76231,8 +76296,8 @@
       "type": "folder",
       "icon": "ht",
       "name": "Championnat National D1 (Ligue Haïtienne)",
-      "desc": "",
-      "desc_en": "",
+      "desc": "Najvyššia haitská súťaž — 14 klubov vrátane Violette AC, Racing Club Haïtien a Don Bosco FC.",
+      "desc_en": "Top Haitian league — 14 clubs including Violette AC, Racing Club Haïtien and Don Bosco FC.",
       "order": 1,
       "slug": "championnat-national-d1-ligue-haitienne"
     },
@@ -76396,8 +76461,8 @@
       "type": "folder",
       "icon": "hn",
       "name": "Liga Nacional de Honduras",
-      "desc": "",
-      "desc_en": "",
+      "desc": "Najvyššia honduraská súťaž — 12 klubov vrátane Olimpie, Motagua a Realu España.",
+      "desc_en": "Top Honduran league — 12 clubs including Olimpia, Motagua and Real España.",
       "order": 1,
       "slug": "liga-nacional-de-honduras"
     },
@@ -76539,8 +76604,8 @@
       "type": "folder",
       "icon": "jm",
       "name": "Jamaica Premier League",
-      "desc": "",
-      "desc_en": "",
+      "desc": "Najvyššia jamajská súťaž — 14 klubov vrátane Cavalier FC, Arnett Gardens a Waterhouse FC.",
+      "desc_en": "Top Jamaican league — 14 clubs including Cavalier FC, Arnett Gardens and Waterhouse FC.",
       "order": 1,
       "slug": "jamaica-premier-league"
     },
@@ -76704,8 +76769,8 @@
       "type": "folder",
       "icon": "ca",
       "name": "Canadian Premier League",
-      "desc": "",
-      "desc_en": "",
+      "desc": "Najvyššia domáca kanadská súťaž — 8 klubov vrátane Forge FC, Cavalry FC a Atlético Ottawa, hrá sa v kalendárnom roku.",
+      "desc_en": "Canada's top domestic league — 8 clubs including Forge FC, Cavalry FC and Atlético Ottawa, played over the calendar year.",
       "order": 1,
       "slug": "canadian-premier-league"
     },
@@ -76803,8 +76868,8 @@
       "type": "folder",
       "icon": "cr",
       "name": "Liga Promerica (Primera División)",
-      "desc": "",
-      "desc_en": "",
+      "desc": "Najvyššia kostarická súťaž — 10 klubov vrátane Saprissy, Alajuelense a Herediana.",
+      "desc_en": "Top Costa Rican league — 10 clubs including Saprissa, Alajuelense and Herediano.",
       "order": 1,
       "slug": "liga-promerica-primera-division"
     },
@@ -76924,8 +76989,8 @@
       "type": "folder",
       "icon": "cr",
       "name": "Liga de Ascenso (2. liga)",
-      "desc": "",
-      "desc_en": "",
+      "desc": "Druhá kostarická liga — 15 klubov bojujúcich o postup do najvyššej súťaže.",
+      "desc_en": "Second Costa Rican tier — 15 clubs fighting for promotion to the top flight.",
       "order": 2,
       "slug": "liga-de-ascenso-2-liga"
     },
@@ -77100,8 +77165,8 @@
       "type": "folder",
       "icon": "mx",
       "name": "Liga MX",
-      "desc": "",
-      "desc_en": "",
+      "desc": "Najvyššia mexická súťaž — 18 klubov vrátane Amériky, Guadalajary (Chivas) a Cruz Azul.",
+      "desc_en": "Top Mexican league — 18 clubs including América, Guadalajara (Chivas) and Cruz Azul.",
       "order": 1,
       "slug": "liga-mx"
     },
@@ -77309,8 +77374,8 @@
       "type": "folder",
       "icon": "mx",
       "name": "Liga de Expansión MX (2. liga)",
-      "desc": "",
-      "desc_en": "",
+      "desc": "Druhá mexická liga — 16 klubov vrátane Atlética Morelia, Dorados de Sinaloa a Tapatía.",
+      "desc_en": "Second Mexican tier — 16 clubs including Atlético Morelia, Dorados de Sinaloa and Tapatío.",
       "order": 2,
       "slug": "liga-de-expansion-mx-2-liga"
     },
@@ -77496,8 +77561,8 @@
       "type": "folder",
       "icon": "mq",
       "name": "Régional 1 (Trophée Gérard Janvion)",
-      "desc": "",
-      "desc_en": "",
+      "desc": "Najvyššia martinická súťaž — 14 klubov vrátane Golden Lion, Club Franciscain a RC Saint-Joseph.",
+      "desc_en": "Top Martinique league — 14 clubs including Golden Lion, Club Franciscain and RC Saint-Joseph.",
       "order": 1,
       "slug": "regional-1-trophee-gerard-janvion"
     },
@@ -77661,8 +77726,8 @@
       "type": "folder",
       "icon": "ni",
       "name": "Liga Primera de Nicaragua",
-      "desc": "",
-      "desc_en": "",
+      "desc": "Najvyššia nikaragujská súťaž — 10 klubov vrátane Realu Estelí, Diriangénu a Managua FC.",
+      "desc_en": "Top Nicaraguan league — 10 clubs including Real Estelí, Diriangén and Managua FC.",
       "order": 1,
       "slug": "liga-primera-de-nicaragua"
     },
@@ -81992,11 +82057,11 @@
       "type": "folder",
       "icon": "as",
       "name": "FFAS Senior League",
-      "desc": "",
+      "desc": "Najvyššia súťaž Americkej Samoy — 11 klubov vrátane Pago Youth FC, Royal Puma a Lion Heart.",
       "order": 0,
       "slug": "ffas-senior-league",
       "name_en": "FFAS Senior League",
-      "desc_en": "",
+      "desc_en": "Top league of American Samoa — 11 clubs including Pago Youth FC, Royal Puma and Lion Heart.",
       "slug_en": "ffas-senior-league"
     },
     {
@@ -82159,11 +82224,11 @@
       "type": "folder",
       "icon": "ck",
       "name": "Round Cup",
-      "desc": "",
+      "desc": "Najvyššia súťaž Cookových ostrovov — 6 klubov na čele s Tupapa Maraerenga a Puaikura.",
       "order": 0,
       "slug": "round-cup",
       "name_en": "Round Cup",
-      "desc_en": "",
+      "desc_en": "Top league of the Cook Islands — 6 clubs led by Tupapa Maraerenga and Puaikura.",
       "slug_en": "round-cup"
     },
     {
@@ -82256,11 +82321,11 @@
       "type": "folder",
       "icon": "fj",
       "name": "Premier League",
-      "desc": "",
+      "desc": "Najvyššia fidžijská súťaž — 10 klubov vrátane Rewa, Ba a Lautoka.",
       "order": 0,
       "slug": "premier-league",
       "name_en": "Premier League",
-      "desc_en": "",
+      "desc_en": "Top Fijian league — 10 clubs including Rewa, Ba and Lautoka.",
       "slug_en": "premier-league"
     },
     {
@@ -82409,11 +82474,11 @@
       "type": "folder",
       "icon": "nc",
       "name": "Super Ligue",
-      "desc": "",
+      "desc": "Najvyššia novokaledónska súťaž — 10 klubov vrátane Hienghène Sport, AS Magenta a AS Tiga Sport.",
       "order": 0,
       "slug": "super-ligue",
       "name_en": "Super Ligue",
-      "desc_en": "",
+      "desc_en": "Top New Caledonian league — 10 clubs including Hienghène Sport, AS Magenta and AS Tiga Sport.",
       "slug_en": "super-ligue"
     },
     {
@@ -82562,11 +82627,11 @@
       "type": "folder",
       "icon": "pg",
       "name": "Premier Soccer League",
-      "desc": "",
+      "desc": "Najvyššia súťaž Papuy-Novej Guiney — 12 klubov vrátane Lae City FC, PNG Hekari FC a Port Moresby Strikers.",
       "order": 0,
       "slug": "premier-soccer-league",
       "name_en": "Premier Soccer League",
-      "desc_en": "",
+      "desc_en": "Top league of Papua New Guinea — 12 clubs including Lae City FC, PNG Hekari FC and Port Moresby Strikers.",
       "slug_en": "premier-soccer-league"
     },
     {
@@ -82743,11 +82808,11 @@
       "type": "folder",
       "icon": "ws",
       "name": "National League",
-      "desc": "",
+      "desc": "Najvyššia samojská súťaž — 12 klubov vrátane Lupe o le Soaga, Kiwi a Vaipuna.",
       "order": 0,
       "slug": "national-league",
       "name_en": "National League",
-      "desc_en": "",
+      "desc_en": "Top Samoan league — 12 clubs including Lupe o le Soaga, Kiwi and Vaipuna.",
       "slug_en": "national-league"
     },
     {
@@ -82924,11 +82989,11 @@
       "type": "folder",
       "icon": "sb",
       "name": "S-League",
-      "desc": "",
+      "desc": "Najvyššia súťaž Šalamúnových ostrovov — 12 klubov vrátane KOSSA FC, Marist FC a Honiara City FC.",
       "order": 0,
       "slug": "s-league",
       "name_en": "S-League",
-      "desc_en": "",
+      "desc_en": "Top league of the Solomon Islands — 12 clubs including KOSSA FC, Marist FC and Honiara City FC.",
       "slug_en": "s-league"
     },
     {
@@ -83105,11 +83170,11 @@
       "type": "folder",
       "icon": "pf",
       "name": "Ligue 1",
-      "desc": "",
+      "desc": "Najvyššia tahitská súťaž — 10 klubov vrátane AS Vénus, AS Pirae a AS Central Sport.",
       "order": 0,
       "slug": "ligue-1",
       "name_en": "Ligue 1",
-      "desc_en": "",
+      "desc_en": "Top Tahitian league — 10 clubs including AS Vénus, AS Pirae and AS Central Sport.",
       "slug_en": "ligue-1"
     },
     {
@@ -83258,11 +83323,11 @@
       "type": "folder",
       "icon": "to",
       "name": "Major League",
-      "desc": "",
+      "desc": "Najvyššia tonžská súťaž — 8 klubov vrátane Veitongo FC, Lotohaʻapai United a Marist Nukuʻalofa.",
       "order": 0,
       "slug": "major-league",
       "name_en": "Major League",
-      "desc_en": "",
+      "desc_en": "Top Tongan league — 8 clubs including Veitongo FC, Lotohaʻapai United and Marist Nukuʻalofa.",
       "slug_en": "major-league"
     },
     {
@@ -83383,11 +83448,11 @@
       "type": "folder",
       "icon": "vu",
       "name": "Super League",
-      "desc": "",
+      "desc": "Najvyššia vanuatská súťaž — 6 klubov vrátane Ifira Black Bird FC a ABM Galaxy FC.",
       "order": 0,
       "slug": "super-league",
       "name_en": "Super League",
-      "desc_en": "",
+      "desc_en": "Top Vanuatu league — 6 clubs including Ifira Black Bird FC and ABM Galaxy FC.",
       "slug_en": "super-league"
     },
     {
@@ -83480,11 +83545,11 @@
       "type": "folder",
       "icon": "qa",
       "name": "Qatar Stars League",
-      "desc": "",
+      "desc": "Najvyššia katarská súťaž — 12 klubov vrátane Al-Sadd, Al-Duhail a Al-Rayyan.",
       "order": 0,
       "slug": "qatar-stars-league",
       "name_en": "Qatar Stars League",
-      "desc_en": "",
+      "desc_en": "Top Qatari league — 12 clubs including Al-Sadd, Al-Duhail and Al-Rayyan.",
       "slug_en": "qatar-stars-league"
     },
     {
@@ -83661,11 +83726,11 @@
       "type": "folder",
       "icon": "kg",
       "name": "Kyrgyz Premier League",
-      "desc": "",
+      "desc": "Najvyššia kirgizská súťaž — 16 klubov na čele s Dordoi Bishkek a Alay Osh, hrá sa v kalendárnom roku.",
       "order": 0,
       "slug": "kyrgyz-premier-league",
       "name_en": "Kyrgyz Premier League",
-      "desc_en": "",
+      "desc_en": "Top Kyrgyz league — 16 clubs led by Dordoi Bishkek and Alay Osh, played over the calendar year.",
       "slug_en": "kyrgyz-premier-league"
     },
     {
@@ -83898,11 +83963,11 @@
       "type": "folder",
       "icon": "kw",
       "name": "Kuwait Premier League",
-      "desc": "",
+      "desc": "Najvyššia kuvajtská súťaž — 10 klubov vrátane Al-Kuwait, Al-Qadsia a Al-Arabi.",
       "order": 0,
       "slug": "kuwait-premier-league",
       "name_en": "Kuwait Premier League",
-      "desc_en": "",
+      "desc_en": "Top Kuwaiti league — 10 clubs including Al-Kuwait, Al-Qadsia and Al-Arabi.",
       "slug_en": "kuwait-premier-league"
     },
     {
@@ -84051,11 +84116,11 @@
       "type": "folder",
       "icon": "la",
       "name": "Lao League",
-      "desc": "",
+      "desc": "Najvyššia laoská súťaž — 10 klubov na čele s Young Elephants.",
       "order": 0,
       "slug": "lao-league",
       "name_en": "Lao League",
-      "desc_en": "",
+      "desc_en": "Top Laotian league — 10 clubs led by Young Elephants.",
       "slug_en": "lao-league"
     },
     {
@@ -84204,11 +84269,11 @@
       "type": "folder",
       "icon": "ye",
       "name": "Jemenská liga",
-      "desc": "",
+      "desc": "Najvyššia jemenská súťaž — 14 klubov vrátane Al-Wehda Sanaa, Al-Oruba a Ittihad Hadramout.",
       "order": 0,
       "slug": "jemenská-liga",
       "name_en": "Yemeni League",
-      "desc_en": "",
+      "desc_en": "Top Yemeni league — 14 clubs including Al-Wehda Sanaa, Al-Oruba and Ittihad Hadramout.",
       "slug_en": "yemeni-league"
     },
     {
@@ -84413,11 +84478,11 @@
       "type": "folder",
       "icon": "my",
       "name": "Super League",
-      "desc": "",
+      "desc": "Najvyššia malajzijská súťaž — 12 klubov na čele s Johor Darul Ta'zim, hrá aj brunejský DPMM FC.",
       "order": 0,
       "slug": "super-league",
       "name_en": "Super League",
-      "desc_en": "",
+      "desc_en": "Top Malaysian league — 12 clubs led by Johor Darul Ta'zim, with Brunei's DPMM FC also taking part.",
       "slug_en": "super-league"
     },
     {
@@ -84594,11 +84659,11 @@
       "type": "folder",
       "icon": "vn",
       "name": "V.League 1",
-      "desc": "",
+      "desc": "Najvyššia vietnamská súťaž — 14 klubov vrátane Hanoi FC, Cong An Hanoi a The Cong-Viettel.",
       "order": 0,
       "slug": "v-league-1",
       "name_en": "V.League 1",
-      "desc_en": "",
+      "desc_en": "Top Vietnamese league — 14 clubs including Hanoi FC, Cong An Hanoi and The Cong-Viettel.",
       "slug_en": "v-league-1"
     },
     {
@@ -84803,11 +84868,11 @@
       "type": "folder",
       "icon": "th",
       "name": "Thai League 1",
-      "desc": "",
+      "desc": "Najvyššia thajská súťaž — 16 klubov vrátane Buriram United, BG Pathum United a Bangkok United.",
       "order": 0,
       "slug": "thai-league-1",
       "name_en": "Thai League 1",
-      "desc_en": "",
+      "desc_en": "Top Thai league — 16 clubs including Buriram United, BG Pathum United and Bangkok United.",
       "slug_en": "thai-league-1"
     },
     {
@@ -85040,10 +85105,11 @@
       "type": "folder",
       "icon": "sa",
       "name": "Saudi Pro League",
-      "desc": "",
+      "desc": "Najvyššia saudskoarabská súťaž — 18 klubov vrátane Al-Hilal, Al-Nassr a Al-Ittihad.",
       "order": 0,
       "name_en": "Saudi Pro League",
-      "slug": "saudi-pro-league"
+      "slug": "saudi-pro-league",
+      "desc_en": "Top Saudi league — 18 clubs including Al-Hilal, Al-Nassr and Al-Ittihad."
     },
     {
       "id": "f_sau_l1_k1",
@@ -85267,10 +85333,11 @@
       "type": "folder",
       "icon": "om",
       "name": "Oman Professional League",
-      "desc": "",
+      "desc": "Najvyššia ománska súťaž — 14 klubov vrátane Al Seeb a Dhofar.",
       "order": 0,
       "name_en": "Oman Professional League",
-      "slug": "oman-professional-league"
+      "slug": "oman-professional-league",
+      "desc_en": "Top Omani league — 14 clubs including Al Seeb and Dhofar."
     },
     {
       "id": "f_omn_l1_k1",
@@ -85446,10 +85513,11 @@
       "type": "folder",
       "icon": "lb",
       "name": "Lebanese Premier League",
-      "desc": "",
+      "desc": "Najvyššia libanonská súťaž — 12 klubov vrátane Al Ahed, Nejmeh a Al Ansar.",
       "order": 0,
       "name_en": "Lebanese Premier League",
-      "slug": "lebanese-premier-league"
+      "slug": "lebanese-premier-league",
+      "desc_en": "Top Lebanese league — 12 clubs including Al Ahed, Nejmeh and Al Ansar."
     },
     {
       "id": "f_lbn_l1_k1",
@@ -85601,10 +85669,11 @@
       "type": "folder",
       "icon": "ae",
       "name": "UAE Pro League (ADNOC Pro League)",
-      "desc": "",
+      "desc": "Najvyššia súťaž Spojených arabských emirátov — 14 klubov vrátane Al Ain, Shabab Al Ahli a Al Jazira.",
       "order": 0,
       "name_en": "UAE Pro League (ADNOC Pro League)",
-      "slug": "uae-pro-league-adnoc-pro-league"
+      "slug": "uae-pro-league-adnoc-pro-league",
+      "desc_en": "Top league of the United Arab Emirates — 14 clubs including Al Ain, Shabab Al Ahli and Al Jazira."
     },
     {
       "id": "f_are_l1_k1",
@@ -85781,8 +85850,8 @@
       "icon": "sg",
       "name": "Singapore Premier League",
       "name_en": "Singapore Premier League",
-      "desc": "",
-      "desc_en": "",
+      "desc": "Najvyššia singapurská súťaž — 8 klubov na čele s Lion City Sailors, hrá aj japonský Albirex Niigata (S).",
+      "desc_en": "Top Singaporean league — 8 clubs led by Lion City Sailors, with Japan's Albirex Niigata (S) also taking part.",
       "order": 0,
       "slug": "singapore-premier-league"
     },
@@ -85881,8 +85950,8 @@
       "icon": "tw",
       "name": "Taiwan Football Premier League",
       "name_en": "Taiwan Football Premier League",
-      "desc": "",
-      "desc_en": "",
+      "desc": "Najvyššia taiwanská súťaž — 8 klubov vrátane Taichung Futuro FC a Taipower FC, hrá sa v kalendárnom roku.",
+      "desc_en": "Top Taiwanese league — 8 clubs including Taichung Futuro FC and Taipower FC, played over the calendar year.",
       "order": 0,
       "slug": "taiwan-football-premier-league"
     },
@@ -85981,8 +86050,8 @@
       "icon": "bn",
       "name": "Brunei Super League",
       "name_en": "Brunei Super League",
-      "desc": "",
-      "desc_en": "",
+      "desc": "Najvyššia brunejská súťaž — 12 klubov vrátane Kasuka FC a Indera SC.",
+      "desc_en": "Top Bruneian league — 12 clubs including Kasuka FC and Indera SC.",
       "order": 0,
       "slug": "brunei-super-league"
     },
@@ -86125,8 +86194,8 @@
       "icon": "mv",
       "name": "Dhivehi Premier League",
       "name_en": "Dhivehi Premier League",
-      "desc": "",
-      "desc_en": "",
+      "desc": "Najvyššia maldivská súťaž — 10 klubov vrátane Maziya S&RC, New Radiant SC a Club Eagles.",
+      "desc_en": "Top Maldivian league — 10 clubs including Maziya S&RC, New Radiant SC and Club Eagles.",
       "order": 0,
       "slug": "dhivehi-premier-league"
     },
@@ -86330,11 +86399,11 @@
       "type": "folder",
       "icon": "mm",
       "name": "Myanmar National League",
-      "desc": "",
+      "desc": "Najvyššia mjanmarská súťaž — 12 klubov vrátane Shan United a Yangon United.",
       "order": 0,
       "slug": "myanmar-national-league",
       "name_en": "Myanmar National League",
-      "desc_en": "",
+      "desc_en": "Top Myanmar league — 12 clubs including Shan United and Yangon United.",
       "slug_en": "myanmar-national-league"
     },
     {
@@ -86413,11 +86482,11 @@
       "type": "folder",
       "icon": "sy",
       "name": "Syrian Premier League",
-      "desc": "",
+      "desc": "Najvyššia sýrska súťaž — 12 klubov vrátane Al Karama SC, Tishreen SC a Al Jaish.",
       "order": 0,
       "slug": "syrian-premier-league",
       "name_en": "Syrian Premier League",
-      "desc_en": "",
+      "desc_en": "Top Syrian league — 12 clubs including Al Karama SC, Tishreen SC and Al Jaish.",
       "slug_en": "syrian-premier-league"
     },
     {
@@ -86524,11 +86593,11 @@
       "type": "folder",
       "icon": "kh",
       "name": "Cambodian Premier League",
-      "desc": "",
+      "desc": "Najvyššia kambodžská súťaž — 11 klubov vrátane Phnom Penh Crown, Visakha a Preah Khan Reach Svay Rieng.",
       "order": 0,
       "slug": "cambodian-premier-league",
       "name_en": "Cambodian Premier League",
-      "desc_en": "",
+      "desc_en": "Top Cambodian league — 11 clubs including Phnom Penh Crown, Visakha and Preah Khan Reach Svay Rieng.",
       "slug_en": "cambodian-premier-league"
     },
     {
@@ -86663,11 +86732,11 @@
       "type": "folder",
       "icon": "uz",
       "name": "Uzbekistan Super League",
-      "desc": "",
+      "desc": "Najvyššia uzbecká súťaž — 16 klubov vrátane Pakhtakoru, Nasafu a Navbahoru, hrá sa v kalendárnom roku.",
       "order": 0,
       "slug": "uzbekistan-super-league",
       "name_en": "Uzbekistan Super League",
-      "desc_en": "",
+      "desc_en": "Top Uzbek league — 16 clubs including Pakhtakor, Nasaf and Navbahor, played over the calendar year.",
       "slug_en": "uzbekistan-super-league"
     },
     {
@@ -86816,11 +86885,11 @@
       "type": "folder",
       "icon": "lk",
       "name": "Sri Lanka Super League",
-      "desc": "",
+      "desc": "Najvyššia srílanská súťaž — 10 klubov vrátane Colombo FC a Blue Star.",
       "order": 0,
       "slug": "sri-lanka-super-league",
       "name_en": "Sri Lanka Super League",
-      "desc_en": "",
+      "desc_en": "Top Sri Lankan league — 10 clubs including Colombo FC and Blue Star.",
       "slug_en": "sri-lanka-super-league"
     },
     {
@@ -87165,11 +87234,11 @@
       "type": "folder",
       "icon": "tj",
       "name": "Tajikistan Higher League",
-      "desc": "",
+      "desc": "Najvyššia tadžická súťaž — 12 klubov na čele s Istiklolom, hrá sa v kalendárnom roku.",
       "order": 0,
       "slug": "tajikistan-higher-league",
       "name_en": "Tajikistan Higher League",
-      "desc_en": "",
+      "desc_en": "Top Tajik league — 12 clubs led by Istiklol, played over the calendar year.",
       "slug_en": "tajikistan-higher-league"
     },
     {
@@ -87248,11 +87317,11 @@
       "type": "folder",
       "icon": "tl",
       "name": "Liga Futebol Timor-Leste",
-      "desc": "",
+      "desc": "Najvyššia východotimorská súťaž — 10 klubov vrátane Karketu Dili a Benfica Laulara.",
       "order": 0,
       "slug": "liga-futebol-timor-leste",
       "name_en": "Liga Futebol Timor-Leste",
-      "desc_en": "",
+      "desc_en": "Top Timorese league — 10 clubs including Karketu Dili and Benfica Laulara.",
       "slug_en": "liga-futebol-timor-leste"
     },
     {
@@ -87401,11 +87470,11 @@
       "type": "folder",
       "icon": "mn",
       "name": "Mongolian Premier League",
-      "desc": "",
+      "desc": "Najvyššia mongolská súťaž — 9 klubov vrátane FC Ulaanbaatar a Deren, hrá sa v kalendárnom roku.",
       "order": 0,
       "slug": "mongolian-premier-league",
       "name_en": "Mongolian Premier League",
-      "desc_en": "",
+      "desc_en": "Top Mongolian league — 9 clubs including FC Ulaanbaatar and Deren, played over the calendar year.",
       "slug_en": "mongolian-premier-league"
     },
     {
@@ -108427,6 +108496,388 @@
       "url": "https://www.fiba.basketball/en/events/fiba-u15-womens-oceania-cup-2024",
       "order": 9,
       "desc_en": "Oceania Under-15 championship for girls, the youngest continental age category run by FIBA Oceania."
+    },
+    {
+      "id": "n1787566150175cku",
+      "parentId": "f_ost_padel",
+      "type": "link",
+      "icon": "",
+      "name": "Padel FIP",
+      "desc": "",
+      "url": "https://www.padelfip.com/",
+      "order": 0
+    },
+    {
+      "id": "f_bas_sut_na_k1",
+      "parentId": "f_bas_sut_na",
+      "type": "link",
+      "icon": "",
+      "name": "NBA",
+      "name_en": "NBA",
+      "desc": "Najsilnejšia klubová súťaž sveta — 30 tímov z USA a Kanady, finále o Larry O'Brien Trophy.",
+      "url": "https://www.nba.com",
+      "order": 0,
+      "desc_en": "The world's strongest club competition — 30 teams from the USA and Canada playing for the Larry O'Brien Trophy."
+    },
+    {
+      "id": "f_bas_sut_na_k2",
+      "parentId": "f_bas_sut_na",
+      "type": "link",
+      "icon": "",
+      "name": "WNBA",
+      "name_en": "WNBA",
+      "desc": "Najprestížnejšia ženská profesionálna liga sveta, hrá sa cez leto od roku 1997.",
+      "url": "https://www.wnba.com",
+      "order": 1,
+      "desc_en": "The world's most prestigious women's professional league, played through the summer since 1997."
+    },
+    {
+      "id": "f_bas_sut_na_k3",
+      "parentId": "f_bas_sut_na",
+      "type": "link",
+      "icon": "",
+      "name": "FIBA AmeriCup 2029 – stredoamerická predkvalifikácia (muži)",
+      "name_en": "FIBA AmeriCup 2029 – Central American Pre-Qualifiers (Men)",
+      "desc": "Prvý stupeň cesty stredoamerických tímov na kontinentálny šampionát AmeriCup.",
+      "url": "https://www.fiba.basketball/en/events/fiba-americup-2029-central-american-pre-qualifiers",
+      "order": 3,
+      "desc_en": "The first step on the road for Central American teams to the continental AmeriCup championship."
+    },
+    {
+      "id": "f_bas_sut_na_k4",
+      "parentId": "f_bas_sut_na",
+      "type": "link",
+      "icon": "",
+      "name": "FIBA AmeriCup 2029 – karibská predkvalifikácia (muži)",
+      "name_en": "FIBA AmeriCup 2029 – Caribbean Pre-Qualifiers (Men)",
+      "desc": "Turnaj karibských ostrovných reprezentácií, ktorý od roku 2018 nahradil zaniknutý mužský CBC šampionát.",
+      "url": "https://www.fiba.basketball/en/events/fiba-americup-2029-caribbean-pre-qualifiers",
+      "order": 4,
+      "desc_en": "A tournament of Caribbean island national teams that replaced the discontinued men's CBC Championship in 2018."
+    },
+    {
+      "id": "f_bas_sut_na_k5",
+      "parentId": "f_bas_sut_na",
+      "type": "link",
+      "icon": "",
+      "name": "FIBA AmeriCup 2027 (ženy)",
+      "name_en": "FIBA Women's AmeriCup 2027",
+      "desc": "Kontinentálny šampionát Ameriky, prvýkrát v histórii v Strednej Amerike — v San Salvadore.",
+      "url": "https://www.fiba.basketball/en/events/fiba-womens-americup-2027",
+      "order": 5,
+      "desc_en": "The continental championship of the Americas, held in Central America for the first time — in San Salvador."
+    },
+    {
+      "id": "f_bas_sut_na_k6",
+      "parentId": "f_bas_sut_na",
+      "type": "link",
+      "icon": "",
+      "name": "Centrobasket (ženy)",
+      "name_en": "Centrobasket Women",
+      "desc": "Šampionát Strednej Ameriky a Karibiku, zároveň kvalifikácia na AmeriCup; mužská verzia sa naposledy hrala v roku 2016.",
+      "url": "https://www.fiba.basketball/en/events/fiba-centrobasket-womens-championship-2026",
+      "order": 6,
+      "desc_en": "The championship of Central America and the Caribbean, also an AmeriCup qualifier; the men's version was last played in 2016."
+    },
+    {
+      "id": "f_bas_sut_na_k7",
+      "parentId": "f_bas_sut_na",
+      "type": "link",
+      "icon": "",
+      "name": "FIBA CBC Championship (ženy)",
+      "name_en": "FIBA CBC Women's Championship",
+      "desc": "Šampionát Karibskej basketbalovej konfederácie, kde sa stretávajú aj tie najmenšie ostrovné reprezentácie.",
+      "url": "https://www.fiba.basketball/en/events/fiba-cbc-womens-championship-2025",
+      "order": 7,
+      "desc_en": "The championship of the Caribbean Basketball Confederation, bringing together even the smallest island national teams."
+    },
+    {
+      "id": "f_bas_sut_na_k8",
+      "parentId": "f_bas_sut_na",
+      "type": "link",
+      "icon": "",
+      "name": "FIBA COCABA Championship (ženy)",
+      "name_en": "FIBA COCABA Women's Championship",
+      "desc": "Šampionát stredoamerickej zóny COCABA — od Guatemaly po Panamu.",
+      "url": "https://www.fiba.basketball/en/events/fiba-cocaba-womens-championship-2025",
+      "order": 8,
+      "desc_en": "The championship of the Central American COCABA zone — from Guatemala to Panama."
+    },
+    {
+      "id": "f_bas_sut_na_k9",
+      "parentId": "f_bas_sut_na",
+      "type": "link",
+      "icon": "",
+      "name": "Basketball Champions League Americas (BCLA)",
+      "name_en": "Basketball Champions League Americas (BCLA)",
+      "desc": "Hlavná klubová súťaž oboch Amerík pod hlavičkou FIBA, nástupca Ligy Amerík.",
+      "url": "https://www.fiba.basketball/en/events/basketball-champions-league-americas-25-26",
+      "order": 9,
+      "desc_en": "The main club competition of the Americas under the FIBA banner, successor to the FIBA Americas League."
+    },
+    {
+      "id": "f_bas_sut_na_k10",
+      "parentId": "f_bas_sut_na",
+      "type": "link",
+      "icon": "",
+      "name": "WBLA (ženy)",
+      "name_en": "WBLA (Women's Basketball League Americas)",
+      "desc": "Kontinentálna klubová súťaž žien, ktorá zjednotila severo-, stredo- a juhoamerické poháre; odkaz vedie na zatiaľ poslednú odohranú edíciu.",
+      "url": "https://www.fiba.basketball/en/events/womens-basketball-league-americas-2024",
+      "order": 10,
+      "desc_en": "The continental women's club competition that unified the North, Central and South American cups; the link points to the most recent edition played so far."
+    },
+    {
+      "id": "f_bas_sut_na_k11",
+      "parentId": "f_bas_sut_na",
+      "type": "link",
+      "icon": "",
+      "name": "FIBA U18 AmeriCup (muži)",
+      "name_en": "FIBA U18 AmeriCup (Men)",
+      "desc": "Šampionát juniorov oboch Amerík a zároveň kvalifikácia na majstrovstvá sveta U19.",
+      "url": "https://www.fiba.basketball/en/events/fiba-u18-americup-2026",
+      "order": 11,
+      "desc_en": "The junior championship of the Americas and at the same time a qualifier for the U19 World Cup."
+    },
+    {
+      "id": "f_bas_sut_na_k12",
+      "parentId": "f_bas_sut_na",
+      "type": "link",
+      "icon": "",
+      "name": "FIBA U18 AmeriCup (ženy)",
+      "name_en": "FIBA U18 Women's AmeriCup",
+      "desc": "Ženská obdoba juniorského šampionátu Ameriky, cesta na majstrovstvá sveta U19.",
+      "url": "https://www.fiba.basketball/en/events/fiba-u18-womens-americup-2026",
+      "order": 12,
+      "desc_en": "The women's counterpart of the Americas junior championship, the road to the U19 World Cup."
+    },
+    {
+      "id": "f_bas_sut_na_k13",
+      "parentId": "f_bas_sut_na",
+      "type": "link",
+      "icon": "",
+      "name": "FIBA U16 AmeriCup (muži)",
+      "name_en": "FIBA U16 AmeriCup (Men)",
+      "desc": "Najmladšia kontinentálna kategória, kde sa prvýkrát ukazujú budúce hviezdy NBA.",
+      "url": "https://www.fiba.basketball/en/events/fiba-u16-americup-2025",
+      "order": 13,
+      "desc_en": "The youngest continental age category, where future NBA stars first show up."
+    },
+    {
+      "id": "f_bas_sut_na_k14",
+      "parentId": "f_bas_sut_na",
+      "type": "link",
+      "icon": "",
+      "name": "FIBA U16 AmeriCup (ženy)",
+      "name_en": "FIBA U16 Women's AmeriCup",
+      "desc": "Ženský kadetský šampionát Ameriky a kvalifikácia na majstrovstvá sveta U17.",
+      "url": "https://www.fiba.basketball/en/events/fiba-u16-womens-americup-2025",
+      "order": 14,
+      "desc_en": "The women's cadet championship of the Americas and a qualifier for the U17 World Cup."
+    },
+    {
+      "id": "f_bas_sut_na_k15",
+      "parentId": "f_bas_sut_na",
+      "type": "link",
+      "icon": "",
+      "name": "Youth BCL Americas",
+      "name_en": "Youth BCL Americas",
+      "desc": "Mládežnícka verzia klubovej Ligy majstrov Ameriky, prvý ročník sa hrá v Argentíne.",
+      "url": "https://www.fiba.basketball/en/events/youth-basketball-champions-league-americas-2026",
+      "order": 15,
+      "desc_en": "The youth version of the club Champions League Americas, with the first edition played in Argentina."
+    },
+    {
+      "id": "f_bas_sut_ja_k1",
+      "parentId": "f_bas_sut_ja",
+      "type": "link",
+      "icon": "",
+      "name": "FIBA AmeriCup (muži)",
+      "name_en": "FIBA AmeriCup (Men)",
+      "desc": "Kontinentálny šampionát oboch Amerík; odkaz vedie na zatiaľ poslednú odohranú edíciu 2025 v Managui, kde po 16 rokoch triumfovala Brazília.",
+      "url": "https://www.fiba.basketball/en/events/fiba-americup-2025",
+      "order": 0,
+      "desc_en": "The continental championship of the Americas; the link points to the most recent edition played so far, in Managua in 2025, where Brazil triumphed after 16 years."
+    },
+    {
+      "id": "f_bas_sut_ja_k2",
+      "parentId": "f_bas_sut_ja",
+      "type": "link",
+      "icon": "",
+      "name": "FIBA AmeriCup 2027 (ženy)",
+      "name_en": "FIBA Women's AmeriCup 2027",
+      "desc": "Kontinentálny šampionát Ameriky, prvýkrát v histórii v Strednej Amerike — v San Salvadore.",
+      "url": "https://www.fiba.basketball/en/events/fiba-womens-americup-2027",
+      "order": 1,
+      "desc_en": "The continental championship of the Americas, held in Central America for the first time — in San Salvador."
+    },
+    {
+      "id": "f_bas_sut_ja_k3",
+      "parentId": "f_bas_sut_ja",
+      "type": "link",
+      "icon": "",
+      "name": "Sudamericano (ženy)",
+      "name_en": "FIBA South American Championship (Women)",
+      "desc": "Juhoamerický šampionát žien v argentínskom Zarate, zároveň posledná šanca na tri miestenky na AmeriCup; mužská verzia sa naposledy hrala v roku 2016.",
+      "url": "https://www.fiba.basketball/en/events/fiba-south-american-womens-championship-2026",
+      "order": 2,
+      "desc_en": "The South American women's championship in Zárate, Argentina, also the last chance for three tickets to the AmeriCup; the men's version was last played in 2016."
+    },
+    {
+      "id": "f_bas_sut_ja_k4",
+      "parentId": "f_bas_sut_ja",
+      "type": "link",
+      "icon": "",
+      "name": "Basketball Champions League Americas (BCLA)",
+      "name_en": "Basketball Champions League Americas (BCLA)",
+      "desc": "Hlavná klubová súťaž oboch Amerík pod hlavičkou FIBA, nástupca Ligy Amerík.",
+      "url": "https://www.fiba.basketball/en/events/basketball-champions-league-americas-25-26",
+      "order": 3,
+      "desc_en": "The main club competition of the Americas under the FIBA banner, successor to the FIBA Americas League."
+    },
+    {
+      "id": "f_bas_sut_ja_k5",
+      "parentId": "f_bas_sut_ja",
+      "type": "link",
+      "icon": "",
+      "name": "Liga Sudamericana (muži)",
+      "name_en": "Liga Sudamericana (Men)",
+      "desc": "Najstaršia juhoamerická klubová súťaž, dnes druhá úroveň pod Ligou majstrov Ameriky; odkaz vedie na zatiaľ poslednú odohranú edíciu.",
+      "url": "https://www.fiba.basketball/en/events/liga-sudamericana-fiba-2025",
+      "order": 4,
+      "desc_en": "The oldest South American club competition, today the second tier below the Champions League Americas; the link points to the most recent edition played so far."
+    },
+    {
+      "id": "f_bas_sut_ja_k6",
+      "parentId": "f_bas_sut_ja",
+      "type": "link",
+      "icon": "",
+      "name": "WBLA (ženy)",
+      "name_en": "WBLA (Women's Basketball League Americas)",
+      "desc": "Kontinentálna klubová súťaž žien, ktorá nahradila samostatnú juhoamerickú ligu klubov; odkaz vedie na zatiaľ poslednú odohranú edíciu.",
+      "url": "https://www.fiba.basketball/en/events/womens-basketball-league-americas-2024",
+      "order": 5,
+      "desc_en": "The continental women's club competition that replaced the separate South American club league; the link points to the most recent edition played so far."
+    },
+    {
+      "id": "f_bas_sut_ja_k7",
+      "parentId": "f_bas_sut_ja",
+      "type": "link",
+      "icon": "",
+      "name": "FIBA U18 AmeriCup (muži)",
+      "name_en": "FIBA U18 AmeriCup (Men)",
+      "desc": "Šampionát juniorov oboch Amerík a zároveň kvalifikácia na majstrovstvá sveta U19.",
+      "url": "https://www.fiba.basketball/en/events/fiba-u18-americup-2026",
+      "order": 6,
+      "desc_en": "The junior championship of the Americas and at the same time a qualifier for the U19 World Cup."
+    },
+    {
+      "id": "f_bas_sut_ja_k8",
+      "parentId": "f_bas_sut_ja",
+      "type": "link",
+      "icon": "",
+      "name": "FIBA U18 AmeriCup (ženy)",
+      "name_en": "FIBA U18 Women's AmeriCup",
+      "desc": "Ženská obdoba juniorského šampionátu Ameriky, cesta na majstrovstvá sveta U19.",
+      "url": "https://www.fiba.basketball/en/events/fiba-u18-womens-americup-2026",
+      "order": 7,
+      "desc_en": "The women's counterpart of the Americas junior championship, the road to the U19 World Cup."
+    },
+    {
+      "id": "f_bas_sut_ja_k9",
+      "parentId": "f_bas_sut_ja",
+      "type": "link",
+      "icon": "",
+      "name": "Sudamericano U17 (muži)",
+      "name_en": "FIBA U17 South American Championship (Men)",
+      "desc": "Juhoamerický šampionát do 17 rokov, ktorý sa hrá raz za dva roky a posiela tri tímy na U18 AmeriCup.",
+      "url": "https://www.fiba.basketball/en/events/fiba-u17-south-american-championship-2025",
+      "order": 8,
+      "desc_en": "The South American under-17 championship, played every two years and sending three teams to the U18 AmeriCup."
+    },
+    {
+      "id": "f_bas_sut_ja_k10",
+      "parentId": "f_bas_sut_ja",
+      "type": "link",
+      "icon": "",
+      "name": "Sudamericano U17 (ženy)",
+      "name_en": "FIBA U17 South American Women's Championship",
+      "desc": "Ženská obdoba juhoamerického šampionátu do 17 rokov, prvý krok na ceste k majstrovstvám sveta U19.",
+      "url": "https://www.fiba.basketball/en/events/fiba-u17-south-american-womens-championship-2025",
+      "order": 9,
+      "desc_en": "The women's counterpart of the South American under-17 championship, the first step on the road to the U19 World Cup."
+    },
+    {
+      "id": "f_bas_sut_ja_k11",
+      "parentId": "f_bas_sut_ja",
+      "type": "link",
+      "icon": "",
+      "name": "FIBA U16 AmeriCup (muži)",
+      "name_en": "FIBA U16 AmeriCup (Men)",
+      "desc": "Najmladšia kontinentálna kategória, kde sa prvýkrát ukazujú budúce hviezdy NBA.",
+      "url": "https://www.fiba.basketball/en/events/fiba-u16-americup-2025",
+      "order": 10,
+      "desc_en": "The youngest continental age category, where future NBA stars first show up."
+    },
+    {
+      "id": "f_bas_sut_ja_k12",
+      "parentId": "f_bas_sut_ja",
+      "type": "link",
+      "icon": "",
+      "name": "FIBA U16 AmeriCup (ženy)",
+      "name_en": "FIBA U16 Women's AmeriCup",
+      "desc": "Ženský kadetský šampionát Ameriky a kvalifikácia na majstrovstvá sveta U17.",
+      "url": "https://www.fiba.basketball/en/events/fiba-u16-womens-americup-2025",
+      "order": 11,
+      "desc_en": "The women's cadet championship of the Americas and a qualifier for the U17 World Cup."
+    },
+    {
+      "id": "f_bas_sut_ja_k13",
+      "parentId": "f_bas_sut_ja",
+      "type": "link",
+      "icon": "",
+      "name": "Sudamericano U15 (muži)",
+      "name_en": "FIBA U15 South American Championship (Men)",
+      "desc": "Vstupná brána juhoamerických nádejí do medzinárodného basketbalu; stránka je zatiaľ len po španielsky a patrí poslednej odohranej edícii.",
+      "url": "https://www.fiba.basketball/es/events/fiba-u15-south-american-championship-2024",
+      "order": 12,
+      "desc_en": "The gateway for South American prospects into international basketball; the page is so far only in Spanish and belongs to the most recent edition played."
+    },
+    {
+      "id": "f_bas_sut_ja_k14",
+      "parentId": "f_bas_sut_ja",
+      "type": "link",
+      "icon": "",
+      "name": "Sudamericano U15 (ženy)",
+      "name_en": "FIBA U15 South American Women's Championship",
+      "desc": "Ženská obdoba najmladšieho juhoamerického šampionátu; stránka je zatiaľ len po španielsky a patrí poslednej odohranej edícii.",
+      "url": "https://www.fiba.basketball/es/events/fiba-u15-south-american-womens-championship-2024",
+      "order": 13,
+      "desc_en": "The women's counterpart of the youngest South American championship; the page is so far only in Spanish and belongs to the most recent edition played."
+    },
+    {
+      "id": "f_bas_sut_ja_k15",
+      "parentId": "f_bas_sut_ja",
+      "type": "link",
+      "icon": "",
+      "name": "Youth BCL Americas",
+      "name_en": "Youth BCL Americas",
+      "desc": "Mládežnícka verzia klubovej Ligy majstrov Ameriky, prvý ročník sa hrá v Argentíne.",
+      "url": "https://www.fiba.basketball/en/events/youth-basketball-champions-league-americas-2026",
+      "order": 14,
+      "desc_en": "The youth version of the club Champions League Americas, with the first edition played in Argentina."
+    },
+    {
+      "id": "f_bas_sut_na_k16",
+      "parentId": "f_bas_sut_na",
+      "type": "link",
+      "icon": "",
+      "name": "FIBA AmeriCup (muži)",
+      "name_en": "FIBA AmeriCup (Men)",
+      "desc": "Kontinentálny šampionát oboch Amerík; odkaz vedie na zatiaľ poslednú odohranú edíciu 2025 v Managui, kde po 16 rokoch triumfovala Brazília.",
+      "url": "https://www.fiba.basketball/en/events/fiba-americup-2025",
+      "order": 2,
+      "desc_en": "The continental championship of the Americas; the link points to the most recent edition played so far, in Managua in 2025, where Brazil triumphed after 16 years."
     }
   ],
   "title_en": "Sportlinking",
