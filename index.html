@@ -13531,6 +13531,9 @@ function render(){
   updateLinkCount();
   updateHead();
   renderBreadcrumb();
+  // V priečinku Live This Week netreba lištu — sú v nej tie isté linky
+  const aktWrap = document.getElementById('aktualneWrap');
+  if(aktWrap) aktWrap.style.display = (IS_EN && curId===LIVE_ID && !adminMode) ? 'none' : '';
   const q = document.getElementById('srch').value.trim().toLowerCase();
   if(q){ renderSearch(q); return; }
   renderLevel();
@@ -13633,6 +13636,8 @@ function renderLevel(){
     html += `<div class="grid-deep anim" data-folder="${curId||''}">`;
     links.forEach(n => {
       const host = (() => { try { return new URL(n.url).hostname; } catch(e){ return ''; }})();
+      // Live This Week: len ručne zadaná ikona športu, žiadny favicon webu
+      const liveIcon = IS_EN && curId===LIVE_ID;
       html += `
         <div class="card-link">
           <div class="card-admin-bar">
@@ -13642,9 +13647,9 @@ function renderLevel(){
             <button class="ibtn d" onclick="delNode('${n.id}')">🗑</button>
           </div>
           <a href="${n.url}" target="_blank" rel="noopener" title="${attrEsc(nDesc(n))}" ${adminMode?'onclick="return false"':''}>
-            ${favHtml(n, host)}
+            ${liveIcon ? `<span class="fav-fb">${n.icon||'🔗'}</span>` : favHtml(n, host)}
             <div>
-              <div class="cl-name">${(n.icon && !SOCIAL_FAV.test(host) && !NO_FAVICON_HOSTS.test(host) && !/^[a-z]{2}(-[a-z]{2,4})?$/.test(n.icon))?n.icon+' ':''}${nName(n)}</div>
+              <div class="cl-name">${(!liveIcon && n.icon && !SOCIAL_FAV.test(host) && !NO_FAVICON_HOSTS.test(host) && !/^[a-z]{2}(-[a-z]{2,4})?$/.test(n.icon))?n.icon+' ':''}${nName(n)}</div>
               <div class="cl-desc">${nDesc(n)}</div>
             </div>
           </a>

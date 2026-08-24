@@ -345,7 +345,7 @@ function __dyn(){
     }
     showSlot("bslot",1);
     showSlot("bslot2",2);
-    var ak=(d.aktualne||[]).filter(function(a){return !(a.endsAt&&today>a.endsAt)});
+    var ak=ANC.indexOf("f_ltw")>=0?[]:(d.aktualne||[]).filter(function(a){return !(a.endsAt&&today>a.endsAt)});
     if(ak.length){
       var el2=document.getElementById("akt");
       el2.hidden=false;
