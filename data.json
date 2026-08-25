@@ -1,5 +1,5 @@
 {
-  "version": 169,
+  "version": 172,
   "passwordHash": "3a2e92ef4684bc7a5644ebbd47b4b65b428a40f01e7a5e9b7abaaa6f7207f0f6",
   "title": "Športové Linky",
   "subtitle": "Naviguj sa cez kategórie",
@@ -108148,7 +108148,7 @@
       "name_en": "EuroLeague (Men)",
       "desc": "Najprestížnejšia klubová súťaž v Európe — hráva ju 20 špičkových tímov vrátane historických víťazov ako Real Madrid a Panathinaikos.",
       "url": "https://www.euroleaguebasketball.net/en/euroleague/",
-      "order": 2,
+      "order": 3,
       "desc_en": "Europe's most prestigious club competition — contested by 20 top teams including historic champions like Real Madrid and Panathinaikos."
     },
     {
@@ -108160,7 +108160,7 @@
       "name_en": "EuroLeague Women",
       "desc": "Najvyššia európska ženská klubová súťaž, v ktorej hrajú poprední zástupcovia veľkých národných líg.",
       "url": "https://www.fiba.basketball/en/events/euroleague-women-25-26",
-      "order": 3,
+      "order": 4,
       "desc_en": "Europe's top-tier women's club competition, featuring leading teams from the continent's major national leagues."
     },
     {
@@ -108172,7 +108172,7 @@
       "name_en": "EuroCup (Men)",
       "desc": "Druhá najvyššia európska klubová súťaž mužov, odrazový mostík do EuroLeague.",
       "url": "https://www.euroleaguebasketball.net/en/eurocup/",
-      "order": 4,
+      "order": 5,
       "desc_en": "Europe's second-tier men's club competition, a stepping stone to the EuroLeague."
     },
     {
@@ -108184,7 +108184,7 @@
       "name_en": "EuroCup Women",
       "desc": "Druhá najvyššia európska ženská klubová súťaž pod hlavičkou FIBA Europe.",
       "url": "https://www.fiba.basketball/en/events/eurocup-women-25-26",
-      "order": 5,
+      "order": 6,
       "desc_en": "Europe's second-tier women's club competition, organised under FIBA Europe."
     },
     {
@@ -108196,7 +108196,7 @@
       "name_en": "Basketball Champions League (BCL)",
       "desc": "Európska klubová súťaž organizovaná FIBA, ktorá vznikla v roku 2016 ako alternatíva k súťažiam EuroLeague Basketball.",
       "url": "https://www.championsleague.basketball/en",
-      "order": 6,
+      "order": 7,
       "desc_en": "A European club competition organised by FIBA, launched in 2016 as an alternative to the Euroleague Basketball competitions."
     },
     {
@@ -108208,7 +108208,7 @@
       "name_en": "FIBA Europe Cup",
       "desc": "Tretia klubová súťaž FIBA Europe, určená pre tímy, ktoré sa nekvalifikovali do vyšších pohárov.",
       "url": "https://www.fiba.basketball/en/events/fiba-europe-cup-25-26",
-      "order": 7,
+      "order": 8,
       "desc_en": "FIBA Europe's third-tier club competition, for teams that don't qualify for the higher-level cups."
     },
     {
@@ -108220,7 +108220,7 @@
       "name_en": "ABA League",
       "desc": "Regionálna liga klubov zo Slovinska, Chorvátska, Srbska, Bosny a Hercegoviny, Čiernej Hory a Severného Macedónska — najvyššia súťaž pre kluby regiónu bývalej Juhoslávie.",
       "url": "https://www.aba-liga.com/",
-      "order": 8,
+      "order": 9,
       "desc_en": "A regional league for clubs from Slovenia, Croatia, Serbia, Bosnia and Herzegovina, Montenegro and North Macedonia — the top competition for clubs from the former Yugoslavia."
     },
     {
@@ -108232,7 +108232,7 @@
       "name_en": "ABA League 2",
       "desc": "Druhá úroveň ABA ligy — súťaž klubov bojujúcich o postup do hlavnej ABA ligy.",
       "url": "https://druga.aba-liga.com/",
-      "order": 9,
+      "order": 10,
       "desc_en": "The second tier of the ABA League — for clubs competing for promotion to the top division."
     },
     {
@@ -108244,7 +108244,7 @@
       "name_en": "WABA League",
       "desc": "Ženská obdoba ABA ligy — regionálna súťaž klubov z bývalej Juhoslávie a okolitých krajín.",
       "url": "https://waba-league.com/",
-      "order": 10,
+      "order": 11,
       "desc_en": "The women's counterpart to the ABA League — a regional competition for clubs from the former Yugoslavia and neighbouring countries."
     },
     {
@@ -108256,7 +108256,7 @@
       "name_en": "BNXT League",
       "desc": "Spoločná belgicko-holandská liga, ktorá od sezóny 2021/22 nahradila samostatné najvyššie súťaže oboch krajín.",
       "url": "https://www.bnxtleague.com/",
-      "order": 11,
+      "order": 12,
       "desc_en": "A joint Belgian-Dutch league that has replaced the two countries' separate top divisions since the 2021/22 season."
     },
     {
@@ -108268,7 +108268,7 @@
       "name_en": "VTB United League",
       "desc": "Nadnárodná liga s klubmi z Ruska, Bieloruska a Kazachstanu; ruské a bieloruské kluby sú od roku 2022 pre vojnu na Ukrajine vylúčené z medzinárodných súťaží, VTB liga funguje ako samostatná domáca súťaž mimo FIBA.",
       "url": "https://vtb-league.com/en/",
-      "order": 12,
+      "order": 13,
       "desc_en": "A transnational league with clubs from Russia, Belarus and Kazakhstan; Russian and Belarusian clubs have been banned from international competitions since 2022 over the war in Ukraine, so the VTB League operates as a standalone domestic competition outside FIBA."
     },
     {
@@ -108280,7 +108280,7 @@
       "name_en": "LEBL (Latvian–Estonian League)",
       "desc": "Spoločná lotyšsko-estónska liga, ktorá od roku 2021 nahradila samostatné najvyššie mužské súťaže oboch krajín.",
       "url": "https://www.estlatbl.com/",
-      "order": 13,
+      "order": 14,
       "desc_en": "A joint Latvian-Estonian league that has replaced the two countries' separate top men's divisions since 2021."
     },
     {
@@ -108292,7 +108292,7 @@
       "name_en": "CEWL (Central Europe Women's League)",
       "desc": "Stredoeurópska ženská liga s klubmi z Česka, Slovenska, Poľska, Maďarska a okolitých krajín.",
       "url": "https://cewl.cbf.cz/",
-      "order": 14,
+      "order": 15,
       "desc_en": "A Central European women's league featuring clubs from the Czech Republic, Slovakia, Poland, Hungary and neighbouring countries."
     },
     {
@@ -108304,7 +108304,7 @@
       "name_en": "EuroBasket U20 (Men)",
       "desc": "Majstrovstvá Európy hráčov do 20 rokov.",
       "url": "https://www.fiba.basketball/en/events/fiba-u20-eurobasket-2026",
-      "order": 15,
+      "order": 16,
       "desc_en": "The European Championship for men's under-20 national teams."
     },
     {
@@ -108316,7 +108316,7 @@
       "name_en": "EuroBasket U20 (Women)",
       "desc": "Majstrovstvá Európy hráčok do 20 rokov.",
       "url": "https://www.fiba.basketball/en/events/fiba-u20-womens-eurobasket-2026",
-      "order": 16,
+      "order": 17,
       "desc_en": "The European Championship for women's under-20 national teams."
     },
     {
@@ -108328,7 +108328,7 @@
       "name_en": "EuroBasket U18 (Men)",
       "desc": "Majstrovstvá Európy hráčov do 18 rokov.",
       "url": "https://www.fiba.basketball/en/events/fiba-u18-eurobasket-2026",
-      "order": 17,
+      "order": 18,
       "desc_en": "The European Championship for men's under-18 national teams."
     },
     {
@@ -108340,7 +108340,7 @@
       "name_en": "EuroBasket U18 (Women)",
       "desc": "Majstrovstvá Európy hráčok do 18 rokov.",
       "url": "https://www.fiba.basketball/en/events/fiba-u18-womens-eurobasket-2026",
-      "order": 18,
+      "order": 19,
       "desc_en": "The European Championship for women's under-18 national teams."
     },
     {
@@ -108352,7 +108352,7 @@
       "name_en": "EuroBasket U16 (Men)",
       "desc": "Majstrovstvá Európy hráčov do 16 rokov.",
       "url": "https://www.fiba.basketball/en/events/fiba-u16-eurobasket-2026",
-      "order": 19,
+      "order": 20,
       "desc_en": "The European Championship for men's under-16 national teams."
     },
     {
@@ -108364,7 +108364,7 @@
       "name_en": "EuroBasket U16 (Women)",
       "desc": "Majstrovstvá Európy hráčok do 16 rokov.",
       "url": "https://www.fiba.basketball/en/events/fiba-u16-womens-eurobasket-2026",
-      "order": 20,
+      "order": 21,
       "desc_en": "The European Championship for women's under-16 national teams."
     },
     {
@@ -108376,7 +108376,7 @@
       "name_en": "NextGen EuroLeague",
       "desc": "Mládežnícky turnaj akadémií klubov EuroLeague do 18 rokov, predtým známy ako Adidas Next Generation Tournament (ANGT).",
       "url": "https://www.euroleaguebasketball.net/en/nge/",
-      "order": 21,
+      "order": 22,
       "desc_en": "An U18 youth tournament for the academies of EuroLeague clubs, formerly known as the Adidas Next Generation Tournament (ANGT)."
     },
     {
@@ -108388,7 +108388,7 @@
       "name_en": "EYBL",
       "desc": "Paneurópska mládežnícka liga akadémií s pôvodom v Lotyšsku, dnes zahŕňa kluby z viacerých krajín.",
       "url": "https://eybl.lv/",
-      "order": 22,
+      "order": 23,
       "desc_en": "A pan-European youth academy league founded in Latvia that today includes clubs from several countries."
     },
     {
@@ -108590,7 +108590,7 @@
       "name_en": "Centrobasket Women",
       "desc": "Šampionát Strednej Ameriky a Karibiku, zároveň kvalifikácia na AmeriCup; mužská verzia sa naposledy hrala v roku 2016.",
       "url": "https://www.fiba.basketball/en/events/fiba-centrobasket-womens-championship-2026",
-      "order": 6,
+      "order": 7,
       "desc_en": "The championship of Central America and the Caribbean, also an AmeriCup qualifier; the men's version was last played in 2016."
     },
     {
@@ -108602,7 +108602,7 @@
       "name_en": "FIBA CBC Women's Championship",
       "desc": "Šampionát Karibskej basketbalovej konfederácie, kde sa stretávajú aj tie najmenšie ostrovné reprezentácie.",
       "url": "https://www.fiba.basketball/en/events/fiba-cbc-womens-championship-2025",
-      "order": 7,
+      "order": 8,
       "desc_en": "The championship of the Caribbean Basketball Confederation, bringing together even the smallest island national teams."
     },
     {
@@ -108614,7 +108614,7 @@
       "name_en": "FIBA COCABA Women's Championship",
       "desc": "Šampionát stredoamerickej zóny COCABA — od Guatemaly po Panamu.",
       "url": "https://www.fiba.basketball/en/events/fiba-cocaba-womens-championship-2025",
-      "order": 8,
+      "order": 9,
       "desc_en": "The championship of the Central American COCABA zone — from Guatemala to Panama."
     },
     {
@@ -108626,7 +108626,7 @@
       "name_en": "Basketball Champions League Americas (BCLA)",
       "desc": "Hlavná klubová súťaž oboch Amerík pod hlavičkou FIBA, nástupca Ligy Amerík.",
       "url": "https://www.fiba.basketball/en/events/basketball-champions-league-americas-25-26",
-      "order": 9,
+      "order": 10,
       "desc_en": "The main club competition of the Americas under the FIBA banner, successor to the FIBA Americas League."
     },
     {
@@ -108638,7 +108638,7 @@
       "name_en": "WBLA (Women's Basketball League Americas)",
       "desc": "Kontinentálna klubová súťaž žien, ktorá zjednotila severo-, stredo- a juhoamerické poháre; odkaz vedie na zatiaľ poslednú odohranú edíciu.",
       "url": "https://www.fiba.basketball/en/events/womens-basketball-league-americas-2024",
-      "order": 10,
+      "order": 11,
       "desc_en": "The continental women's club competition that unified the North, Central and South American cups; the link points to the most recent edition played so far."
     },
     {
@@ -108650,7 +108650,7 @@
       "name_en": "FIBA U18 AmeriCup (Men)",
       "desc": "Šampionát juniorov oboch Amerík a zároveň kvalifikácia na majstrovstvá sveta U19.",
       "url": "https://www.fiba.basketball/en/events/fiba-u18-americup-2026",
-      "order": 11,
+      "order": 12,
       "desc_en": "The junior championship of the Americas and at the same time a qualifier for the U19 World Cup."
     },
     {
@@ -108662,7 +108662,7 @@
       "name_en": "FIBA U18 Women's AmeriCup",
       "desc": "Ženská obdoba juniorského šampionátu Ameriky, cesta na majstrovstvá sveta U19.",
       "url": "https://www.fiba.basketball/en/events/fiba-u18-womens-americup-2026",
-      "order": 12,
+      "order": 13,
       "desc_en": "The women's counterpart of the Americas junior championship, the road to the U19 World Cup."
     },
     {
@@ -108674,7 +108674,7 @@
       "name_en": "FIBA U16 AmeriCup (Men)",
       "desc": "Najmladšia kontinentálna kategória, kde sa prvýkrát ukazujú budúce hviezdy NBA.",
       "url": "https://www.fiba.basketball/en/events/fiba-u16-americup-2025",
-      "order": 13,
+      "order": 14,
       "desc_en": "The youngest continental age category, where future NBA stars first show up."
     },
     {
@@ -108686,7 +108686,7 @@
       "name_en": "FIBA U16 Women's AmeriCup",
       "desc": "Ženský kadetský šampionát Ameriky a kvalifikácia na majstrovstvá sveta U17.",
       "url": "https://www.fiba.basketball/en/events/fiba-u16-womens-americup-2025",
-      "order": 14,
+      "order": 15,
       "desc_en": "The women's cadet championship of the Americas and a qualifier for the U17 World Cup."
     },
     {
@@ -108698,7 +108698,7 @@
       "name_en": "Youth BCL Americas",
       "desc": "Mládežnícka verzia klubovej Ligy majstrov Ameriky, prvý ročník sa hrá v Argentíne.",
       "url": "https://www.fiba.basketball/en/events/youth-basketball-champions-league-americas-2026",
-      "order": 15,
+      "order": 16,
       "desc_en": "The youth version of the club Champions League Americas, with the first edition played in Argentina."
     },
     {
@@ -108734,7 +108734,7 @@
       "name_en": "FIBA South American Championship (Women)",
       "desc": "Juhoamerický šampionát žien v argentínskom Zarate, zároveň posledná šanca na tri miestenky na AmeriCup; mužská verzia sa naposledy hrala v roku 2016.",
       "url": "https://www.fiba.basketball/en/events/fiba-south-american-womens-championship-2026",
-      "order": 2,
+      "order": 3,
       "desc_en": "The South American women's championship in Zárate, Argentina, also the last chance for three tickets to the AmeriCup; the men's version was last played in 2016."
     },
     {
@@ -108746,7 +108746,7 @@
       "name_en": "Basketball Champions League Americas (BCLA)",
       "desc": "Hlavná klubová súťaž oboch Amerík pod hlavičkou FIBA, nástupca Ligy Amerík.",
       "url": "https://www.fiba.basketball/en/events/basketball-champions-league-americas-25-26",
-      "order": 3,
+      "order": 4,
       "desc_en": "The main club competition of the Americas under the FIBA banner, successor to the FIBA Americas League."
     },
     {
@@ -108758,7 +108758,7 @@
       "name_en": "Liga Sudamericana (Men)",
       "desc": "Najstaršia juhoamerická klubová súťaž, dnes druhá úroveň pod Ligou majstrov Ameriky; odkaz vedie na zatiaľ poslednú odohranú edíciu.",
       "url": "https://www.fiba.basketball/en/events/liga-sudamericana-fiba-2025",
-      "order": 4,
+      "order": 5,
       "desc_en": "The oldest South American club competition, today the second tier below the Champions League Americas; the link points to the most recent edition played so far."
     },
     {
@@ -108770,7 +108770,7 @@
       "name_en": "WBLA (Women's Basketball League Americas)",
       "desc": "Kontinentálna klubová súťaž žien, ktorá nahradila samostatnú juhoamerickú ligu klubov; odkaz vedie na zatiaľ poslednú odohranú edíciu.",
       "url": "https://www.fiba.basketball/en/events/womens-basketball-league-americas-2024",
-      "order": 5,
+      "order": 6,
       "desc_en": "The continental women's club competition that replaced the separate South American club league; the link points to the most recent edition played so far."
     },
     {
@@ -108782,7 +108782,7 @@
       "name_en": "FIBA U18 AmeriCup (Men)",
       "desc": "Šampionát juniorov oboch Amerík a zároveň kvalifikácia na majstrovstvá sveta U19.",
       "url": "https://www.fiba.basketball/en/events/fiba-u18-americup-2026",
-      "order": 6,
+      "order": 7,
       "desc_en": "The junior championship of the Americas and at the same time a qualifier for the U19 World Cup."
     },
     {
@@ -108794,7 +108794,7 @@
       "name_en": "FIBA U18 Women's AmeriCup",
       "desc": "Ženská obdoba juniorského šampionátu Ameriky, cesta na majstrovstvá sveta U19.",
       "url": "https://www.fiba.basketball/en/events/fiba-u18-womens-americup-2026",
-      "order": 7,
+      "order": 8,
       "desc_en": "The women's counterpart of the Americas junior championship, the road to the U19 World Cup."
     },
     {
@@ -108806,7 +108806,7 @@
       "name_en": "FIBA U17 South American Championship (Men)",
       "desc": "Juhoamerický šampionát do 17 rokov, ktorý sa hrá raz za dva roky a posiela tri tímy na U18 AmeriCup.",
       "url": "https://www.fiba.basketball/en/events/fiba-u17-south-american-championship-2025",
-      "order": 8,
+      "order": 9,
       "desc_en": "The South American under-17 championship, played every two years and sending three teams to the U18 AmeriCup."
     },
     {
@@ -108818,7 +108818,7 @@
       "name_en": "FIBA U17 South American Women's Championship",
       "desc": "Ženská obdoba juhoamerického šampionátu do 17 rokov, prvý krok na ceste k majstrovstvám sveta U19.",
       "url": "https://www.fiba.basketball/en/events/fiba-u17-south-american-womens-championship-2025",
-      "order": 9,
+      "order": 10,
       "desc_en": "The women's counterpart of the South American under-17 championship, the first step on the road to the U19 World Cup."
     },
     {
@@ -108830,7 +108830,7 @@
       "name_en": "FIBA U16 AmeriCup (Men)",
       "desc": "Najmladšia kontinentálna kategória, kde sa prvýkrát ukazujú budúce hviezdy NBA.",
       "url": "https://www.fiba.basketball/en/events/fiba-u16-americup-2025",
-      "order": 10,
+      "order": 11,
       "desc_en": "The youngest continental age category, where future NBA stars first show up."
     },
     {
@@ -108842,7 +108842,7 @@
       "name_en": "FIBA U16 Women's AmeriCup",
       "desc": "Ženský kadetský šampionát Ameriky a kvalifikácia na majstrovstvá sveta U17.",
       "url": "https://www.fiba.basketball/en/events/fiba-u16-womens-americup-2025",
-      "order": 11,
+      "order": 12,
       "desc_en": "The women's cadet championship of the Americas and a qualifier for the U17 World Cup."
     },
     {
@@ -108854,7 +108854,7 @@
       "name_en": "FIBA U15 South American Championship (Men)",
       "desc": "Vstupná brána juhoamerických nádejí do medzinárodného basketbalu; stránka je zatiaľ len po španielsky a patrí poslednej odohranej edícii.",
       "url": "https://www.fiba.basketball/es/events/fiba-u15-south-american-championship-2024",
-      "order": 12,
+      "order": 13,
       "desc_en": "The gateway for South American prospects into international basketball; the page is so far only in Spanish and belongs to the most recent edition played."
     },
     {
@@ -108866,7 +108866,7 @@
       "name_en": "FIBA U15 South American Women's Championship",
       "desc": "Ženská obdoba najmladšieho juhoamerického šampionátu; stránka je zatiaľ len po španielsky a patrí poslednej odohranej edícii.",
       "url": "https://www.fiba.basketball/es/events/fiba-u15-south-american-womens-championship-2024",
-      "order": 13,
+      "order": 14,
       "desc_en": "The women's counterpart of the youngest South American championship; the page is so far only in Spanish and belongs to the most recent edition played."
     },
     {
@@ -108878,7 +108878,7 @@
       "name_en": "Youth BCL Americas",
       "desc": "Mládežnícka verzia klubovej Ligy majstrov Ameriky, prvý ročník sa hrá v Argentíne.",
       "url": "https://www.fiba.basketball/en/events/youth-basketball-champions-league-americas-2026",
-      "order": 14,
+      "order": 15,
       "desc_en": "The youth version of the club Champions League Americas, with the first edition played in Argentina."
     },
     {
@@ -108892,6 +108892,318 @@
       "url": "https://www.fiba.basketball/en/events/fiba-americup-2025",
       "order": 2,
       "desc_en": "The continental championship of the Americas; the link points to the most recent edition played so far, in Managua in 2025, where Brazil triumphed after 16 years."
+    },
+    {
+      "id": "f_bas_sut_az_k1",
+      "parentId": "f_bas_sut_az",
+      "type": "link",
+      "icon": "",
+      "name": "FIBA Asia Cup 2029 – kvalifikácia (muži)",
+      "name_en": "FIBA Asia Cup 2029 – Qualification (Men)",
+      "desc": "Kontinentálny šampionát Ázie a Oceánie, ktorý sa hrá raz za štyri roky; odkaz vedie na predkvalifikačnú fázu smerom k edícii 2029, keďže posledný turnaj sa hral v Jeddahu v roku 2025.",
+      "url": "https://www.fiba.basketball/en/events/fiba-asia-cup-2029-pre-qualifiers",
+      "order": 0,
+      "desc_en": "The continental championship of Asia and Oceania, played once every four years; the link points to the pre-qualifying stage for the 2029 edition, as the most recent tournament was played in Jeddah in 2025."
+    },
+    {
+      "id": "f_bas_sut_az_k2",
+      "parentId": "f_bas_sut_az",
+      "type": "link",
+      "icon": "",
+      "name": "FIBA Women's Asia Cup 2027 (ženy)",
+      "name_en": "FIBA Women's Asia Cup 2027",
+      "desc": "Ženský kontinentálny šampionát Ázie a Oceánie; budúca edícia sa hrá na Filipínach po prvom tituli Austrálie v roku 2025.",
+      "url": "https://www.fiba.basketball/en/events/fiba-womens-asiacup-2027",
+      "order": 1,
+      "desc_en": "The women's continental championship of Asia and Oceania; the upcoming edition is held in the Philippines, following Australia's maiden title in 2025."
+    },
+    {
+      "id": "f_bas_sut_az_k3",
+      "parentId": "f_bas_sut_az",
+      "type": "link",
+      "icon": "",
+      "name": "SABA Championship (ženy)",
+      "name_en": "SABA Women's Championship",
+      "desc": "Šampionát žien juhoázijskej subzóny FIBA (India, Srí Lanka, Nepál a ďalší), bez vlastnej webstránky — odkaz vedie na oficiálny Facebook SABA.",
+      "url": "https://www.facebook.com/southasian.hoops/",
+      "order": 3,
+      "desc_en": "The women's championship of FIBA's South Asian sub-zone (India, Sri Lanka, Nepal and others), with no dedicated website — the link points to SABA's official Facebook page."
+    },
+    {
+      "id": "f_bas_sut_az_k4",
+      "parentId": "f_bas_sut_az",
+      "type": "link",
+      "icon": "",
+      "name": "Basketball Champions League Asia (BCL Asia)",
+      "name_en": "Basketball Champions League Asia (BCL Asia)",
+      "desc": "Najvyššia ázijská klubová súťaž mužov, nástupca niekdajšieho FIBA Asia Champions Cup.",
+      "url": "https://www.fiba.basketball/en/events/basketball-champions-league-asia-2025",
+      "order": 4,
+      "desc_en": "The top Asian men's club competition, successor to the former FIBA Asia Champions Cup."
+    },
+    {
+      "id": "f_bas_sut_az_k5",
+      "parentId": "f_bas_sut_az",
+      "type": "link",
+      "icon": "",
+      "name": "East Asia Super League (EASL)",
+      "name_en": "East Asia Super League (EASL)",
+      "desc": "Klubová liga krajín východnej Ázie (Japonsko, Kórea, Čína, Taiwan, Hongkong, Filipíny), cesta do BCL Asia.",
+      "url": "https://www.easl.basketball/",
+      "order": 5,
+      "desc_en": "A club league of East Asian countries (Japan, Korea, China, Taiwan, Hong Kong, the Philippines), a pathway into the BCL Asia."
+    },
+    {
+      "id": "f_bas_sut_az_k6",
+      "parentId": "f_bas_sut_az",
+      "type": "link",
+      "icon": "",
+      "name": "FIBA WASL – West Asia Super League",
+      "name_en": "FIBA WASL – West Asia Super League",
+      "desc": "Klubová liga krajín západnej Ázie a Perzského zálivu, víťaz a finalista postupujú do BCL Asia.",
+      "url": "https://www.fiba.basketball/en/events/fiba-wasl-west-asia-league-25-26",
+      "order": 6,
+      "desc_en": "A club league of West Asian and Gulf countries, with the winner and runner-up advancing to the BCL Asia."
+    },
+    {
+      "id": "f_bas_sut_az_k7",
+      "parentId": "f_bas_sut_az",
+      "type": "link",
+      "icon": "",
+      "name": "Women's Basketball League Asia (WBLA)",
+      "name_en": "Women's Basketball League Asia (WBLA)",
+      "desc": "Najvyššia ázijská klubová súťaž žien, založená v roku 2024; odkaz vedie na zatiaľ poslednú odohranú edíciu.",
+      "url": "https://www.fiba.basketball/en/events/fiba-womens-basketball-league-asia-2025",
+      "order": 7,
+      "desc_en": "The top Asian women's club competition, founded in 2024; the link points to the most recent edition played so far."
+    },
+    {
+      "id": "f_bas_sut_az_k8",
+      "parentId": "f_bas_sut_az",
+      "type": "link",
+      "icon": "",
+      "name": "William Jones Cup",
+      "name_en": "William Jones Cup",
+      "desc": "Tradičný pozývací turnaj v Taiwane, kde popri národných tímoch hrávajú aj univerzitné a klubové výbery.",
+      "url": "https://jonescup.meetagile.com/",
+      "order": 8,
+      "desc_en": "A traditional invitational tournament in Taiwan, where national teams compete alongside university and club selections."
+    },
+    {
+      "id": "f_bas_sut_az_k9",
+      "parentId": "f_bas_sut_az",
+      "type": "link",
+      "icon": "",
+      "name": "FIBA U18 Asia Cup (muži)",
+      "name_en": "FIBA U18 Asia Cup (Men)",
+      "desc": "Juniorský šampionát Ázie a Oceánie, cesta na majstrovstvá sveta U19.",
+      "url": "https://www.fiba.basketball/en/events/fiba-u18-asia-cup-2026",
+      "order": 9,
+      "desc_en": "The junior championship of Asia and Oceania, a road to the U19 World Cup."
+    },
+    {
+      "id": "f_bas_sut_az_k10",
+      "parentId": "f_bas_sut_az",
+      "type": "link",
+      "icon": "",
+      "name": "FIBA U18 Asia Cup (ženy)",
+      "name_en": "FIBA U18 Women's Asia Cup",
+      "desc": "Ženská obdoba juniorského šampionátu, top divízia A.",
+      "url": "https://www.fiba.basketball/en/events/fiba-u18-womens-asia-cup-2026-division-a",
+      "order": 10,
+      "desc_en": "The women's counterpart of the junior championship, top Division A."
+    },
+    {
+      "id": "f_bas_sut_az_k11",
+      "parentId": "f_bas_sut_az",
+      "type": "link",
+      "icon": "",
+      "name": "FIBA U16 Asia Cup (muži)",
+      "name_en": "FIBA U16 Asia Cup (Men)",
+      "desc": "Kadetský šampionát Ázie a Oceánie, kvalifikácia na majstrovstvá sveta U17.",
+      "url": "https://www.fiba.basketball/en/events/fiba-u16-asiacup-2025",
+      "order": 11,
+      "desc_en": "The cadet championship of Asia and Oceania, a qualifier for the U17 World Cup."
+    },
+    {
+      "id": "f_bas_sut_az_k12",
+      "parentId": "f_bas_sut_az",
+      "type": "link",
+      "icon": "",
+      "name": "FIBA U16 Asia Cup (ženy)",
+      "name_en": "FIBA U16 Women's Asia Cup",
+      "desc": "Ženská obdoba kadetského šampionátu, aktuálnou šampiónkou je Austrália.",
+      "url": "https://www.fiba.basketball/en/events/fiba-u16-womens-asiacup-2025",
+      "order": 12,
+      "desc_en": "The women's counterpart of the cadet championship, with Australia as the reigning champion."
+    },
+    {
+      "id": "f_bas_sut_af_k1",
+      "parentId": "f_bas_sut_af",
+      "type": "link",
+      "icon": "",
+      "name": "FIBA AfroBasket (muži)",
+      "name_en": "FIBA AfroBasket (Men)",
+      "desc": "Kontinentálny šampionát Afriky; odkaz vedie na zatiaľ poslednú odohranú edíciu 2025 v Angole, kde domáci tím získal rekordný 12. titul.",
+      "url": "https://www.fiba.basketball/en/events/fiba-afrobasket-2025",
+      "order": 0,
+      "desc_en": "The continental championship of Africa; the link points to the most recent edition played so far, in Angola in 2025, where the host team won a record 12th title."
+    },
+    {
+      "id": "f_bas_sut_af_k2",
+      "parentId": "f_bas_sut_af",
+      "type": "link",
+      "icon": "",
+      "name": "FIBA Women's AfroBasket (ženy)",
+      "name_en": "FIBA Women's AfroBasket",
+      "desc": "Ženský kontinentálny šampionát Afriky; odkaz vedie na zatiaľ poslednú odohranú edíciu 2025 v Pobreží Slonoviny, kde siedmykrát triumfovala Nigéria.",
+      "url": "https://www.fiba.basketball/en/events/fiba-womens-afrobasket-2025",
+      "order": 1,
+      "desc_en": "The women's continental championship of Africa; the link points to the most recent edition played so far, in Ivory Coast in 2025, where Nigeria won for the 7th time."
+    },
+    {
+      "id": "f_bas_sut_af_k3",
+      "parentId": "f_bas_sut_af",
+      "type": "link",
+      "icon": "",
+      "name": "FIBA Basketball World Cup 2027 – africká kvalifikácia (muži)",
+      "name_en": "FIBA Basketball World Cup 2027 – African Qualifiers (Men)",
+      "desc": "Samostatná kvalifikácia afrických tímov na Majstrovstvá sveta FIBA 2027, prebieha od novembra 2025 do marca 2027.",
+      "url": "https://www.fiba.basketball/en/events/fiba-basketball-world-cup-2027-african-qualifiers",
+      "order": 2,
+      "desc_en": "A separate qualification of African teams for the FIBA Basketball World Cup 2027, running from November 2025 to March 2027."
+    },
+    {
+      "id": "f_bas_sut_af_k4",
+      "parentId": "f_bas_sut_af",
+      "type": "link",
+      "icon": "",
+      "name": "BAL – Basketball Africa League (muži)",
+      "name_en": "BAL – Basketball Africa League (Men)",
+      "desc": "Vrcholná klubová súťaž Afriky, organizovaná spoločne s NBA; spája šampiónov národných líg z celého kontinentu.",
+      "url": "https://bal.nba.com/",
+      "order": 3,
+      "desc_en": "Africa's top club competition, run jointly with the NBA, bringing together national league champions from across the continent."
+    },
+    {
+      "id": "f_bas_sut_af_k5",
+      "parentId": "f_bas_sut_af",
+      "type": "link",
+      "icon": "",
+      "name": "WBLA – Women's Basketball League Africa (ženy)",
+      "name_en": "WBLA – Women's Basketball League Africa",
+      "desc": "Vrcholná klubová súťaž afrického ženského basketbalu; odkaz vedie na zatiaľ poslednú odohranú edíciu 2025 v Káhire.",
+      "url": "https://www.fiba.basketball/en/events/fiba-womens-basketball-league-africa-2025",
+      "order": 4,
+      "desc_en": "Africa's top women's club competition; the link points to the most recent edition played so far, in Cairo in 2025."
+    },
+    {
+      "id": "f_bas_sut_af_k6",
+      "parentId": "f_bas_sut_af",
+      "type": "link",
+      "icon": "",
+      "name": "Road to BAL (muži)",
+      "name_en": "Road to BAL (Men)",
+      "desc": "Kvalifikačný turnaj klubov o postup do Basketball Africa League.",
+      "url": "https://www.fiba.basketball/en/events/fiba-africa-champions-clubs-road-to-bal-2026",
+      "order": 5,
+      "desc_en": "The qualifying tournament for clubs seeking to reach the Basketball Africa League."
+    },
+    {
+      "id": "f_bas_sut_af_k7",
+      "parentId": "f_bas_sut_af",
+      "type": "link",
+      "icon": "",
+      "name": "FIBA U18 AfroBasket (muži)",
+      "name_en": "FIBA U18 AfroBasket (Men)",
+      "desc": "Juniorský šampionát Afriky do 18 rokov, hostí ho Pobrežie Slonoviny.",
+      "url": "https://www.fiba.basketball/en/events/fiba-u18-afrobasket-2026",
+      "order": 6,
+      "desc_en": "Africa's under-18 junior championship, hosted by Ivory Coast."
+    },
+    {
+      "id": "f_bas_sut_af_k8",
+      "parentId": "f_bas_sut_af",
+      "type": "link",
+      "icon": "",
+      "name": "FIBA U18 AfroBasket (ženy)",
+      "name_en": "FIBA U18 Women's AfroBasket",
+      "desc": "Ženská obdoba juniorského šampionátu do 18 rokov, tiež v Pobreží Slonoviny.",
+      "url": "https://www.fiba.basketball/en/events/fiba-u18-womens-afrobasket-2026",
+      "order": 7,
+      "desc_en": "The women's counterpart of the under-18 junior championship, also in Ivory Coast."
+    },
+    {
+      "id": "f_bas_sut_af_k9",
+      "parentId": "f_bas_sut_af",
+      "type": "link",
+      "icon": "",
+      "name": "FIBA U16 AfroBasket (muži)",
+      "name_en": "FIBA U16 AfroBasket (Men)",
+      "desc": "Kadetský šampionát Afriky do 16 rokov; edíciu 2025 v Kigali vyhralo Pobrežie Slonoviny.",
+      "url": "https://www.fiba.basketball/en/events/fiba-u16-afrobasket-2025",
+      "order": 8,
+      "desc_en": "Africa's under-16 cadet championship; Ivory Coast won the 2025 edition in Kigali."
+    },
+    {
+      "id": "f_bas_sut_af_k10",
+      "parentId": "f_bas_sut_af",
+      "type": "link",
+      "icon": "",
+      "name": "FIBA U16 AfroBasket (ženy)",
+      "name_en": "FIBA U16 Women's AfroBasket",
+      "desc": "Ženská obdoba kadetského šampionátu do 16 rokov; edíciu 2025 v Kigali vyhral Egypt.",
+      "url": "https://www.fiba.basketball/en/events/fiba-u16-womens-afrobasket-2025",
+      "order": 9,
+      "desc_en": "The women's counterpart of the under-16 cadet championship; Egypt won the 2025 edition in Kigali."
+    },
+    {
+      "id": "f_bas_sut_eu_k24",
+      "parentId": "f_bas_sut_eu",
+      "type": "link",
+      "icon": "",
+      "name": "FIBA Basketball World Cup 2027 – európska kvalifikácia (muži)",
+      "name_en": "FIBA Basketball World Cup 2027 – European Qualifiers (Men)",
+      "desc": "Samostatná kvalifikácia európskych tímov na Majstrovstvá sveta FIBA 2027 v Katare, prebieha od februára 2024 do marca 2027.",
+      "url": "https://www.fiba.basketball/en/events/fiba-basketball-world-cup-2027-european-qualifiers",
+      "order": 2,
+      "desc_en": "A separate qualification of European teams for the FIBA Basketball World Cup 2027 in Qatar, running from February 2024 to March 2027."
+    },
+    {
+      "id": "f_bas_sut_az_k13",
+      "parentId": "f_bas_sut_az",
+      "type": "link",
+      "icon": "",
+      "name": "FIBA Basketball World Cup 2027 – ázijská kvalifikácia (muži)",
+      "name_en": "FIBA Basketball World Cup 2027 – Asian Qualifiers (Men)",
+      "desc": "Samostatná kvalifikácia ázijských tímov na Majstrovstvá sveta FIBA 2027 v Katare, prebieha od novembra 2025 do marca 2027.",
+      "url": "https://www.fiba.basketball/en/events/fiba-basketball-world-cup-2027-asian-qualifiers",
+      "order": 2,
+      "desc_en": "A separate qualification of Asian teams for the FIBA Basketball World Cup 2027 in Qatar, running from November 2025 to March 2027."
+    },
+    {
+      "id": "f_bas_sut_na_k17",
+      "parentId": "f_bas_sut_na",
+      "type": "link",
+      "icon": "",
+      "name": "FIBA Basketball World Cup 2027 – americká kvalifikácia (muži)",
+      "name_en": "FIBA Basketball World Cup 2027 – Americas Qualifiers (Men)",
+      "desc": "Samostatná kvalifikácia tímov oboch Amerík na Majstrovstvá sveta FIBA 2027 v Katare; 16 tímov hrá o 7 miesteniek.",
+      "url": "https://www.fiba.basketball/en/events/fiba-basketball-world-cup-2027-americas-qualifiers",
+      "order": 6,
+      "desc_en": "A separate qualification of Americas teams for the FIBA Basketball World Cup 2027 in Qatar; 16 teams compete for 7 spots."
+    },
+    {
+      "id": "f_bas_sut_ja_k16",
+      "parentId": "f_bas_sut_ja",
+      "type": "link",
+      "icon": "",
+      "name": "FIBA Basketball World Cup 2027 – americká kvalifikácia (muži)",
+      "name_en": "FIBA Basketball World Cup 2027 – Americas Qualifiers (Men)",
+      "desc": "Samostatná kvalifikácia tímov oboch Amerík na Majstrovstvá sveta FIBA 2027 v Katare; 16 tímov hrá o 7 miesteniek.",
+      "url": "https://www.fiba.basketball/en/events/fiba-basketball-world-cup-2027-americas-qualifiers",
+      "order": 2,
+      "desc_en": "A separate qualification of Americas teams for the FIBA Basketball World Cup 2027 in Qatar; 16 teams compete for 7 spots."
     }
   ],
   "title_en": "Sportlinking",

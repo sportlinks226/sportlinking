@@ -88,7 +88,7 @@ CONTINENTS = {"Európa", "Ázia", "Afrika", "Južná Amerika", "Severná Amerika
 # VÝNIMKY z abecedného radenia v EN — priečinky, ktoré sa síce volajú ako kontinent,
 # ale ich obsah NIE SÚ krajiny (napr. Súťaže › Európa: poradie = úroveň súťaže).
 # MUSÍ zostať zhodné s NO_EN_ALPHA v sport-strom.html.
-NO_EN_ALPHA = {"f_bas_sut_eu", "f_bas_sut_oc", "f_bas_sut_na", "f_bas_sut_ja"}
+NO_EN_ALPHA = {"f_bas_sut_eu", "f_bas_sut_oc", "f_bas_sut_na", "f_bas_sut_ja", "f_bas_sut_af", "f_bas_sut_az"}
 
 # "Live This Week" — priečinok, ktorý existuje LEN na anglickom webe (enOnly:true)
 # a nemá vlastné linky: napĺňa sa naživo z poľa "aktualne" (tie isté linky, aké
