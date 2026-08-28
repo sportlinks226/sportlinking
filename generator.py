@@ -257,6 +257,10 @@ h2{font-size:1.05rem;color:#e84242;margin:26px 0 10px;text-transform:uppercase;l
 .akt .lbl{color:#e84242;font-weight:600;font-size:.78rem;text-transform:uppercase;letter-spacing:.05em}
 .akt a{background:#182635;border:1px solid #24364a;border-radius:20px;padding:6px 12px;font-size:.85rem}
 .akt a:hover{border-color:#e84242}
+.secnav{margin-top:34px;padding-top:18px;border-top:1px solid #24364a;display:flex;flex-wrap:wrap;gap:6px 16px;font-size:.85rem}
+.secnav a{color:#8fa3b3}
+.secnav a:hover{color:#e84242}
+footer{display:block;margin-top:14px;color:#5f7183;font-size:.78rem}
 """
 CSS = CSS.replace("#e84242", ACCENT).replace("#c73535", ACCENT_HOVER)
 
@@ -278,6 +282,7 @@ PAGE = """<!DOCTYPE html>
 <link rel="icon" href="{favicon}">
 {canonical}
 {og_tags}
+{jsonld}
 <style>{css}</style>
 </head>
 <body>
@@ -291,6 +296,7 @@ PAGE = """<!DOCTYPE html>
 {links_html}
 <a class="appbtn" id="appbtn" style="display:none" href="{app_href}">{open_app} →</a>
 <noscript><style>#appbtn{{display:inline-block!important}}</style></noscript>
+{secnav}
 <footer>{site_title} — {footer}</footer>
 </div>
 {dyn_js}
@@ -485,6 +491,42 @@ def render_page(node, path, children, by_id, paths, site_title):
         og.append(f'<meta property="og:image" content="{BASE_URL}/og-image.png">')
     og_tags = "\n".join(og)
 
+    # SEO PÄTIČKA: na každej stránke skutočné odkazy na všetky hlavné sekcie.
+    # Bočné prelinkovanie — každá hlboká stránka odkazuje na 10 hlavných sekcií,
+    # takže žiadna sekcia nie je pre Google „ďaleko" a každá dostane stovky
+    # interných odkazov. Prázdne sekcie (bez stránky) sa vynechajú automaticky.
+    sec_links = [f'<a href="{root}">{T["home"]}</a>']
+    for t in children.get(None, []):
+        if t.get("type") == "folder" and t["id"] in paths:
+            sec_links.append(
+                f'<a href="{root}{paths[t["id"]][0]}/">{escape(node_name(t))}</a>')
+    secnav = ('<nav class="secnav">' + "".join(sec_links) + "</nav>") if len(sec_links) > 1 else ""
+
+    # ŠTRUKTÚROVANÉ DÁTA (BreadcrumbList): strojovo čitateľná drobčeková cesta
+    # „Domov › Futbal › Kluby" — Google podľa nej chápe hierarchiu a vo
+    # výsledkoch vie zobraziť peknú cestu namiesto holej adresy.
+    jsonld = ""
+    if BASE_URL:
+        items = [{"@type": "ListItem", "position": 1,
+                  "name": T["home"], "item": f"{BASE_URL}/"}]
+        pos = 2
+        for anc in reversed(chain):
+            if anc["id"] == node["id"]:
+                items.append({"@type": "ListItem", "position": pos,
+                              "name": node_name(node)})
+            elif anc["id"] in paths:
+                items.append({"@type": "ListItem", "position": pos,
+                              "name": node_name(anc),
+                              "item": f'{BASE_URL}/{"/".join(paths[anc["id"]])}/'})
+            else:
+                continue
+            pos += 1
+        jsonld = ('<script type="application/ld+json">'
+                  + json.dumps({"@context": "https://schema.org",
+                                "@type": "BreadcrumbList",
+                                "itemListElement": items}, ensure_ascii=False)
+                  + "</script>")
+
     # dynamický JS: banner + Aktuálne z data.json (ANC = id-čka od koreňa po túto stránku)
     anc_ids = [n["id"] for n in reversed(chain)]
     data_url = f"{root}data.json" + (f"?v={DATA_VER}" if DATA_VER else "")
@@ -508,6 +550,7 @@ def render_page(node, path, children, by_id, paths, site_title):
         favicon=FAVICON,
         canonical=canonical,
         og_tags=og_tags,
+        jsonld=jsonld,
         css=CSS,
         crumbs=crumbs_html,
         icon=icon,
@@ -517,6 +560,7 @@ def render_page(node, path, children, by_id, paths, site_title):
         links_html=link_cards,
         app_href=f'{root}#/{"/".join(path)}',
         open_app=T["open_app"],
+        secnav=secnav,
         footer=T["footer"],
         site_title=escape(site_title),
         dyn_js=dyn_js,

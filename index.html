@@ -69,6 +69,8 @@ header{
 .bc-item{cursor:pointer;transition:.15s;display:flex;align-items:center;gap:4px}
 .bc-item:hover{color:var(--text)}
 .bc-item.active{color:var(--text);font-weight:600;cursor:default}
+/* SEO: dlaždice/breadcrumbs/logá sú <a> — bez podčiarknutia, zdedená farba */
+a.card-root,a.card-folder,a.bc-item,a.h-left,a.f-wordmark{color:inherit;text-decoration:none}
 .bc-sep{color:var(--border);user-select:none}
 .bc-back{
   display:none;align-items:center;gap:6px;
@@ -410,13 +412,13 @@ footer{
 
 <!-- HEADER -->
 <header>
-  <div class="h-left" onclick="navigate(null)" title="Domov">
+  <a class="h-left" id="homeLink" href="./" onclick="return navClick(event,null)" title="Domov">
     <div>
       <div class="h-wordmark"><span class="wm-w">ŠPORTOVÉ</span><span class="wm-r">LINKY</span><span class="wm-r">.</span></div>
       <div class="h-subtitle" id="siteSub">Naviguj sa cez kategórie</div>
       <div class="h-count" id="linkCount"></div>
     </div>
-  </div>
+  </a>
   <div class="h-search"><input type="text" id="srch" placeholder="🔍  Hľadaj kdekoľvek v strome..." oninput="onSearch()"/></div>
   <button class="btn-admin-tog" id="adminTog" onclick="toggleAdmin()">⚙️ Admin</button>
 </header>
@@ -454,7 +456,7 @@ footer{
 
 <!-- FOOTER -->
 <footer>
-  <span class="f-wordmark" onclick="navigate(null)" title="Domov"><span class="wm-w">ŠPORTOVÉ</span><span class="wm-r">LINKY</span><span class="wm-r">.</span></span>
+  <a class="f-wordmark" id="homeLink2" href="./" onclick="return navClick(event,null)" title="Domov"><span class="wm-w">ŠPORTOVÉ</span><span class="wm-r">LINKY</span><span class="wm-r">.</span></a>
   <span class="f-note">© 2026 · Všetky športové weby sveta na jednom mieste<br>
   Databáza liniek je chránená právom na ochranu databáz (smernica 96/9/ES). Jej kopírovanie alebo systematické vyťažovanie bez súhlasu prevádzkovateľa je zakázané.</span>
 
@@ -13369,6 +13371,14 @@ function idForPath(){
   return idForSlugs(parts);
 }
 function initFromUrl(){
+  // SEO: logo v hlavičke a pätičke nech smeruje na koreň webu (funguje aj
+  // na GitHub Pages v podadresári). Na file:// zostáva href="./".
+  if(PATH_ROUTING){
+    try{
+      const hl = document.getElementById('homeLink');  if(hl)  hl.href  = urlForId(null);
+      const h2 = document.getElementById('homeLink2'); if(h2) h2.href = urlForId(null);
+    }catch(e){}
+  }
   let id = PATH_ROUTING ? idForPath() : null;
   const cestaOk = !PATH_ROUTING || CESTA_CELA; // rozlúštila sa celá cesta z adresy?
   if(id === null && location.hash.indexOf('#/') === 0) id = idForHash(location.hash);
@@ -13384,6 +13394,17 @@ function initFromUrl(){
   }else if(id !== null){
     try{ history.replaceState({curId: id}, '', location.hash); }catch(e){}
   }
+}
+
+// SEO: dlaždice priečinkov a breadcrumbs sú skutočné odkazy <a href>, aby ich
+// Google videl (predtým div onclick = žiadne interné odkazy = neindexovanie).
+// Bežný klik ide cez SPA (navigate), ctrl/cmd/shift alebo stredné tlačidlo
+// nechá prehliadaču — otvorenie v novej karte.
+function navClick(ev, id){
+  if(ev.ctrlKey || ev.metaKey || ev.shiftKey || ev.button === 1) return true;
+  ev.preventDefault();
+  navigate(id);
+  return false;
 }
 
 function navigate(id, fromPopState){
@@ -13554,11 +13575,11 @@ function renderBreadcrumb(){
   html += `<button class="bc-back ${backVis?'visible':''}" onclick="navigate(${backTarget})">← ${IS_EN?'Back':'Späť'}</button>`;
 
   // Home
-  html += `<span class="bc-item ${curId===null?'active':''}" onclick="navigate(null)">🏠 ${IS_EN?'Home':'Domov'}</span>`;
+  html += `<a class="bc-item ${curId===null?'active':''}" href="${attrEsc(urlForId(null))}" onclick="return navClick(event,null)">🏠 ${IS_EN?'Home':'Domov'}</a>`;
 
   path.forEach(node => {
     html += `<span class="bc-sep">›</span>`;
-    html += `<span class="bc-item ${node.id===curId?'active':''}" onclick="navigate('${node.id}')">${renderIcon(nodeIcon(node),'16x12')} ${nName(node)}</span>`;
+    html += `<a class="bc-item ${node.id===curId?'active':''}" href="${attrEsc(urlForId(node.id))}" onclick="return navClick(event,'${node.id}')">${renderIcon(nodeIcon(node),'16x12')} ${nName(node)}</a>`;
   });
 
   bc.innerHTML = html;
@@ -13592,18 +13613,18 @@ function renderLevel(){
                     : sub>0            ? sekTxt
                                        : linTxt;
         html += `
-          <div class="card-root" onclick="${adminMode?'':''} navigate('${n.id}')">
+          <a class="card-root" href="${attrEsc(urlForId(n.id))}" onclick="return navClick(event,'${n.id}')">
             <div class="card-admin-bar">
-              <button class="ibtn" title="Hore" onclick="event.stopPropagation();moveNode('${n.id}',-1)">▲</button>
-              <button class="ibtn" title="Dole" onclick="event.stopPropagation();moveNode('${n.id}',1)">▼</button>
-              <button class="ibtn" title="Upraviť" onclick="event.stopPropagation();openEdit('${n.id}')">✏️</button>
-              <button class="ibtn d" title="Zmazať" onclick="event.stopPropagation();delNode('${n.id}')">🗑</button>
+              <button class="ibtn" title="Hore" onclick="event.stopPropagation();event.preventDefault();moveNode('${n.id}',-1)">▲</button>
+              <button class="ibtn" title="Dole" onclick="event.stopPropagation();event.preventDefault();moveNode('${n.id}',1)">▼</button>
+              <button class="ibtn" title="Upraviť" onclick="event.stopPropagation();event.preventDefault();openEdit('${n.id}')">✏️</button>
+              <button class="ibtn d" title="Zmazať" onclick="event.stopPropagation();event.preventDefault();delNode('${n.id}')">🗑</button>
             </div>
             <div class="c-icon">${renderIcon(nodeIcon(n),'40x30')||''}</div>
             <div class="c-name">${nName(n)}</div>
             <div class="c-count">${cnt}</div>
             <div class="c-arrow">→</div>
-          </div>`;
+          </a>`;
       });
       html += `</div>`;
     } else {
@@ -13615,12 +13636,12 @@ function renderLevel(){
                     : sub>0            ? `${sub} ${skl(sub,'sekcia','sekcie','sekcií')}`
                                        : `${total} ${skl(total,'linka','linky','liniek')}`;
         html += `
-          <div class="card-folder" onclick="navigate('${n.id}')">
+          <a class="card-folder" href="${attrEsc(urlForId(n.id))}" onclick="return navClick(event,'${n.id}')">
             <div class="card-admin-bar">
-              <button class="ibtn" onclick="event.stopPropagation();moveNode('${n.id}',-1)">▲</button>
-              <button class="ibtn" onclick="event.stopPropagation();moveNode('${n.id}',1)">▼</button>
-              <button class="ibtn" onclick="event.stopPropagation();openEdit('${n.id}')">✏️</button>
-              <button class="ibtn d" onclick="event.stopPropagation();delNode('${n.id}')">🗑</button>
+              <button class="ibtn" onclick="event.stopPropagation();event.preventDefault();moveNode('${n.id}',-1)">▲</button>
+              <button class="ibtn" onclick="event.stopPropagation();event.preventDefault();moveNode('${n.id}',1)">▼</button>
+              <button class="ibtn" onclick="event.stopPropagation();event.preventDefault();openEdit('${n.id}')">✏️</button>
+              <button class="ibtn d" onclick="event.stopPropagation();event.preventDefault();delNode('${n.id}')">🗑</button>
             </div>
             <div class="cf-icon">${renderIcon(nodeIcon(n),'24x18')||''}</div>
             <div class="cf-info">
@@ -13628,7 +13649,7 @@ function renderLevel(){
               <div class="cf-count">${cnt}</div>
             </div>
             <div class="cf-arrow">›</div>
-          </div>`;
+          </a>`;
       });
       html += `</div>`;
     }
@@ -13707,10 +13728,10 @@ function renderSearch(q){
     html += `<div class="section-label">${IS_EN?'Categories':'Kategórie'} (${folders.length})</div><div class="grid-deep">`;
     folders.forEach(n=>{
       const path = getPath(n.id).map(p=>nName(p)).join(' › ');
-      html += `<div class="card-folder" onclick="navigate('${n.id}')">
+      html += `<a class="card-folder" href="${attrEsc(urlForId(n.id))}" onclick="return navClick(event,'${n.id}')">
         <div class="cf-icon">${renderIcon(nodeIcon(n),'24x18')||''}</div>
         <div class="cf-info"><div class="cf-name">${nName(n)}</div><div class="cf-count sr-path">${path}</div></div>
-        <div class="cf-arrow">›</div></div>`;
+        <div class="cf-arrow">›</div></a>`;
     });
     html += `</div>`;
   }
