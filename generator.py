@@ -47,6 +47,13 @@ LANG = os.environ.get("SITE_LANG", "sk")   # "sk" alebo "en"
 OUT_PREFIX = os.environ.get("OUT_PREFIX", "")
 BASE_URL = os.environ.get("BASE_URL", "").rstrip("/")
 
+# hreflang: adresa webu v DRUHOM jazyku (SK build ukazuje na EN web a naopak).
+# Vlastnú adresu dodá BASE_URL (configure-pages); druhá je natvrdo tu,
+# s možnosťou prepísania premennou prostredia ALT_BASE_URL.
+ALT_LANG = "en" if LANG == "sk" else "sk"
+_ALT_DEFAULTS = {"sk": "https://www.sportlinky.sk", "en": "https://sportlinking.com"}
+ALT_BASE_URL = os.environ.get("ALT_BASE_URL", _ALT_DEFAULTS[ALT_LANG]).rstrip("/")
+
 # Absolútna cesta ku koreňu webu (podľa nej appka vyrába pekné adresy).
 # POZOR: web nemusí byť v koreni domény! Slovenský beží na www.sportlinky.sk
 # (koreň "/"), anglický na sportlinks226.github.io/sportlinking/ (koreň
@@ -121,19 +128,21 @@ def node_desc(node: dict) -> str:
     return (node.get("desc") or "").strip()
 
 
-def node_name(node: dict) -> str:
-    """Názov v aktuálnom jazyku s fallbackom na slovenčinu."""
-    if LANG != "sk":
-        v = (node.get("name_" + LANG) or "").strip()
+def node_name(node: dict, lang: str = None) -> str:
+    """Názov v danom jazyku (default = jazyk buildu) s fallbackom na slovenčinu."""
+    lang = lang or LANG
+    if lang != "sk":
+        v = (node.get("name_" + lang) or "").strip()
         if v:
             return v
     return (node.get("name") or "").strip()
 
 
-def visible(node: dict) -> bool:
+def visible(node: dict, lang: str = None) -> bool:
     """en:false skryje uzol (aj s podstromom) na anglickom webe.
     enOnly:true je opak — uzol sa ukáže LEN na anglickom webe."""
-    if LANG == "sk":
+    lang = lang or LANG
+    if lang == "sk":
         return node.get("enOnly") is not True
     return node.get("en") is not False
 
@@ -169,26 +178,27 @@ def load_data(path: str) -> dict:
 # STROM
 # ------------------------------------------------------------
 
-def build_tree(nodes: list):
+def build_tree(nodes: list, lang: str = None):
     """Vráti (children, by_id): mapy pre rýchlu navigáciu stromom."""
+    lang = lang or LANG
     children: dict = {}
     by_id = {}
     for n in nodes:
         by_id[n["id"]] = n
-        if not visible(n):
+        if not visible(n, lang):
             continue          # en:false — uzol aj celý podstrom mimo EN webu
         children.setdefault(n.get("parentId"), []).append(n)
     for pid, lst in children.items():
         lst.sort(key=lambda x: x.get("order", 0))
         # EN: krajiny vnútri kontinentov podľa anglickej abecedy
         parent = by_id.get(pid)
-        if (LANG == "en" and parent is not None and pid not in NO_EN_ALPHA
+        if (lang == "en" and parent is not None and pid not in NO_EN_ALPHA
                 and parent.get("name") in CONTINENTS):
-            lst.sort(key=lambda x: node_name(x).lower())
+            lst.sort(key=lambda x: node_name(x, lang).lower())
     return children, by_id
 
 
-def folder_paths(children: dict):
+def folder_paths(children: dict, lang: str = None):
     """Priradí každému priečinku URL cestu (zoznam slugov). Rieši duplicitné slugy.
 
     Prednosť má TRVALÝ slug uložený v dátach (pole "slug" — priraďuje ho
@@ -197,6 +207,7 @@ def folder_paths(children: dict):
     Algoritmus (poradie podľa order + dedupe) je IDENTICKÝ s ensureSlugs()
     v sport-strom.html — obe strany musia vyrobiť rovnaké adresy.
     """
+    lang = lang or LANG
     paths = {}  # folder id -> [slug, slug, ...]
 
     def walk(parent_id, prefix):
@@ -204,9 +215,9 @@ def folder_paths(children: dict):
         for n in children.get(parent_id, []):
             if n.get("type") != "folder":
                 continue
-            if LANG == "en":
+            if lang == "en":
                 slug = (n.get("slug_en")
-                        or slugify(node_name(n))
+                        or slugify(node_name(n, lang))
                         or "cat-" + slugify(n["id"]))
             else:
                 slug = (n.get("slug")
@@ -223,6 +234,26 @@ def folder_paths(children: dict):
 
     walk(None, [])
     return paths
+
+
+def compute_has_link(children: dict) -> dict:
+    """Pre každý priečinok zistí, či má v podstrome aspoň 1 linku.
+    Priečinky bez liniek nedostanú statickú stránku („tenký obsah")."""
+    has_link = {}
+
+    def check(fid):
+        kids = children.get(fid, [])
+        result = any(k.get("type") == "link" for k in kids)
+        for k in kids:
+            if k.get("type") == "folder":
+                result = check(k["id"]) or result
+        has_link[fid] = result
+        return result
+
+    for top in children.get(None, []):
+        if top.get("type") == "folder":
+            check(top["id"])
+    return has_link
 
 
 # ------------------------------------------------------------
@@ -419,7 +450,7 @@ TAKEOVER = """<script>
 </script>"""
 
 
-def render_page(node, path, children, by_id, paths, site_title):
+def render_page(node, path, children, by_id, paths, site_title, alt_url=None):
     depth = len(path)
     root = "../" * depth
     name = escape(node_name(node))
@@ -480,6 +511,18 @@ def render_page(node, path, children, by_id, paths, site_title):
         name=node_name(node), nfold=len(folders), nlink=len(links))
     url_path = "/".join(path) + "/"
     canonical = f'<link rel="canonical" href="{BASE_URL}/{url_path}">' if BASE_URL else ""
+
+    # hreflang: párové prepojenie SK ↔ EN verzie tej istej stránky.
+    # x-default = EN (priorita anglického trhu). Ak stránka na druhom webe
+    # neexistuje (alt_url je None), hreflang sa nevypíše — nepárový je zbytočný.
+    if BASE_URL and alt_url:
+        self_url = f"{BASE_URL}/{url_path}"
+        sk_url = self_url if LANG == "sk" else alt_url
+        en_url = alt_url if LANG == "sk" else self_url
+        canonical += (
+            f'\n<link rel="alternate" hreflang="sk" href="{sk_url}">'
+            f'\n<link rel="alternate" hreflang="en" href="{en_url}">'
+            f'\n<link rel="alternate" hreflang="x-default" href="{en_url}">')
 
     # OG tagy — náhľad pri zdieľaní na sociálnych sieťach
     page_title = f"{name} — {escape(site_title)}"
@@ -616,22 +659,17 @@ def main():
     # Prázdne sekcie (rozostavané) tak nemajú verejnú SEO stránku — neodradia
     # návštevníkov ani Google („tenký obsah"). Po doplnení liniek sa stránka
     # vyrobí automaticky pri najbližšom builde.
-    has_link = {}
-
-    def check_links(fid):
-        kids = children.get(fid, [])
-        result = any(k.get("type") == "link" for k in kids)
-        for k in kids:
-            if k.get("type") == "folder":
-                result = check_links(k["id"]) or result
-        has_link[fid] = result
-        return result
-
-    for top in children.get(None, []):
-        if top.get("type") == "folder":
-            check_links(top["id"])
+    has_link = compute_has_link(children)
     skipped = [fid for fid in paths if not has_link.get(fid)]
     paths = {fid: p for fid, p in paths.items() if has_link.get(fid)}
+
+    # hreflang: strom a cesty DRUHÉHO jazyka — aby sme vedeli, či tá istá
+    # stránka existuje aj na druhom webe a na akej adrese. Live This Week sa
+    # do alt stromu nedopĺňa (nemá slovenský náprotivok, hreflang nedostane).
+    children_alt, _ = build_tree(nodes, ALT_LANG)
+    has_link_alt = compute_has_link(children_alt)
+    paths_alt = {fid: p for fid, p in folder_paths(children_alt, ALT_LANG).items()
+                 if has_link_alt.get(fid)}
 
     os.makedirs(out, exist_ok=True)
 
@@ -640,7 +678,9 @@ def main():
     for fid, path in paths.items():
         d = os.path.join(out, *path)
         os.makedirs(d, exist_ok=True)
-        html = render_page(by_id[fid], path, children, by_id, paths, site_title)
+        alt_url = (f'{ALT_BASE_URL}/{"/".join(paths_alt[fid])}/'
+                   if fid in paths_alt else None)
+        html = render_page(by_id[fid], path, children, by_id, paths, site_title, alt_url)
         with open(os.path.join(d, "index.html"), "w", encoding="utf-8") as f:
             f.write(html)
         count += 1
@@ -648,13 +688,27 @@ def main():
     # sitemap.xml (len v hlavnej jazykovej vetve)
     if not OUT_PREFIX:
         today = date.today().isoformat()
-        urls = [f"{BASE_URL}/"] + [
-            f'{BASE_URL}/{"/".join(p)}/' for p in sorted(paths.values())
-        ]
+        # dvojice (vlastná adresa, adresa v druhom jazyku alebo None)
+        entries = [(f"{BASE_URL}/", f"{ALT_BASE_URL}/")]
+        for fid, p in sorted(paths.items(), key=lambda kv: kv[1]):
+            loc = f'{BASE_URL}/{"/".join(p)}/'
+            alt = (f'{ALT_BASE_URL}/{"/".join(paths_alt[fid])}/'
+                   if fid in paths_alt else None)
+            entries.append((loc, alt))
         sm = ['<?xml version="1.0" encoding="UTF-8"?>',
-              '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">']
-        for u in urls:
-            sm.append(f"  <url><loc>{escape(u)}</loc><lastmod>{today}</lastmod></url>")
+              '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"',
+              '        xmlns:xhtml="http://www.w3.org/1999/xhtml">']
+        for loc, alt in entries:
+            row = f"  <url><loc>{escape(loc)}</loc>"
+            # hreflang alternates aj v sitemape (rovnaké pravidlá ako v HTML)
+            if BASE_URL and alt:
+                sk_u = loc if LANG == "sk" else alt
+                en_u = alt if LANG == "sk" else loc
+                row += (f'<xhtml:link rel="alternate" hreflang="sk" href="{escape(sk_u)}"/>'
+                        f'<xhtml:link rel="alternate" hreflang="en" href="{escape(en_u)}"/>'
+                        f'<xhtml:link rel="alternate" hreflang="x-default" href="{escape(en_u)}"/>')
+            row += f"<lastmod>{today}</lastmod></url>"
+            sm.append(row)
         sm.append("</urlset>")
         with open(os.path.join(out, "sitemap.xml"), "w", encoding="utf-8") as f:
             f.write("\n".join(sm))
@@ -726,14 +780,25 @@ def main():
                     "appka by data.json sťahovala stále odznova. Skontroluj index.html.")
             html = html.replace(ver_marker, f'let DATA_VER = "{DATA_VER}";')
 
-            with open(os.path.join(out, "index.html"), "w", encoding="utf-8") as f:
+            # 404.html NAJPRV a BEZ hreflangu — poistka pre adresy bez vlastnej
+            # statickej stránky (rozostavané sekcie, preklepy). GitHub Pages ju
+            # vráti pre ĽUBOVOĽNÚ neznámu adresu, takže hreflang ukazujúci na
+            # domov by tam bol zavádzajúci.
+            with open(os.path.join(out, "404.html"), "w", encoding="utf-8") as f:
                 f.write(html)
 
-            # 404.html — poistka pre adresy bez vlastnej statickej stránky
-            # (napr. rozostavané prázdne sekcie alebo preklep v adrese).
-            # GitHub Pages ju vráti namiesto chybovej hlášky; je to tá istá
-            # appka, ktorá si zo skutočnej adresy zistí, ktorú sekciu otvoriť.
-            with open(os.path.join(out, "404.html"), "w", encoding="utf-8") as f:
+            # domovská stránka: hreflang trio SK ↔ EN (x-default = EN,
+            # priorita anglického trhu)
+            if BASE_URL:
+                sk_home = f"{BASE_URL}/" if LANG == "sk" else f"{ALT_BASE_URL}/"
+                en_home = f"{ALT_BASE_URL}/" if LANG == "sk" else f"{BASE_URL}/"
+                html = html.replace("</title>", (
+                    "</title>\n"
+                    f'<link rel="alternate" hreflang="sk" href="{sk_home}"/>\n'
+                    f'<link rel="alternate" hreflang="en" href="{en_home}"/>\n'
+                    f'<link rel="alternate" hreflang="x-default" href="{en_home}"/>'), 1)
+
+            with open(os.path.join(out, "index.html"), "w", encoding="utf-8") as f:
                 f.write(html)
         for fname in ("data.json", "og-image.png",
                       "banner-sportlinking-1.png", "banner-sportlinking-2.png"):
