@@ -51,7 +51,7 @@ BASE_URL = os.environ.get("BASE_URL", "").rstrip("/")
 # Vlastnú adresu dodá BASE_URL (configure-pages); druhá je natvrdo tu,
 # s možnosťou prepísania premennou prostredia ALT_BASE_URL.
 ALT_LANG = "en" if LANG == "sk" else "sk"
-_ALT_DEFAULTS = {"sk": "https://www.sportlinky.sk", "en": "https://sportlinking.com"}
+_ALT_DEFAULTS = {"sk": "https://sportlinky.sk", "en": "https://sportlinking.com"}
 ALT_BASE_URL = os.environ.get("ALT_BASE_URL", _ALT_DEFAULTS[ALT_LANG]).rstrip("/")
 
 # Absolútna cesta ku koreňu webu (podľa nej appka vyrába pekné adresy).
