@@ -36,7 +36,7 @@ import re
 import shutil
 import sys
 import unicodedata
-from datetime import date
+from datetime import date, timedelta
 from html import escape
 from urllib.parse import urlsplit
 
@@ -483,6 +483,21 @@ def render_page(node, path, children, by_id, paths, site_title):
 
     # OG tagy — náhľad pri zdieľaní na sociálnych sieťach
     page_title = f"{name} — {escape(site_title)}"
+
+    # Live This Week: do titulku sa pri builde doplní rozsah aktuálneho týždňa
+    # (pondelok–nedeľa). Vďaka dennému cron rebuildu je dátum vždy čerstvý —
+    # vo výsledkoch Googlu to signalizuje živú stránku. Mení sa LEN <title>,
+    # názov priečinka zostáva „Live This Week".
+    if node["id"] == LIVE_ID:
+        _mon = date.today() - timedelta(days=date.today().weekday())
+        _sun = _mon + timedelta(days=6)
+        _m = ["January", "February", "March", "April", "May", "June", "July",
+              "August", "September", "October", "November", "December"]
+        if _mon.month == _sun.month:
+            _rng = f"{_mon.day}–{_sun.day} {_m[_sun.month-1]}"
+        else:
+            _rng = f"{_mon.day} {_m[_mon.month-1]} – {_sun.day} {_m[_sun.month-1]}"
+        page_title = f"{name} ({_rng}) — {escape(site_title)}"
     og = [f'<meta property="og:title" content="{page_title}">',
           f'<meta property="og:description" content="{escape(meta, quote=True)}">',
           '<meta property="og:type" content="website">']
