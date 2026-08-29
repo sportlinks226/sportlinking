@@ -201,6 +201,9 @@ footer{
 .card-link .cl-desc{font-size:0.78rem;color:var(--muted);margin-top:1px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;white-space:normal;overflow:hidden}
 /* vo vysledkoch hladania zostava cesta na jednom riadku */
 .card-link .cl-desc.sr-path{display:block;white-space:nowrap;text-overflow:ellipsis}
+/* štítok LIGA/LEAGUE — linky líg (order -1) v priečinkoch klubov; federácie (order 0) ho nemajú */
+.liga-tag{position:absolute;top:0;right:0;background:var(--accent);color:#fff;font-size:0.55rem;font-weight:800;letter-spacing:.5px;padding:2px 7px;line-height:1.5;border-radius:0 9px 0 8px;pointer-events:none;z-index:2}
+.admin-mode .liga-tag{display:none}
 
 /* ===== ANIMÁCIA KARIET — jemné vynorenie pri vstupe do sekcie ===== */
 @keyframes cardIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
@@ -13662,8 +13665,9 @@ function renderLevel(){
       const host = (() => { try { return new URL(n.url).hostname; } catch(e){ return ''; }})();
       // Live This Week: len ručne zadaná ikona športu, žiadny favicon webu
       const liveIcon = IS_EN && curId===LIVE_ID;
+      const ligaTag = n.order===-1 ? `<span class="liga-tag">${IS_EN?'LEAGUE':'LIGA'}</span>` : '';
       html += `
-        <div class="card-link">
+        <div class="card-link">${ligaTag}
           <div class="card-admin-bar">
             <button class="ibtn" onclick="moveNode('${n.id}',-1)">▲</button>
             <button class="ibtn" onclick="moveNode('${n.id}',1)">▼</button>
@@ -13740,7 +13744,7 @@ function renderSearch(q){
     links.forEach(n=>{
       const host = (() => { try { return new URL(n.url).hostname; } catch(e){ return ''; }})();
       const path = getPath(n.parentId).map(p=>nName(p)).join(' › ');
-      html += `<div class="card-link">
+      html += `<div class="card-link">${n.order===-1?`<span class="liga-tag">${IS_EN?'LEAGUE':'LIGA'}</span>`:''}
         <a href="${n.url}" target="_blank" rel="noopener">
           ${favHtml(n, host)}
           <div><div class="cl-name">${nName(n)}</div><div class="cl-desc sr-path">${path}</div></div>
