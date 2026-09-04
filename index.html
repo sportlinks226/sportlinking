@@ -42,9 +42,9 @@ header{
 }
 .h-wordmark .wm-w{color:#fff}
 .h-wordmark .wm-r{color:var(--accent)}
-.h-subtitle{font-size:0.78rem;color:var(--muted);margin-top:2px}
-.h-count{font-size:0.72rem;color:var(--muted);margin-top:1px}
-.h-count b{color:#e84242;font-weight:700}
+.h-subtitle{font-size:0.78rem;color:var(--muted);margin-top:2px;line-height:1.1}
+.h-count{font-size:0.72rem;color:var(--muted);margin-top:2px;line-height:1;display:flex;align-items:baseline;gap:5px}
+.h-count b{color:#e84242;font-weight:700;font-size:24px;line-height:1;font-variant-numeric:tabular-nums}
 .h-search{flex:1;max-width:420px;margin-left:auto}
 .h-search input{
   width:100%;padding:9px 16px;border-radius:30px;
@@ -13501,7 +13501,19 @@ function updateLinkCount(){
   if(!el || typeof DB==='undefined' || !DB.nodes) return;
   let l=0;
   for(const n of DB.nodes){ if(n.type==='link') l++; }
-  el.innerHTML = '<b>'+l+'</b> '+skl(l,'linka','linky','liniek');
+  const fmt = n => n.toLocaleString('sk-SK');           // 10 456 (medzera po tisícoch)
+  const txt = IS_EN ? 'verified links' : 'overených liniek';
+  if(!el.querySelector('b')) el.innerHTML = '<b>0</b><span>'+txt+'</span>';
+  const b = el.querySelector('b');
+  // Animované počítadlo — iba pri prvom načítaní, potom už len číslo
+  if(updateLinkCount.done || document.hidden || matchMedia('(prefers-reduced-motion: reduce)').matches){ b.textContent = fmt(l); updateLinkCount.done = true; return; }
+  updateLinkCount.done = true;
+  const t0 = performance.now(), dur = 1400;
+  (function step(t){
+    const p = Math.min(1,(t-t0)/dur), e = 1-Math.pow(1-p,3);
+    b.textContent = fmt(Math.round(l*e));
+    if(p<1) requestAnimationFrame(step);
+  })(t0);
 }
 
 // ============================================================
