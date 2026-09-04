@@ -524,8 +524,17 @@ def render_page(node, path, children, by_id, paths, site_title, alt_url=None):
             f'\n<link rel="alternate" hreflang="en" href="{en_url}">'
             f'\n<link rel="alternate" hreflang="x-default" href="{en_url}">')
 
-    # OG tagy — náhľad pri zdieľaní na sociálnych sieťach
-    page_title = f"{name} — {escape(site_title)}"
+    # <title> s kontextom: „Europe — Competitions · Football — Sportlinking".
+    # Bez kontextu mali napr. futbalová a hokejová „Europe" rovnaký titulok
+    # a Google ich bral ako duplicity (Search Console 29.8.2026).
+    # chain = [uzol, rodič, ..., šport]; berie sa rodič + koreňový šport.
+    ctx = []
+    if len(chain) >= 2:
+        ctx.append(escape(node_name(chain[1])))          # rodič
+    if len(chain) >= 3:
+        ctx.append(escape(node_name(chain[-1])))         # šport (koreň)
+    page_title = (f"{name} — {' · '.join(ctx)} — {escape(site_title)}" if ctx
+                  else f"{name} — {escape(site_title)}")
 
     # Live This Week: do titulku sa pri builde doplní rozsah aktuálneho týždňa
     # (pondelok–nedeľa). Vďaka dennému cron rebuildu je dátum vždy čerstvý —
