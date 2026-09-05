@@ -48,10 +48,10 @@ header{
 .h-search{flex:1;max-width:420px;margin-left:auto}
 .h-search input{
   width:100%;padding:9px 16px;border-radius:30px;
-  border:1.5px solid var(--border);background:var(--surface);
+  border:2px solid rgba(232,66,66,.75);background:var(--surface);
   color:var(--text);font-size:0.88rem;outline:none;transition:.2s;
 }
-.h-search input:focus{border-color:var(--accent)}
+.h-search input:focus{border-color:#e84242;box-shadow:0 0 0 3px rgba(232,66,66,.2)}
 .btn-admin-tog{
   display:none; /* skryté — vstup do adminu cez #admin v adrese */
   background:var(--surface);border:1.5px solid var(--border);color:var(--muted);
@@ -333,11 +333,11 @@ footer{
   flex-shrink:0;display:flex;align-items:center;gap:8px;
   background:rgba(232,66,66,.1);border:1.5px solid rgba(232,66,66,.3);
   border-radius:20px;padding:6px 14px;
-  text-decoration:none;color:var(--text);font-size:0.82rem;font-weight:600;
+  text-decoration:none;color:var(--text);font-size:0.9rem;font-weight:600;
   white-space:nowrap;transition:.18s;
 }
 .akt-card:hover{background:rgba(232,66,66,.25);border-color:#e84242}
-.akt-card .akt-icon{font-size:1rem}
+.akt-card .akt-icon{font-size:1.15rem}
 /* Skončená aktuálna linka — vidí ju len admin, vysivená */
 .akt-expired{opacity:.4;filter:grayscale(.6)}
 /* NEW badge — zmizne po 24 h (addedAt timestamp) */
@@ -349,7 +349,7 @@ footer{
 }
 /* Desktop: Aktuálne sa zalamuje do riadkov — 1 riadok pri málo linkách, max. 3 riadky, zvyšok scroll */
 @media(min-width:561px){
-  #aktualneScroll{flex-wrap:wrap;overflow-x:visible;max-height:132px;overflow-y:auto}
+  #aktualneScroll{flex-wrap:wrap;overflow-x:visible;max-height:140px;overflow-y:auto}
 }
 
 ::-webkit-scrollbar{width:5px}
