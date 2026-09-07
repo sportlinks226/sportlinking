@@ -13452,7 +13452,9 @@ function getChildren(parentId){
   let arr = DB.nodes.filter(n=>n.parentId===parentId);
   if(IS_EN) arr = arr.filter(n=>n.en!==false);      // en:false — skryté na EN webe
   else if(!adminMode) arr = arr.filter(n=>!n.enOnly); // enOnly:true — len EN web (v admine vidno)
-  arr.sort((a,b)=>a.order-b.order);
+  // order_en — voliteľné pole: ak ho uzol má, EN web radí podľa neho (inak podľa order)
+  const ord = n => (IS_EN && n.order_en!==undefined && n.order_en!==null) ? n.order_en : n.order;
+  arr.sort((a,b)=>ord(a)-ord(b));
   if(IS_EN && parentId !== null && !NO_EN_ALPHA.has(parentId)){
     const p = DB.nodes.find(n=>n.id===parentId);
     if(p && CONTINENTS_SK.has(p.name)){

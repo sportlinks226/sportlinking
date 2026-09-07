@@ -189,7 +189,11 @@ def build_tree(nodes: list, lang: str = None):
             continue          # en:false — uzol aj celý podstrom mimo EN webu
         children.setdefault(n.get("parentId"), []).append(n)
     for pid, lst in children.items():
-        lst.sort(key=lambda x: x.get("order", 0))
+        # order_en — voliteľné pole: na EN webe má prednosť pred order
+        if lang == "en":
+            lst.sort(key=lambda x: x.get("order_en", x.get("order", 0)))
+        else:
+            lst.sort(key=lambda x: x.get("order", 0))
         # EN: krajiny vnútri kontinentov podľa anglickej abecedy
         parent = by_id.get(pid)
         if (lang == "en" and parent is not None and pid not in NO_EN_ALPHA
