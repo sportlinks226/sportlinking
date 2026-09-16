@@ -13603,17 +13603,31 @@ let ORIG_DESC = null;
 function updateHead(){
   const site = (IS_EN ? (DB.title_en||DB.title) : DB.title) || '';
   const n = curId ? DB.nodes.find(x=>x.id===curId) : null;
-  document.title = n ? (nName(n) + (site ? ' — ' + site : '')) : (site || document.title);
+  // Titulok S KONTEXTOM, rovnako ako ho skladá generator.py:
+  // „{názov} — {rodič} · {šport} — {web}", napr. „Turecko — Európa · Hokej — Športové Linky".
+  // Bez kontextu mali napr. futbalové, hádzanárske a hokejové „Asociácie" alebo
+  // „Turecko" v rôznych športoch ROVNAKÝ titulok. Statická stránka z generátora
+  // ho mala správne, ale appka ho pri prevzatí prepísala na holý názov — Google
+  // preto stránky ďalej bral ako duplicity (Search Console 15.9.2026, 24 stránok).
+  let ctx = [];
+  if(n){
+    const chain = getPath(n.id);            // [šport, ..., rodič, uzol]
+    if(chain.length >= 2) ctx.push(nName(chain[chain.length-2])); // rodič
+    if(chain.length >= 3) ctx.push(nName(chain[0]));              // šport (koreň)
+  }
+  const ctxStr = ctx.length ? ' — ' + ctx.join(' · ') : '';
+  document.title = n ? (nName(n) + ctxStr + (site ? ' — ' + site : '')) : (site || document.title);
   const m = document.querySelector('meta[name="description"]');
   if(m){
     if(ORIG_DESC === null) ORIG_DESC = m.content;
     let d = n ? nDesc(n) : '';
-    if(n && !d){ // sekcia bez popisu — rovnaká náhrada ako v generator.py
+    if(n && !d){ // sekcia bez popisu — náhrada ako v generator.py, doplnená o kontext
       const kids = getChildren(n.id);
       const nf = kids.filter(k=>k.type==='folder').length;
       const nl = kids.filter(k=>k.type==='link').length;
-      d = IS_EN ? nName(n)+' — sports links: '+nf+' subcategories, '+nl+' links.'
-                : nName(n)+' — športové linky: '+nf+' podkategórií, '+nl+' liniek.';
+      const ctxD = ctx.length ? ' (' + ctx.join(' · ') + ')' : '';
+      d = IS_EN ? nName(n)+ctxD+' — sports links: '+nf+' subcategories, '+nl+' links.'
+                : nName(n)+ctxD+' — športové linky: '+nf+' podkategórií, '+nl+' liniek.';
     }
     m.content = d || ORIG_DESC;
   }
