@@ -13100,6 +13100,57 @@ let curId = null;      // null = root
 let editNodeId = null;
 let nodeType = 'folder';
 
+// ============================================================
+// ÚLOŽISKO V PREHLIADAČI (od v605, 16.9.2026)
+// ============================================================
+// Celé dáta (5+ MB) sa ukladajú do IndexedDB — localStorage má limit ~5 MB
+// na doménu (Chrome aj Safari, znaky sa rátajú po 2 bajtoch), takže od
+// augusta 2026 tam uloženie VŽDY zlyhávalo a ochrany nefungovali.
+// V localStorage ostávajú len dva malé kľúče:
+//   sportStromVer   — verzia dát naposledy uložených/načítaných v tomto prehliadači
+//                     (synchrónna ochrana pred starým oknom v save())
+//   sportStromDirty — '1' = v IndexedDB sú rozpracované, nezverejnené admin úpravy
+// Návštevníkom webu sa do IndexedDB neukladá NIČ — čerstvé dáta sú vždy zo servera.
+const IDB_NAME = 'sportStromDB', IDB_STORE = 'data', IDB_KEY = 'sportStrom';
+function idbOpen(){
+  return new Promise((res, rej)=>{
+    if(!window.indexedDB){ rej(new Error('IndexedDB nie je k dispozícii')); return; }
+    let rq;
+    try{ rq = indexedDB.open(IDB_NAME, 1); }catch(e){ rej(e); return; }
+    rq.onupgradeneeded = ()=>{ rq.result.createObjectStore(IDB_STORE); };
+    rq.onsuccess = ()=>res(rq.result);
+    rq.onerror = ()=>rej(rq.error || new Error('open'));
+    rq.onblocked = ()=>rej(new Error('blocked'));
+  });
+}
+function idbRun(mode, fn){
+  return idbOpen().then(db=>new Promise((res, rej)=>{
+    const tx = db.transaction(IDB_STORE, mode);
+    const rq = fn(tx.objectStore(IDB_STORE));
+    let out;
+    rq.onsuccess = ()=>{ out = rq.result; };
+    tx.oncomplete = ()=>{ db.close(); res(out === undefined ? null : out); };
+    tx.onerror = ()=>{ db.close(); rej(tx.error || new Error('tx')); };
+    tx.onabort = ()=>{ db.close(); rej(tx.error || new Error('abort')); };
+  }));
+}
+function idbGet(){ return idbRun('readonly', st=>st.get(IDB_KEY)); }
+function idbPut(obj){ return idbRun('readwrite', st=>st.put(obj, IDB_KEY)); }
+function idbDel(){ return idbRun('readwrite', st=>st.delete(IDB_KEY)); }
+// malé kľúče v localStorage — vždy v try/catch (súkromné okno, vypnuté úložisko)
+function lsGet(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }
+function lsSet(k, v){ try{ localStorage.setItem(k, v); }catch(e){} }
+function lsDel(k){ try{ localStorage.removeItem(k); }catch(e){} }
+function lsVer(){ return parseInt(lsGet('sportStromVer') || '0', 10) || 0; }
+// Jednorazové upratanie po starom spôsobe (celé dáta v localStorage). Ak tam
+// ešte niečo je (lokálny súbor s malými dátami), vráti to na migráciu do IndexedDB.
+function lsLegacyTake(){
+  const s = lsGet('sportStrom');
+  lsDel('sportStrom');
+  if(!s) return null;
+  try{ return JSON.parse(s); }catch(e){ return null; }
+}
+
 async function load(){
   // 1) Na webe: skús načítať publikované dáta zo súboru data.json
   let published = null;
@@ -13139,9 +13190,12 @@ async function load(){
     }catch(e){ /* lokálny súbor (file://) alebo data.json neexistuje — skús ešte raz */ }
   }
   if(published){
-    const sW = localStorage.getItem('sportStrom');
-    const storedW = sW ? JSON.parse(sW) : null;
-    const dirty = localStorage.getItem('sportStromDirty') === '1';
+    lsLegacyTake(); // upratanie: staré celé dáta v localStorage už nepotrebujeme
+    const dirty = lsGet('sportStromDirty') === '1';
+    let storedW = null;
+    // rozpracované úpravy z IndexedDB čítame LEN keď je nastavený príznak dirty
+    // (inak by sme návštevníkovi zbytočne čítali megabajty z disku)
+    if(dirty){ try{ storedW = await idbGet(); }catch(e){ storedW = null; } }
     if(storedW && dirty && (storedW.version||0) >= (published.version||0)){
       // rozpracované nezverejnené úpravy v admine — majú prednosť pred webom
       DB = storedW; return;
@@ -13163,28 +13217,24 @@ async function load(){
     }
     // prevzatie publikovaných dát (nič rozpracované, alebo web je novší)
     DB = published;
-    // POZOR — NEODSTRAŇOVAŤ TENTO try/catch:
-    // Safari na iPhone dáva stránke do pamäte len ~5 MB a naše dáta sú väčšie
-    // (reťazec sa navyše počíta po 2 bajtoch na znak). Uloženie tam vyhodí
-    // QuotaExceededError. Kým to nebolo ošetrené, chyba zhodila CELÝ štart
-    // appky — nevykreslili sa sekcie, pás Aktuálne ani bannery (20.8.2026).
-    // Uloženie je len pohodlie; čerstvé dáta máme zo servera, takže keď sa
-    // nezmestia, pamäť radšej vyprázdnime a pokračujeme.
-    try{
-      localStorage.setItem('sportStrom', JSON.stringify(DB));
-      localStorage.removeItem('sportStromDirty');
-    }catch(e){
-      try{
-        localStorage.removeItem('sportStrom');
-        localStorage.removeItem('sportStromDirty');
-      }catch(e2){}
-    }
+    // Návštevníkovi sa do prehliadača NEUKLADAJÚ celé dáta (zbytočné megabajty
+    // na disku; čerstvé dáta sú vždy zo servera). Zapíše sa len malé číslo
+    // verzie pre ochranu starého okna v save() a zruší sa príznak dirty.
+    lsSet('sportStromVer', String(DB.version||0));
+    lsDel('sportStromDirty');
+    // prekonané rozpracované úpravy v IndexedDB zahoď (záloha bola ponúknutá vyššie)
+    if(storedW){ idbDel().catch(()=>{}); }
     return;
   }
-  // 2) Lokálne: localStorage / zapečené DEFAULT (pôvodné správanie)
-  const s = localStorage.getItem('sportStrom');
-  if(s){
-    const stored = JSON.parse(s);
+  // 2) Lokálne: IndexedDB / zapečené DEFAULT (pôvodné správanie)
+  let stored = null;
+  try{ stored = await idbGet(); }catch(e){ stored = null; }
+  if(!stored){
+    // migrácia zo starého localStorage (celé dáta) do IndexedDB
+    stored = lsLegacyTake();
+    if(stored){ try{ await idbPut(stored); }catch(e){} }
+  }
+  if(stored){
     if(stored.version === DEFAULT.version){
       DB = stored;
     } else {
@@ -13203,39 +13253,37 @@ async function load(){
         a.click();
       }
       DB = JSON.parse(JSON.stringify(DEFAULT));
-      // try/catch kvôli limitu pamäte v Safari — viď komentár vyššie
-      try{ localStorage.setItem('sportStrom', JSON.stringify(DB)); }catch(e){} // poznač si novú verziu — okno sa už nezobrazí
+      try{ await idbPut(DB); }catch(e){} // poznač si novú verziu — okno sa už nezobrazí
     }
   } else {
     DB = JSON.parse(JSON.stringify(DEFAULT));
   }
+  lsSet('sportStromVer', String(DB.version||0));
 }
 function save(force){
-  // OCHRANA pred starým oknom: ak sú v prehliadači uložené NOVŠIE dáta než tie,
-  // na ktorých práve pracuješ, nič neprepíš — okno je zastarané, treba F5.
+  // OCHRANA pred starým oknom: ak je v prehliadači zapísaná NOVŠIA verzia než tá,
+  // na ktorej práve pracuješ, nič neprepíš — okno je zastarané, treba F5.
+  // Kontrola je synchrónna (malý kľúč sportStromVer v localStorage).
   // (force=true preskočí kontrolu — používa Import, kde je nahradenie zámerné)
   if(!force){
-    try{
-      const s = localStorage.getItem('sportStrom');
-      if(s){
-        const st = JSON.parse(s);
-        if((st.version||0) > (DB.version||0)){
-          alert('POZOR: Úprava sa NEULOŽILA!\n\nV prehliadači sú novšie dáta (v'+st.version+') než v tomto okne (v'+(DB.version||'?')+').\nToto okno je zrejme staré — obnov stránku (F5) a sprav úpravu znova.');
-          return false;
-        }
-      }
-    }catch(e){}
+    const v = lsVer();
+    if(v > (DB.version||0)){
+      alert('POZOR: Úprava sa NEULOŽILA!\n\nV prehliadači sú novšie dáta (v'+v+') než v tomto okne (v'+(DB.version||'?')+').\nToto okno je zrejme staré — obnov stránku (F5) a sprav úpravu znova.');
+      return false;
+    }
   }
-  // try/catch kvôli limitu pamäte prehliadača (Safari ~5 MB) — bez neho by
-  // chyba zhodila celú úpravu bez slova. Radšej to povedz nahlas.
-  try{
-    localStorage.setItem('sportStrom', JSON.stringify(DB));
-    localStorage.setItem('sportStromDirty', '1'); // rozpracované nezverejnené úpravy
-  }catch(e){
-    alert('POZOR: Prehliadač nedokázal odložiť dáta do pamäte — sú už príliš veľké.\n\n' +
+  // malé kľúče hneď (synchrónne) …
+  lsSet('sportStromVer', String(DB.version||0));
+  lsSet('sportStromDirty', '1'); // rozpracované nezverejnené úpravy
+  // … a celé dáta do IndexedDB na pozadí (trvá pár milisekúnd, nikto naň nečaká;
+  // zápisy idú v poradí, v akom boli zavolané, takže posledný vyhráva).
+  // Keď IndexedDB nie je k dispozícii (niektoré súkromné okná), povedz to nahlas —
+  // bez toho by sa úprava po F5 stratila bez slova.
+  idbPut(DB).catch(()=>{
+    alert('POZOR: Prehliadač nedokázal odložiť dáta do pamäte (IndexedDB nie je k dispozícii).\n\n' +
           'Úprava je v tomto okne, ale NEPREŽIJE obnovenie stránky.\n' +
           'Hneď klikni na 🚀 Publikovať a stiahni si data.json.');
-  }
+  });
   updateVerBadge();
   return true;
 }
@@ -13253,14 +13301,14 @@ async function sha256hex(str){
   return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
 }
 // Migrácia: staré dáta/zálohy majú heslo v čitateľnej podobe — preveď na hash a plaintext zmaž.
-// Ukladá priamo do localStorage (bez save()), aby technická migrácia nenastavila príznak dirty.
+// Ukladá priamo do IndexedDB (bez save()), aby technická migrácia nenastavila príznak dirty.
 async function migratePw(){
   if(!DB || !DB.password) return;
   try{
     if(!DB.passwordHash) DB.passwordHash = await sha256hex(DB.password);
     delete DB.password;
-    localStorage.setItem('sportStrom', JSON.stringify(DB));
-  }catch(e){ /* crypto nedostupné — nechaj tak, chkPw má záložnú vetvu */ }
+    await idbPut(DB);
+  }catch(e){ /* crypto/IndexedDB nedostupné — nechaj tak, chkPw má záložnú vetvu */ }
 }
 
 // ============================================================
@@ -14423,7 +14471,11 @@ window.addEventListener('hashchange', checkAdminHash);
 // INIT
 // ============================================================
 load().then(()=>{
-  if(ensureSlugs()) save(); // migrácia: doplň trvalé slugy priečinkom bez nich
+  // migrácia: doplň trvalé slugy priečinkom bez nich — LEN v pamäti, NEUKLADÁ SA.
+  // (Predtým tu bolo `if(ensureSlugs()) save();` — v604 chýbalo 263 slugov a každý
+  // návštevník videl okno o plnej pamäti. Doplnené slugy sú deterministické, takže
+  // stačia v pamäti; admin ich uloží najbližšou úpravou, do data.json ich dáva skript.)
+  ensureSlugs();
   migratePw(); // migrácia: heslo v čitateľnej podobe → hash (staré localStorage)
   if(DB.title){
     document.getElementById('siteSub').textContent =
