@@ -420,6 +420,28 @@ DATA_VER = ""
 TAKEOVER = """<script>
 (function(){
   var btn=document.getElementById("appbtn"), done=false;
+  // Prevzatie appkou prepise CELY dokument obsahom domovskeho index.html —
+  // aj jeho hlavicku. updateHead() opravi <title>, popis aj canonical, ale
+  // hreflang uz nie, takze na podstranke zostali hreflang odkazy DOMOVSKEJ
+  // stranky ("anglicka verzia tejto stranky je domovska stranka"). To si
+  // odporuje s canonical a Google preto stranky oznacoval za duplicity
+  // (Search Console 19.9.2026, 30 stranok; overenie opravy titulkov zlyhalo).
+  // Riesenie: hreflang zo statickej stranky — generator ich pocita spravne —
+  // sa prenesu do prevzateho dokumentu a domovske sa zahodia. Ak staticka
+  // stranka hreflang nema (404.html, stranka bez naprotivku v druhom jazyku),
+  // nevlozi sa ziadny: neparovy hreflang je horsi nez ziadny.
+  function prenesHreflang(h){
+    try{
+      var moje = "", ls = document.querySelectorAll('link[rel="alternate"][hreflang]');
+      for(var i=0;i<ls.length;i++){
+        moje += '<link rel="alternate" hreflang="' + ls[i].getAttribute("hreflang")
+              + '" href="' + ls[i].getAttribute("href") + '">';
+      }
+      h = h.replace(/<link[^>]*hreflang=[^>]*>\s*/gi, "");
+      if(moje) h = h.replace(/<head([^>]*)>/i, "<head$1>" + moje);
+    }catch(e){}
+    return h;
+  }
   function fallback(){
     if(done) return;
     if(btn) btn.style.display="inline-block";
@@ -447,7 +469,7 @@ TAKEOVER = """<script>
       var h = res[0];
       if(h.indexOf("let SITE_ROOT =")<0) throw new Error("marker");
       done=true;
-      document.open(); document.write(h); document.close();
+      document.open(); document.write(prenesHreflang(h)); document.close();
     }).catch(fallback);
   }catch(e){ fallback(); }
 })();
