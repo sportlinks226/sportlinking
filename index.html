@@ -13807,54 +13807,69 @@ function renderSearch(q){
     while(c!==null && c!==undefined){ const x=byId.get(c); if(!x) break; p.unshift(x); c=x.parentId; }
     return p; };
   // Normalizovaný text uzla sa počíta raz a pamätá (prepočíta sa len ak sa názov/popis zmení)
+  // Hľadá sa v tom, čo návštevník vidí (EN web = anglické texty).
   const srchText = (n)=>{
     const raw = (n.name||'')+'\u0001'+(n.desc||'')+'\u0001'+(n.name_en||'')+'\u0001'+(n.desc_en||'');
     let c = _srchCache.get(n);
     if(!c || c.raw!==raw){
-      c = {raw, t: norm(nName(n))+'\u0001'+norm(nDesc(n))}; // hľadá sa v tom, čo návštevník vidí (EN web = anglické texty)
+      c = {raw, name: norm(nName(n)), desc: norm(nDesc(n))};
       _srchCache.set(n,c);
     }
     return c;
   };
-  const results = pool.filter(n => { const c = srchText(n);
-    return c.t.includes(nq); });
+  // Zhoda na ZAČIATKU slova (aby „slovan" nenašlo „juhoslovanského")
+  const esc = nq.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+  let wordRe;
+  try{ wordRe = new RegExp('(^|[^\\p{L}\\p{N}])'+esc,'u'); }
+  catch(e){ wordRe = new RegExp('(^|[^a-z0-9])'+esc); }
+  // Skóre: 0 = názov začína hľadaným textom, 1 = slovo v názve začína,
+  // 2 = kdekoľvek v názve, 3 = slovo v popise začína (zmienka), -1 = nič
+  const score = (n)=>{ const c = srchText(n);
+    if(c.name.startsWith(nq)) return 0;
+    if(wordRe.test(c.name)) return 1;
+    if(c.name.includes(nq)) return 2;
+    if(wordRe.test(c.desc)) return 3;
+    return -1; };
+  const scored = [];
+  pool.forEach(n=>{ const sc = score(n); if(sc>=0) scored.push({n,sc}); });
+  scored.sort((x,y)=>x.sc-y.sc); // stabilné triedenie — v rámci skóre ostáva poradie stromu
   const main = document.getElementById('main');
-  if(results.length === 0){
-    main.innerHTML = `<div class="empty"><div class="e-icon">🔍</div><p>${IS_EN?'No results for':'Žiadne výsledky pre'} "<strong>${q}</strong>"</p></div>`;
+  if(scored.length === 0){
+    main.innerHTML = `<div class="empty"><div class="e-icon">🔍</div><p>${IS_EN?'No results for':'Žiadne výsledky pre'} "<strong>${attrEsc(q)}</strong>"</p></div>`;
     return;
   }
-  const foldersAll = results.filter(n=>n.type==='folder');
-  const linksAll   = results.filter(n=>n.type==='link');
-  const folders = foldersAll.slice(0, SRCH_MAX);
-  const links   = linksAll.slice(0, SRCH_MAX);
+  const hits     = scored.filter(x=>x.sc<3).map(x=>x.n);   // zhoda v názve
+  const mentions = scored.filter(x=>x.sc===3).map(x=>x.n); // len zmienka v popise
   const more = (all)=> all.length > SRCH_MAX
     ? `<p class="sr-path" style="margin:8px 0 0">${IS_EN?`Showing first ${SRCH_MAX} of ${all.length} — refine your search`:`Zobrazených prvých ${SRCH_MAX} z ${all.length} — spresni hľadanie`}</p>` : '';
-  let html = '';
-
-  if(folders.length){
-    html += `<div class="section-label">${IS_EN?'Categories':'Kategórie'} (${foldersAll.length})</div><div class="grid-deep">`;
-    folders.forEach(n=>{
-      const path = pathOf(n.id).map(p=>nName(p)).join(' › ');
-      html += `<a class="card-folder" href="${attrEsc(urlForId(n.id))}" onclick="return navClick(event,'${n.id}')">
+  const folderCard = (n)=>{
+    const path = pathOf(n.id).map(p=>nName(p)).join(' › ');
+    return `<a class="card-folder" href="${attrEsc(urlForId(n.id))}" onclick="return navClick(event,'${n.id}')">
         <div class="cf-icon">${renderIcon(nodeIcon(n),'24x18')||''}</div>
         <div class="cf-info"><div class="cf-name">${nName(n)}</div><div class="cf-count sr-path">${path}</div></div>
         <div class="cf-arrow">›</div></a>`;
-    });
-    html += `</div>` + more(foldersAll);
-  }
-  if(links.length){
-    html += `<div class="section-label" style="margin-top:20px">${IS_EN?'Links':'Linky'} (${linksAll.length})</div><div class="grid-deep">`;
-    links.forEach(n=>{
-      const host = (() => { try { return new URL(n.url).hostname; } catch(e){ return ''; }})();
-      const path = pathOf(n.parentId).map(p=>nName(p)).join(' › ');
-      html += `<div class="card-link">${n.order===-1?`<span class="liga-tag">${IS_EN?'LEAGUE':'LIGA'}</span>`:''}
+  };
+  const linkCard = (n)=>{
+    const host = (() => { try { return new URL(n.url).hostname; } catch(e){ return ''; }})();
+    const path = pathOf(n.parentId).map(p=>nName(p)).join(' › ');
+    return `<div class="card-link">${n.order===-1?`<span class="liga-tag">${IS_EN?'LEAGUE':'LIGA'}</span>`:''}
         <a href="${n.url}" target="_blank" rel="noopener">
           ${favHtml(n, host)}
           <div><div class="cl-name">${nName(n)}</div><div class="cl-desc sr-path">${path}</div></div>
         </a></div>`;
-    });
-    html += `</div>` + more(linksAll);
-  }
+  };
+  const card = (n)=> n.type==='folder' ? folderCard(n) : linkCard(n);
+  const section = (label, arr, first)=>{
+    if(!arr.length) return '';
+    return `<div class="section-label"${first?'':' style="margin-top:20px"'}>${label} (${arr.length})</div><div class="grid-deep">`
+      + arr.slice(0,SRCH_MAX).map(card).join('') + `</div>` + more(arr);
+  };
+  const foldersAll = hits.filter(n=>n.type==='folder');
+  const linksAll   = hits.filter(n=>n.type==='link');
+  let html = '';
+  html += section(IS_EN?'Categories':'Kategórie', foldersAll, true);
+  html += section(IS_EN?'Links':'Linky', linksAll, !foldersAll.length);
+  html += section(IS_EN?'Mentioned in descriptions':'Spomenuté v popise', mentions, !hits.length);
   main.innerHTML = html;
 }
 
