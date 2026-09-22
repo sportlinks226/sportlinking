@@ -13779,7 +13779,11 @@ function renderLevel(){
 // ============================================================
 // SEARCH
 // ============================================================
-function onSearch(){ render(); }
+// Debounce — hľadá sa až keď človek na chvíľu prestane písať (nie pri každom písmene)
+let _srchT = null;
+function onSearch(){ clearTimeout(_srchT); _srchT = setTimeout(render, 200); }
+const SRCH_MAX = 200;
+const _srchCache = new WeakMap(); // max. počet zobrazených kariet v každej skupine
 
 // Normalizácia — odstráni diakritiku, aby "spravy" našlo aj "Správy"
 function norm(s){
@@ -13797,43 +13801,59 @@ function renderSearch(q){
     DB.nodes.forEach(n=>{ if(n.en===false) markHidden(n.id); });
     pool = DB.nodes.filter(n=>!hidden.has(n.id));
   }
-  const results = pool.filter(n =>
-    norm(n.name).includes(nq) ||
-    norm(n.desc).includes(nq) ||
-    (IS_EN && (norm(n.name_en).includes(nq) || norm(n.desc_en).includes(nq)))
-  );
+  // Rýchla mapa id → uzol (namiesto DB.nodes.find pri každom kroku cesty)
+  const byId = new Map(DB.nodes.map(n=>[n.id,n]));
+  const pathOf = (id)=>{ const p=[]; let c=id;
+    while(c!==null && c!==undefined){ const x=byId.get(c); if(!x) break; p.unshift(x); c=x.parentId; }
+    return p; };
+  // Normalizovaný text uzla sa počíta raz a pamätá (prepočíta sa len ak sa názov/popis zmení)
+  const srchText = (n)=>{
+    const raw = (n.name||'')+'\u0001'+(n.desc||'')+'\u0001'+(n.name_en||'')+'\u0001'+(n.desc_en||'');
+    let c = _srchCache.get(n);
+    if(!c || c.raw!==raw){
+      c = {raw, t: norm(nName(n))+'\u0001'+norm(nDesc(n))}; // hľadá sa v tom, čo návštevník vidí (EN web = anglické texty)
+      _srchCache.set(n,c);
+    }
+    return c;
+  };
+  const results = pool.filter(n => { const c = srchText(n);
+    return c.t.includes(nq); });
   const main = document.getElementById('main');
   if(results.length === 0){
     main.innerHTML = `<div class="empty"><div class="e-icon">🔍</div><p>${IS_EN?'No results for':'Žiadne výsledky pre'} "<strong>${q}</strong>"</p></div>`;
     return;
   }
-  const folders = results.filter(n=>n.type==='folder');
-  const links   = results.filter(n=>n.type==='link');
+  const foldersAll = results.filter(n=>n.type==='folder');
+  const linksAll   = results.filter(n=>n.type==='link');
+  const folders = foldersAll.slice(0, SRCH_MAX);
+  const links   = linksAll.slice(0, SRCH_MAX);
+  const more = (all)=> all.length > SRCH_MAX
+    ? `<p class="sr-path" style="margin:8px 0 0">${IS_EN?`Showing first ${SRCH_MAX} of ${all.length} — refine your search`:`Zobrazených prvých ${SRCH_MAX} z ${all.length} — spresni hľadanie`}</p>` : '';
   let html = '';
 
   if(folders.length){
-    html += `<div class="section-label">${IS_EN?'Categories':'Kategórie'} (${folders.length})</div><div class="grid-deep">`;
+    html += `<div class="section-label">${IS_EN?'Categories':'Kategórie'} (${foldersAll.length})</div><div class="grid-deep">`;
     folders.forEach(n=>{
-      const path = getPath(n.id).map(p=>nName(p)).join(' › ');
+      const path = pathOf(n.id).map(p=>nName(p)).join(' › ');
       html += `<a class="card-folder" href="${attrEsc(urlForId(n.id))}" onclick="return navClick(event,'${n.id}')">
         <div class="cf-icon">${renderIcon(nodeIcon(n),'24x18')||''}</div>
         <div class="cf-info"><div class="cf-name">${nName(n)}</div><div class="cf-count sr-path">${path}</div></div>
         <div class="cf-arrow">›</div></a>`;
     });
-    html += `</div>`;
+    html += `</div>` + more(foldersAll);
   }
   if(links.length){
-    html += `<div class="section-label" style="margin-top:20px">${IS_EN?'Links':'Linky'} (${links.length})</div><div class="grid-deep">`;
+    html += `<div class="section-label" style="margin-top:20px">${IS_EN?'Links':'Linky'} (${linksAll.length})</div><div class="grid-deep">`;
     links.forEach(n=>{
       const host = (() => { try { return new URL(n.url).hostname; } catch(e){ return ''; }})();
-      const path = getPath(n.parentId).map(p=>nName(p)).join(' › ');
+      const path = pathOf(n.parentId).map(p=>nName(p)).join(' › ');
       html += `<div class="card-link">${n.order===-1?`<span class="liga-tag">${IS_EN?'LEAGUE':'LIGA'}</span>`:''}
         <a href="${n.url}" target="_blank" rel="noopener">
           ${favHtml(n, host)}
           <div><div class="cl-name">${nName(n)}</div><div class="cl-desc sr-path">${path}</div></div>
         </a></div>`;
     });
-    html += `</div>`;
+    html += `</div>` + more(linksAll);
   }
   main.innerHTML = html;
 }
