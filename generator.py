@@ -419,6 +419,13 @@ DATA_VER = ""
 # zobrazená táto statická stránka: má správny obsah aj canonical.
 TAKEOVER = """<script>
 (function(){
+  // Vyhladavacie roboty (Googlebot, Bingbot, nastroj kontroly adresy v Search
+  // Console...) stranku appkou NEPREBERAME: indexuju staticku stranku, ktora ma
+  // unikatny titulok, popis, drobcekovu navigaciu a zoznam podpriecinkov bez
+  // ramu appky (hlavicka, pocitadlo, Live This Week). Po prevzati bol pri tenkych
+  // priecinkoch obsah z 95 % rovnaky a Google ich oznacoval za duplicity
+  // (Search Console 22.9.2026, 33 stranok). Obsah je ten isty, nejde o cloaking.
+  if(/Googlebot|Google-InspectionTool|bingbot|Applebot|DuckDuckBot|YandexBot|Baiduspider|Slurp|SeznamBot|PetalBot|Bytespider|facebookexternalhit|Twitterbot|LinkedInBot/i.test(navigator.userAgent)) return;
   var btn=document.getElementById("appbtn"), done=false;
   // Prevzatie appkou prepise CELY dokument obsahom domovskeho index.html —
   // aj jeho hlavicku. updateHead() opravi <title>, popis aj canonical, ale
@@ -469,7 +476,11 @@ TAKEOVER = """<script>
       var h = res[0];
       if(h.indexOf("let SITE_ROOT =")<0) throw new Error("marker");
       done=true;
-      document.open(); document.write(prenesHreflang(h)); document.close();
+      // POZOR na poradie: document.open() VYMAZE cely dokument, preto sa hreflang
+      // zo statickej stranky musi precitat PRED nim (chyba z 20.9.2026 — po
+      // prevzati nezostal ziadny hreflang).
+      var nh = prenesHreflang(h);
+      document.open(); document.write(nh); document.close();
     }).catch(fallback);
   }catch(e){ fallback(); }
 })();
