@@ -102,6 +102,22 @@ a.card-root,a.card-folder,a.bc-item,a.h-left,a.f-wordmark{color:inherit;text-dec
 .banner-edit-btn:hover{border-color:var(--accent);color:var(--text)}
 .admin-mode .banner-edit-btn{display:flex;align-items:center;gap:5px}
 
+/* ===== PROMO BLOK (Tipovanie — banner 300x250 vľavo + reklamný text vpravo) ===== */
+.promo{display:flex;gap:22px;align-items:flex-start;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:22px}
+.promo-ban{flex-shrink:0;width:300px;min-height:250px;display:flex;flex-direction:column;align-items:center;gap:6px}
+.promo-ban img{max-width:100%;display:block}
+.promo-txt{flex:1;min-width:0}
+.promo-tag{font-size:0.65rem;letter-spacing:1px;color:var(--muted);margin-bottom:8px}
+.promo-txt h3{margin:0 0 10px;font-size:1.25rem;line-height:1.25;color:#fff}
+.promo-txt p{margin:0 0 10px;font-size:0.9rem;line-height:1.55;color:var(--text)}
+.promo-btn{display:inline-block;background:var(--accent);color:#fff!important;font-weight:700;font-size:0.9rem;padding:10px 18px;border-radius:8px;margin-top:6px;text-decoration:none}
+.promo-btn:hover{background:#c73535}
+.promo-warn{font-size:0.7rem;color:var(--muted);border-top:1px solid var(--border);padding-top:10px;margin-top:22px}
+.promo-edit-btn{display:none;margin-top:10px;font-size:0.72rem;background:none;border:1px dashed var(--border);color:var(--muted);padding:4px 10px;border-radius:6px;cursor:pointer}
+.admin-mode .promo-edit-btn{display:inline-block}
+.promo-list-row{display:flex;align-items:center;gap:8px;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:0.8rem}
+.promo-list-row .pl-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.promo-list-row.off{opacity:.5}
 /* ===== BANNER FARM MODAL ===== */
 .banner-farm-grid{display:flex;flex-direction:column;gap:8px;max-height:340px;overflow-y:auto;margin-bottom:14px}
 .bfarm-row{
@@ -374,6 +390,9 @@ footer{
   .banner-wrap{padding:10px 14px 0}
   .banner-slot{height:50px}
   #bannerSlot2{display:none}
+  .promo{flex-direction:column;padding:14px;gap:12px}
+  .promo-ban{align-self:center;width:100%;max-width:300px}
+  .promo-txt h3{font-size:1.05rem}
 
   /* Aktualne na mobile */
   #aktualneWrap{padding:10px 14px 0;position:relative}
@@ -438,6 +457,7 @@ footer{
     <div class="banner-placeholder">📢 Banner 468 × 60</div>
   </div>
   <button class="banner-edit-btn" onclick="openBannerFarm()">🖼️ Bannery</button>
+  <button class="banner-edit-btn" onclick="openPromoList()">💰 Promo</button>
 </div>
 
 <!-- AKTUALNE -->
@@ -520,6 +540,49 @@ footer{
     <div class="mo-acts">
       <button class="btn btn-s" onclick="closeMo('aktualneEditMo')">Zrušiť</button>
       <button class="btn btn-p" onclick="saveAkt()">Uložiť</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: PROMO BLOK (zoznam) -->
+<div class="mo" id="promoListMo">
+  <div class="mo-box" style="max-width:560px">
+    <h3>💰 Promo blok (reklamný text + rotátor)</h3>
+    <div class="fg"><label>Kód bannera / rotátora (HTML — zobrazuje sa vľavo od textu)</label><textarea id="pbHtml" rows="3" placeholder="<div class=...></div><script src=... async></script>"></textarea></div>
+    <div class="fg"><label>Malý nápis nad textom</label><input type="text" id="pbLabel" placeholder="REKLAMA · TIPSPORT"/></div>
+    <div class="fg"><label>Banner zobrazovať v sekcii</label><select id="pbSection"><option value="">🌐 Celý web</option></select></div>
+    <div class="fg"><label><input type="checkbox" id="pbActive"/> Banner zapnutý</label></div>
+    <div style="font-size:0.75rem;color:var(--muted);margin:10px 0 6px">Reklamné texty — pri každom otvorení stránky sa náhodne vyberie jeden (podľa váhy):</div>
+    <div id="promoListGrid" style="display:flex;flex-direction:column;gap:6px;max-height:260px;overflow-y:auto;margin-bottom:12px"></div>
+    <button class="btn btn-p" style="width:100%;margin-bottom:8px" onclick="openAddPromo()">➕ Pridať text</button>
+    <div class="mo-acts">
+      <button class="btn btn-s" onclick="closeMo('promoListMo')">Zavrieť</button>
+      <button class="btn btn-p" onclick="savePromoBanner()">Uložiť nastavenia</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: ADD/EDIT PROMO TEXT -->
+<div class="mo" id="promoEditMo">
+  <div class="mo-box">
+    <h3 id="promoEditTitle">Pridať reklamný text</h3>
+    <div class="fg"><label>Názov (pre teba)</label><input type="text" id="pName" placeholder="napr. Streamy"/></div>
+    <div class="fg"><label>Nadpis *</label><input type="text" id="pTitle" placeholder="Najviac športových streamov na Slovensku"/></div>
+    <div class="fg"><label>Text * (odseky oddeľ prázdnym riadkom alebo Enterom)</label><textarea id="pText" rows="5"></textarea></div>
+    <div style="display:flex;gap:8px">
+      <div class="fg" style="flex:1"><label>Text tlačidla *</label><input type="text" id="pBtnText" placeholder="Sledovať streamy"/></div>
+      <div class="fg" style="flex:2"><label>URL tlačidla (affiliate) *</label><input type="url" id="pBtnUrl" placeholder="https://www.tipsport.sk/PartnerRedirectAction.do?..."/></div>
+    </div>
+    <div class="fg"><label>Zobrazovať v sekcii</label><select id="pSection"><option value="">🌐 Celý web</option></select></div>
+    <div style="display:flex;gap:8px">
+      <div class="fg" style="flex:1"><label>Platí od (nepovinné)</label><input type="date" id="pFrom"/></div>
+      <div class="fg" style="flex:1"><label>Platí do (nepovinné)</label><input type="date" id="pTo"/></div>
+      <div class="fg" style="flex:1"><label>Váha 1–10</label><input type="number" id="pWeight" min="1" max="10" value="1"/></div>
+    </div>
+    <div class="fg"><label><input type="checkbox" id="pActive" checked/> Aktívny</label></div>
+    <div class="mo-acts">
+      <button class="btn btn-s" onclick="closeMo('promoEditMo')">Zrušiť</button>
+      <button class="btn btn-p" onclick="savePromo()">Uložiť</button>
     </div>
   </div>
 </div>
@@ -13676,7 +13739,7 @@ function renderLevel(){
   const children = getChildren(curId);
   const isRoot = curId === null;
 
-  if(children.length === 0 && !adminMode){
+  if(children.length === 0 && !adminMode && !renderPromoBlock()){
     main.innerHTML = `<div class="empty"><div class="e-icon">📂</div><p>${IS_EN?'This section is empty.':'Táto sekcia je prázdna.'}</p></div>`;
     return;
   }
@@ -13684,6 +13747,10 @@ function renderLevel(){
   const folders = children.filter(n=>n.type==='folder');
   const links   = children.filter(n=>n.type==='link');
   let html = '';
+
+  // PROMO BLOK (reklamný text + rotátor) — len v sekcii, na ktorú je cielený (a jej podpriečinkoch)
+  const promoHtml = renderPromoBlock();
+  if(promoHtml) html += promoHtml;
 
   if(folders.length > 0){
     if(links.length > 0) html += `<div class="section-label">${IS_EN?'Categories':'Kategórie'}</div>`;
@@ -13770,10 +13837,145 @@ function renderLevel(){
   }
 
   if(adminMode && children.length === 0){
-    html = `<div class="empty"><div class="e-icon">📂</div><p>Sekcia je prázdna. Pridaj priečinok alebo linku.</p></div>`;
+    html = (promoHtml||'') + `<div class="empty"><div class="e-icon">📂</div><p>Sekcia je prázdna. Pridaj priečinok alebo linku.</p></div>`;
   }
+  if(promoHtml) html += promoWarnHtml();
 
   main.innerHTML = html;
+  activatePromoScripts(main);
+}
+
+// ============================================================
+// PROMO BLOK — reklamný text (DB.promos) + banner/rotátor (DB.promoBanner)
+// Text sa vyberie raz pri otvorení stránky (vážený náhodný výber), pri navigácii
+// v rámci sekcie sa nemení. Banner je partnerský skript (rotátor) — obsah rieši partner.
+// ============================================================
+let _promoPick = {};   // sectionId → id vybraného textu (na jedno otvorenie stránky)
+function promoWeight(p){ return Math.max(1, Math.min(10, parseInt(p.weight)||1)); }
+function eligiblePromos(){
+  return (DB.promos||[]).filter(p=>(p.lang||'sk')===SITE_LANG && p.active!==false && bannerDateOk(p) && bannerSectionOk(p, curId));
+}
+function pickPromo(list){
+  const key = list.map(p=>p.id).join('|');
+  const kept = list.find(p=>p.id===_promoPick[key]);
+  if(kept) return kept;
+  const pool = [];
+  list.forEach(p=>{ for(let i=0;i<promoWeight(p);i++) pool.push(p); });
+  const p = pool[Math.floor(Math.random()*pool.length)];
+  _promoPick[key] = p.id;
+  return p;
+}
+function promoParas(text){
+  return String(text||'').split(/\n+/).map(t=>t.trim()).filter(Boolean).map(t=>`<p>${attrEsc(t)}</p>`).join('');
+}
+function promoWarnHtml(){
+  return `<div class="promo-warn">Hazardné hry predstavujú riziko vysokých finančných strát. Nadmerné hranie hazardných hier predstavuje riziko vzniku závislosti. Hráčom môže byť len osoba staršia ako 18 rokov.</div>`;
+}
+function renderPromoBlock(){
+  if(IS_EN) return '';
+  const list = eligiblePromos();
+  const pb = DB.promoBanner || {};
+  const banOn = pb.active!==false && !!(pb.html||'').trim() && bannerSectionOk(pb, curId);
+  if(!list.length && !banOn) return '';
+  const p = list.length ? pickPromo(list) : null;
+  const label = attrEsc(pb.label || 'REKLAMA');
+  let html = `<div class="promo">`;
+  if(banOn) html += `<div class="promo-ban">${pb.html}</div>`;
+  if(p){
+    html += `<div class="promo-txt"><div class="promo-tag">${label}</div><h3>${attrEsc(p.title||'')}</h3>${promoParas(p.text)}`;
+    if(p.btnUrl) html += `<a class="promo-btn" href="${attrEsc(p.btnUrl)}" target="_blank" rel="noopener sponsored">${attrEsc(p.btnText||'Viac')} ›</a>`;
+    html += `</div>`;
+  }
+  html += `</div>`;
+  if(adminMode) html += `<button class="promo-edit-btn" onclick="openPromoList()">💰 Promo blok</button>`;
+  return html;
+}
+// <script> vložený cez innerHTML sa sám nespustí — vytvoríme ho nanovo (ako pri banneroch)
+function activatePromoScripts(root){
+  root.querySelectorAll('.promo-ban script').forEach(old=>{
+    const sc = document.createElement('script');
+    for(const a of old.attributes) sc.setAttribute(a.name, a.value);
+    sc.text = old.text || '';
+    old.parentNode.replaceChild(sc, old);
+  });
+}
+
+// ---- ADMIN: promo blok ----
+let editingPromoId = null;
+function openPromoList(){
+  if(!DB.promos) DB.promos=[];
+  if(!DB.promoBanner) DB.promoBanner={html:'',active:true,label:'REKLAMA',sectionId:'f_tip'};
+  fillPromoSectionSelect('pbSection');
+  document.getElementById('pbSection').value = DB.promoBanner.sectionId||'';
+  document.getElementById('pbHtml').value = DB.promoBanner.html||'';
+  document.getElementById('pbLabel').value = DB.promoBanner.label||'';
+  document.getElementById('pbActive').checked = DB.promoBanner.active!==false;
+  renderPromoListGrid();
+  document.getElementById('promoListMo').classList.add('open');
+}
+function renderPromoListGrid(){
+  const grid = document.getElementById('promoListGrid');
+  if(!DB.promos.length){ grid.innerHTML='<div style="text-align:center;color:var(--muted);font-size:0.82rem;padding:12px 0">Žiadne texty. Pridaj prvý!</div>'; return; }
+  grid.innerHTML = DB.promos.map(p=>{
+    const info=[]; if(p.sectionId){ const sn=DB.nodes.find(n=>n.id===p.sectionId); info.push('📂 '+(sn?sn.name:'?')); }
+    info.push('⚖️ '+promoWeight(p)); if(p.endsAt) info.push('do '+p.endsAt); if(p.active===false) info.push('⏸ vypnutý');
+    return `<div class="promo-list-row ${p.active===false?'off':''}">
+      <span class="pl-name" title="${attrEsc(p.title||'')}">${attrEsc(p.name||p.title||'?')}<br><small style="color:var(--muted)">${info.join(' · ')}</small></span>
+      <button class="ibtn" title="Zapnúť/vypnúť" onclick="togglePromo('${p.id}')">${p.active===false?'▶':'⏸'}</button>
+      <button class="ibtn" title="Upraviť" onclick="openEditPromo('${p.id}')">✏️</button>
+      <button class="ibtn d" title="Zmazať" onclick="delPromo('${p.id}')">🗑</button>
+    </div>`; }).join('');
+}
+function fillPromoSectionSelect(id){
+  const sel = document.getElementById(id||'pSection');
+  sel.innerHTML = '<option value="">🌐 Celý web</option>' + DB.nodes.filter(n=>n.type==='folder' && n.parentId===null).map(n=>`<option value="${n.id}">${attrEsc((n.icon||'')+' '+n.name)}</option>`).join('');
+}
+function openAddPromo(){
+  editingPromoId=null;
+  document.getElementById('promoEditTitle').textContent='Pridať reklamný text';
+  ['pName','pTitle','pText','pBtnText','pBtnUrl','pFrom','pTo'].forEach(id=>document.getElementById(id).value='');
+  fillPromoSectionSelect();
+  document.getElementById('pSection').value = (curId && bannerSectionOk({sectionId:'f_tip'},curId)) ? 'f_tip' : '';
+  document.getElementById('pWeight').value=1;
+  document.getElementById('pActive').checked=true;
+  document.getElementById('promoEditMo').classList.add('open');
+  setTimeout(()=>document.getElementById('pTitle').focus(),100);
+}
+function openEditPromo(id){
+  const p = DB.promos.find(x=>x.id===id); if(!p) return;
+  editingPromoId=id;
+  document.getElementById('promoEditTitle').textContent='Upraviť reklamný text';
+  document.getElementById('pName').value=p.name||'';
+  document.getElementById('pTitle').value=p.title||'';
+  document.getElementById('pText').value=p.text||'';
+  document.getElementById('pBtnText').value=p.btnText||'';
+  document.getElementById('pBtnUrl').value=p.btnUrl||'';
+  fillPromoSectionSelect();
+  document.getElementById('pSection').value=p.sectionId||'';
+  document.getElementById('pFrom').value=p.startsAt||'';
+  document.getElementById('pTo').value=p.endsAt||'';
+  document.getElementById('pWeight').value=promoWeight(p);
+  document.getElementById('pActive').checked=p.active!==false;
+  document.getElementById('promoEditMo').classList.add('open');
+}
+function savePromo(){
+  const g = id=>document.getElementById(id).value.trim();
+  const title=g('pTitle'), text=g('pText'), btnText=g('pBtnText'), btnUrl=g('pBtnUrl');
+  if(!title || !text || !btnText || !btnUrl){ alert('Vyplň nadpis, text, text tlačidla aj URL!'); return; }
+  const startsAt=g('pFrom')||null, endsAt=g('pTo')||null;
+  if(startsAt && endsAt && startsAt>endsAt){ alert('Dátum „od" je neskôr než „do"!'); return; }
+  const rec = { name:g('pName'), title, text, btnText, btnUrl, sectionId:g('pSection')||null, startsAt, endsAt,
+                weight:Math.max(1,Math.min(10,parseInt(g('pWeight'))||1)), active:document.getElementById('pActive').checked };
+  if(editingPromoId){ const p=DB.promos.find(x=>x.id===editingPromoId); if(p) Object.assign(p,rec); }
+  else DB.promos.push(Object.assign({id:'p'+Date.now()}, rec));
+  closeMo('promoEditMo'); save(); _promoPick={}; renderPromoListGrid(); render();
+}
+function togglePromo(id){ const p=DB.promos.find(x=>x.id===id); if(!p) return; p.active=(p.active===false); save(); _promoPick={}; renderPromoListGrid(); render(); }
+function delPromo(id){ if(!confirm('Zmazať tento reklamný text?')) return; DB.promos=DB.promos.filter(x=>x.id!==id); save(); _promoPick={}; renderPromoListGrid(); render(); }
+function savePromoBanner(){
+  DB.promoBanner = { html:document.getElementById('pbHtml').value.trim(), label:document.getElementById('pbLabel').value.trim()||'REKLAMA',
+                     active:document.getElementById('pbActive').checked, sectionId:document.getElementById('pbSection').value||null };
+  closeMo('promoListMo'); save(); render();
 }
 
 // ============================================================
