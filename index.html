@@ -220,6 +220,16 @@ footer{
 /* štítok LIGA/LEAGUE — linky líg (order -1) v priečinkoch klubov; federácie (order 0) ho nemajú */
 .liga-tag{position:absolute;top:0;right:0;background:var(--accent);color:#fff;font-size:0.55rem;font-weight:800;letter-spacing:.5px;padding:2px 7px;line-height:1.5;border-radius:0 9px 0 8px;pointer-events:none;z-index:2}
 .admin-mode .liga-tag{display:none}
+/* ikonky FB/IG na pravom okraji dlaždice klubu (polia fb/ig v uzle linky) — FB vždy horný roh, IG vždy dolný */
+.card-link .socs{position:absolute;right:4px;top:0;bottom:0;width:18px;display:flex;flex-direction:column;justify-content:space-between;align-items:center;padding:5px 0;z-index:2}
+.card-link .socs a.si{display:block;flex:none;width:15px;height:15px;overflow:visible;border-radius:3px;transition:.15s}
+.card-link .socs a.si img{width:15px;height:15px;display:block;border-radius:3px}
+.card-link .socs a.si:hover{transform:scale(1.2)}
+.card-link .socs a.si{font-size:10px;font-weight:800;line-height:15px;text-align:center;color:#fff;background:var(--surface2)}
+.card-link .socs a.si:has(img){background:none}
+.card-link .socs .ph{width:15px;height:15px;visibility:hidden}
+.card-link.has-soc>a{padding-right:16px}
+.admin-mode .card-link .socs{display:none}
 
 /* ===== ANIMÁCIA KARIET — jemné vynorenie pri vstupe do sekcie ===== */
 @keyframes cardIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
@@ -380,6 +390,11 @@ footer{
   main{padding:16px 12px 100px}
   .grid-root{gap:10px}
   .card-root{flex:0 1 150px;min-width:130px}
+  /* ikonky FB/IG na mobile — väčšie na dotyk, nízka dlaždica dostane minimálnu výšku */
+  .card-link .socs{width:24px;right:3px}
+  .card-link .socs a.si,.card-link .socs a.si img,.card-link .socs .ph{width:20px;height:20px;line-height:20px;font-size:12px}
+  .card-link.has-soc{min-height:58px}
+  .card-link.has-soc>a{padding-right:20px}
 
   /* Admin bar na mobile — 2 riadky, menšie tlačidlá */
   #adminBar{padding:8px 12px;gap:6px;flex-wrap:wrap}
@@ -620,6 +635,8 @@ footer{
       <button class="type-btn active" id="typeBtnLink" onclick="setType('link')">🔗 Linka</button>
     </div>
     <div class="fg" id="urlGroup"><label>URL *</label><input type="url" id="nUrl" placeholder="https://..."/></div>
+    <div class="fg soc-fg"><label>Facebook (ikonka)</label><input type="url" id="nFb" placeholder="https://www.facebook.com/... (nepovinné)"/></div>
+    <div class="fg soc-fg"><label>Instagram (ikonka)</label><input type="url" id="nIg" placeholder="https://www.instagram.com/... (nepovinné)"/></div>
     <div class="fg"><label>Názov *</label><input type="text" id="nName" placeholder="napr. Futbal"/></div>
     <div class="fg"><label>Popis</label><input type="text" id="nDesc" placeholder="Krátky popis"/></div>
     <div class="fg"><label>Názov (EN)</label><input type="text" id="nNameEn" placeholder="len ak sa líši od slovenského"/></div>
@@ -13816,8 +13833,9 @@ function renderLevel(){
       // Live This Week: len ručne zadaná ikona športu, žiadny favicon webu
       const liveIcon = IS_EN && curId===LIVE_ID;
       const ligaTag = n.order===-1 ? `<span class="liga-tag">${IS_EN?'LEAGUE':'LIGA'}</span>` : '';
+      const socs = socHtml(n, host);
       html += `
-        <div class="card-link">${ligaTag}
+        <div class="card-link${socs?' has-soc':''}">${ligaTag}
           <div class="card-admin-bar">
             <button class="ibtn" onclick="moveNode('${n.id}',-1)">▲</button>
             <button class="ibtn" onclick="moveNode('${n.id}',1)">▼</button>
@@ -13830,7 +13848,7 @@ function renderLevel(){
               <div class="cl-name">${(!liveIcon && n.icon && !SOCIAL_FAV.test(host) && !NO_FAVICON_HOSTS.test(host) && !/^[a-z]{2}(-[a-z]{2,4})?$/.test(n.icon))?n.icon+' ':''}${nName(n)}</div>
               <div class="cl-desc">${nDesc(n)}</div>
             </div>
-          </a>
+          </a>${socs}
         </div>`;
     });
     html += `</div>`;
@@ -14054,11 +14072,12 @@ function renderSearch(q){
   const linkCard = (n)=>{
     const host = (() => { try { return new URL(n.url).hostname; } catch(e){ return ''; }})();
     const path = pathOf(n.parentId).map(p=>nName(p)).join(' › ');
-    return `<div class="card-link">${n.order===-1?`<span class="liga-tag">${IS_EN?'LEAGUE':'LIGA'}</span>`:''}
+    const socs = socHtml(n, host);
+    return `<div class="card-link${socs?' has-soc':''}">${n.order===-1?`<span class="liga-tag">${IS_EN?'LEAGUE':'LIGA'}</span>`:''}
         <a href="${n.url}" target="_blank" rel="noopener">
           ${favHtml(n, host)}
           <div><div class="cl-name">${nName(n)}</div><div class="cl-desc sr-path">${path}</div></div>
-        </a></div>`;
+        </a>${socs}</div>`;
   };
   const card = (n)=> n.type==='folder' ? folderCard(n) : linkCard(n);
   const section = (label, arr, first)=>{
@@ -14086,6 +14105,18 @@ function renderSearch(q){
 // a pôsobila by zavádzajúco).
 const SOCIAL_FAV = /(^|\.)(facebook\.com|fb\.com|instagram\.com|x\.com|twitter\.com|youtube\.com|youtu\.be|tiktok\.com|wikipedia\.org)$/;
 const NO_FAVICON_HOSTS = /(^|\.)(vereine\.oefb\.at|vereine\.fussballoesterreich\.at)$/;
+// ikonky FB/IG (polia fb/ig) — len kluby (nie linka ligy order -1); sieť zhodná s hlavnou URL sa nekreslí
+const FB_HOST = /(^|\.)(facebook\.com|fb\.com)$/, IG_HOST = /(^|\.)instagram\.com$/;
+function socHtml(n, host){
+  if(n.order===-1) return '';
+  const fb = (n.fb && !FB_HOST.test(host)) ? n.fb : '';
+  const ig = (n.ig && !IG_HOST.test(host)) ? n.ig : '';
+  if(!fb && !ig) return '';
+  const ico = (u, dom, label) => u
+    ? `<a class="si" href="${attrEsc(u)}" target="_blank" rel="noopener" title="${label}" aria-label="${label}"><img src="https://www.google.com/s2/favicons?domain=${dom}&sz=32" alt="" loading="lazy" onerror="this.parentNode.textContent='${dom[0]}'"/></a>`
+    : `<span class="ph"></span>`;
+  return `<span class="socs">${ico(fb,'facebook.com',IS_EN?'Club Facebook':'Facebook klubu')}${ico(ig,'instagram.com',IS_EN?'Club Instagram':'Instagram klubu')}</span>`;
+}
 function favHtml(n, host){
   if(SOCIAL_FAV.test(host) || NO_FAVICON_HOSTS.test(host)){
     return `<span class="fav-fb">${renderIcon(n.icon,'24x18')||'🔗'}</span>`;
@@ -14150,6 +14181,7 @@ function setType(t){
   document.getElementById('typeBtnFolder').classList.toggle('active', t==='folder');
   document.getElementById('typeBtnLink').classList.toggle('active', t==='link');
   document.getElementById('urlGroup').style.display = t==='link' ? '' : 'none';
+  document.querySelectorAll('#nodeMo .soc-fg').forEach(el=>{ el.style.display = t==='link' ? '' : 'none'; });
 }
 function openAdd(){
   editNodeId = null;
@@ -14161,6 +14193,8 @@ function openAdd(){
   document.getElementById('nNameEn').value='';
   document.getElementById('nDescEn').value='';
   document.getElementById('nUrl').value='';
+  document.getElementById('nFb').value='';
+  document.getElementById('nIg').value='';
   document.getElementById('typeBtnFolder').style.display='';
   document.getElementById('typeBtnLink').style.display='';
   document.getElementById('nodeMo').classList.add('open');
@@ -14178,6 +14212,8 @@ function openEdit(id){
   document.getElementById('nNameEn').value = n.name_en||'';
   document.getElementById('nDescEn').value = n.desc_en||'';
   document.getElementById('nUrl').value  = n.url||'';
+  document.getElementById('nFb').value = n.fb||'';
+  document.getElementById('nIg').value = n.ig||'';
   document.getElementById('typeBtnFolder').style.display='none';
   document.getElementById('typeBtnLink').style.display='none';
   document.getElementById('nodeMo').classList.add('open');
@@ -14190,6 +14226,8 @@ function saveNode(){
   const nameEn = document.getElementById('nNameEn').value.trim();
   const descEn = document.getElementById('nDescEn').value.trim();
   const url  = document.getElementById('nUrl').value.trim();
+  const fb   = document.getElementById('nFb').value.trim();
+  const ig   = document.getElementById('nIg').value.trim();
   if(!name){ alert('Vyplň názov!'); return; }
   if(nodeType==='link' && !url){ alert('Vyplň URL!'); return; }
 
@@ -14197,6 +14235,7 @@ function saveNode(){
     const n = DB.nodes.find(x=>x.id===editNodeId);
     if(n){
       n.name=name; n.icon=icon; n.desc=desc; if(n.type==='link') n.url=url;
+      if(n.type==='link'){ if(fb) n.fb=fb; else delete n.fb; if(ig) n.ig=ig; else delete n.ig; }
       if(nameEn) n.name_en=nameEn; else delete n.name_en;
       if(descEn) n.desc_en=descEn; else delete n.desc_en;
     }
@@ -14209,6 +14248,7 @@ function saveNode(){
     };
     if(nameEn) node.name_en=nameEn;
     if(descEn) node.desc_en=descEn;
+    if(nodeType==='link'){ if(fb) node.fb=fb; if(ig) node.ig=ig; }
     if(nodeType==='folder'){
       // trvalý slug — priradí sa raz, adresa sa už nikdy nezmení (ani pri premenovaní)
       const used = new Set(siblings.filter(s=>s.type==='folder').map(nodeSlug));
