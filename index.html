@@ -782,7 +782,7 @@ async function load(){
     const opt = ver ? {} : {cache:'no-store'};
     for(let pokus = 0; pokus < 2; pokus++){
       try{
-        const r = await fetch(url, opt);
+        const r = await fetch(url, Object.assign({priority:'low'}, opt)); // nízka priorita — obrázky/bannery majú prednosť
         if(r.ok){
           const d = await r.json();
           if(d && d.nodes) return d;
@@ -806,6 +806,17 @@ async function load(){
       }catch(e){ /* version.txt chýba alebo sa nestihol — pokračuj s DATA_VER */ }
       return DATA_VER;
     })();
+  }
+  // Pri rýchlom štarte z balíka BOOT sa celé dáta začnú sťahovať až po udalosti
+  // load (najneskôr po 2,5 s): bannery, obrázky a skripty stránky majú prednosť.
+  // Na pomalej sieti 1,4 MB data.json zdržiaval banner, ktorý je na mobile
+  // najväčším prvkom (LCP 9,4 s v PageSpeed 2.10.2026 aj po zrýchlení).
+  if(typeof bootShown !== 'undefined' && bootShown){
+    await new Promise(r=>{
+      const stopka = setTimeout(r, 2500);
+      if(document.readyState === 'complete'){ clearTimeout(stopka); r(); return; }
+      window.addEventListener('load', ()=>{ clearTimeout(stopka); r(); }, {once:true});
+    });
   }
   const [d0, verNew] = await Promise.all([fetchData(DATA_VER), verPromise]);
   published = d0;

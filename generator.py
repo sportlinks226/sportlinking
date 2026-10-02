@@ -952,12 +952,9 @@ def main():
                 boot_js = json.dumps(build_boot(data, children), ensure_ascii=False,
                                      separators=(",", ":")).replace("</", "<\\/")
                 html = html.replace(boot_marker, "let BOOT = " + boot_js + ";", 1)
-            # data.json nech sa začne sťahovať už pri čítaní HTML (preload) —
-            # rovnaká adresa a credentials ako fetch() v appke.
-            if DATA_VER and "</title>" in html:
-                html = html.replace("</title>", (
-                    "</title>\n"
-                    f'<link rel="preload" href="{SITE_ABS_ROOT}data.json?v={DATA_VER}" as="fetch" crossorigin>'), 1)
+            # (preload data.json ZRUŠENÝ 2.10.2026 večer: na pomalej sieti súperil
+            # o pásmo s bannerom, ktorý je na mobile najväčším prvkom — LCP 9,4 s.
+            # Appka si dáta sťahuje až po udalosti load, s nízkou prioritou.)
 
             # 404.html NAJPRV a BEZ hreflangu — poistka pre adresy bez vlastnej
             # statickej stránky (rozostavané sekcie, preklepy). GitHub Pages ju
