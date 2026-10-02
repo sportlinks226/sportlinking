@@ -240,6 +240,60 @@ def folder_paths(children: dict, lang: str = None):
     return paths
 
 
+def build_boot(data: dict, children: dict) -> dict:
+    """ŠTARTOVACÍ BALÍK pre appku (od 2.10.2026, rýchlosť domovskej stránky).
+
+    Appka (index.html) má riadok `let BOOT = null;` — main() doň vloží tento
+    malý výrez dát (~25 kB), z ktorého sa domovská stránka a hlavné sekcie
+    vykreslia OKAMŽITE, ešte pred stiahnutím celého data.json (8 MB):
+      - priečinky 1. a 2. úrovne (bez popisov) s predpočítanými počtami
+        _cnt (liniek v podstrome) a _sub (podpriečinkov) — presne to, čo appka
+        píše na karty, takže po príchode celých dát čísla nepreskočia;
+      - Aktuálne, bannery, promá, názov webu;
+      - _totalLinks = počet VŠETKÝCH liniek v dátach (appka počíta rovnako,
+        bez ohľadu na jazyk).
+    Strom `children` je už filtrovaný podľa jazyka (visible), rovnako ako
+    getChildren() v appke."""
+    link_count = {}
+
+    def cnt(fid):
+        c = 0
+        for k in children.get(fid, []):
+            c += 1 if k.get("type") == "link" else cnt(k["id"])
+        link_count[fid] = c
+        return c
+
+    for top in children.get(None, []):
+        if top.get("type") == "folder":
+            cnt(top["id"])
+
+    keep = ("id", "parentId", "type", "name", "name_en", "slug", "slug_en",
+            "icon", "order", "order_en", "en", "enOnly")
+    nodes = []
+
+    def take(n, depth):
+        if n.get("type") != "folder":
+            return
+        m = {k: n[k] for k in keep if k in n}
+        m["_cnt"] = link_count.get(n["id"], 0)
+        m["_sub"] = sum(1 for k in children.get(n["id"], []) if k.get("type") == "folder")
+        nodes.append(m)
+        if depth < 2:
+            for k in children.get(n["id"], []):
+                take(k, depth + 1)
+
+    for top in children.get(None, []):
+        take(top, 1)
+
+    boot = {"version": data.get("version"), "nodes": nodes,
+            "_totalLinks": sum(1 for n in data.get("nodes", []) if n.get("type") == "link")}
+    for k in ("title", "subtitle", "title_en", "subtitle_en", "aktualne",
+              "banners", "bannerSettings", "promos", "promoBanner"):
+        if k in data:
+            boot[k] = data[k]
+    return boot
+
+
 def compute_has_link(children: dict) -> dict:
     """Pre každý priečinok zistí, či má v podstrome aspoň 1 linku.
     Priečinky bez liniek nedostanú statickú stránku („tenký obsah")."""
@@ -274,6 +328,16 @@ a{color:#e8edf2;text-decoration:none}
 h1{font-size:1.6rem;margin-bottom:6px}
 h1 .ic{margin-right:8px}
 .desc{color:#8fa3b3;margin-bottom:22px}
+.promo{display:flex;gap:22px;align-items:flex-start;background:#182430;border:1px solid #2a3642;border-radius:12px;padding:20px;margin-bottom:22px}
+.promo-ban{flex-shrink:0;width:300px;min-height:250px;display:flex;flex-direction:column;align-items:center}
+.promo-ban img{max-width:100%;display:block}
+.promo-txt{flex:1;min-width:0}
+.promo-tag{font-size:.65rem;letter-spacing:1px;color:#8fa3b3;margin-bottom:8px}
+.promo-txt h3{margin:0 0 10px;font-size:1.25rem;line-height:1.25;color:#fff}
+.promo-txt p{margin:0 0 10px;font-size:.9rem;line-height:1.55}
+.promo-btn{display:inline-block;background:#e84242;color:#fff!important;font-weight:700;font-size:.9rem;padding:10px 18px;border-radius:8px;margin-top:6px;text-decoration:none}
+.promo-warn{font-size:.7rem;color:#8fa3b3;border-top:1px solid #2a3642;padding-top:10px;margin-top:22px}
+@media(max-width:560px){.promo{flex-direction:column;padding:14px;gap:12px}.promo-ban{align-self:center;width:100%;max-width:300px}}
 h2{font-size:1.05rem;color:#e84242;margin:26px 0 10px;text-transform:uppercase;letter-spacing:.05em}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px}
 .card{display:block;background:#182635;border:1px solid #24364a;border-radius:10px;padding:12px 14px;transition:.15s}
@@ -327,8 +391,10 @@ PAGE = """<!DOCTYPE html>
 <div id="akt" class="akt" hidden></div>
 <h1><span class="ic">{icon}</span>{name}</h1>
 {desc_html}
+{promo_html}
 {folders_html}
 {links_html}
+{promo_warn}
 <a class="appbtn" id="appbtn" style="display:none" href="{app_href}">{open_app} →</a>
 <noscript><style>#appbtn{{display:inline-block!important}}</style></noscript>
 {secnav}
@@ -487,6 +553,51 @@ TAKEOVER = """<script>
 </script>"""
 
 
+PROMO_WARN = ("Hazardné hry predstavujú riziko vysokých finančných strát. Nadmerné hranie hazardných hier "
+              "predstavuje riziko vzniku závislosti. Hráčom môže byť len osoba staršia ako 18 rokov.")
+PROMOS = []          # DB.promos — doplní main() z data.json
+PROMO_BANNER = {}    # DB.promoBanner
+
+
+def _promo_ok(p: dict, anc_ids: list) -> bool:
+    """Rovnaké pravidlá ako v appke: aktívny, v dátumovom okne, cielený na sekciu v ceste."""
+    if p.get("active") is False:
+        return False
+    today = date.today().isoformat()
+    if p.get("startsAt") and today < p["startsAt"]:
+        return False
+    if p.get("endsAt") and today > p["endsAt"]:
+        return False
+    return (not p.get("sectionId")) or p["sectionId"] in anc_ids
+
+
+def promo_block(anc_ids: list):
+    """Statický promo blok (banner/rotátor + reklamný text) pre SK stránky sekcie Tipovanie.
+    Text sa vyberie deterministicky (prvý aktívny s najvyššou váhou) — pri prevzatí appkou
+    sa aj tak vykreslí náhodný výber. Vracia (html, varovanie)."""
+    if LANG != "sk":
+        return "", ""
+    pb = PROMO_BANNER or {}
+    ban_on = pb.get("active") is not False and (pb.get("html") or "").strip() and _promo_ok(pb, anc_ids)
+    texts = [p for p in PROMOS if (p.get("lang") or "sk") == "sk" and _promo_ok(p, anc_ids)]
+    if not ban_on and not texts:
+        return "", ""
+    out = ['<div class="promo">']
+    if ban_on:
+        out.append(f'<div class="promo-ban">{pb["html"]}</div>')
+    if texts:
+        p = max(texts, key=lambda x: int(x.get("weight") or 1))
+        paras = "".join(f"<p>{escape(t.strip())}</p>" for t in str(p.get("text") or "").split("\n") if t.strip())
+        out.append(f'<div class="promo-txt"><div class="promo-tag">{escape(pb.get("label") or "REKLAMA")}</div>'
+                   f'<h3>{escape(p.get("title") or "")}</h3>{paras}')
+        if p.get("btnUrl"):
+            out.append(f'<a class="promo-btn" href="{escape(p["btnUrl"], quote=True)}" target="_blank" '
+                       f'rel="noopener sponsored">{escape(p.get("btnText") or "Viac")} ›</a>')
+        out.append("</div>")
+    out.append("</div>")
+    return "".join(out), f'<div class="promo-warn">{PROMO_WARN}</div>'
+
+
 def render_page(node, path, children, by_id, paths, site_title, alt_url=None):
     depth = len(path)
     root = "../" * depth
@@ -633,6 +744,7 @@ def render_page(node, path, children, by_id, paths, site_title, alt_url=None):
 
     # dynamický JS: banner + Aktuálne z data.json (ANC = id-čka od koreňa po túto stránku)
     anc_ids = [n["id"] for n in reversed(chain)]
+    promo_html, promo_warn = promo_block(anc_ids)
     data_url = f"{root}data.json" + (f"?v={DATA_VER}" if DATA_VER else "")
 
     dyn_js = (DYN_JS
@@ -660,6 +772,8 @@ def render_page(node, path, children, by_id, paths, site_title, alt_url=None):
         icon=icon,
         name=name,
         desc_html=f'<p class="desc">{desc}</p>' if desc else "",
+        promo_html=promo_html,
+        promo_warn=promo_warn,
         folders_html=fold_cards,
         links_html=link_cards,
         app_href=f'{root}#/{"/".join(path)}',
@@ -684,6 +798,9 @@ def main():
         out = os.path.join(out, OUT_PREFIX)
 
     data = load_data("data.json")
+    global PROMOS, PROMO_BANNER
+    PROMOS = data.get("promos") or []
+    PROMO_BANNER = data.get("promoBanner") or {}
     global DATA_VER
     DATA_VER = str(data.get("version", "") or "")
     if LANG == "en":
@@ -790,6 +907,8 @@ def main():
                      '<span class="wm-w">SPORT</span><span class="wm-r">LINKING</span>'),
                     ('Naviguj sa cez kategórie', 'Navigate through the categories'),
                     ('🔍  Hľadaj kdekoľvek v strome...', '🔍  Search anywhere in the tree...'),
+                    ('aria-label="Hľadaj v strome"', 'aria-label="Search the tree"'),
+                    ('aria-label="Heslo"', 'aria-label="Password"'),
                     ('animation:pulse 1.5s infinite"></span>\n      Aktuálne',
                      'animation:pulse 1.5s infinite"></span>\n      Live this week'),
                     ('© 2026 · Všetky športové weby sveta na jednom mieste<br>\n  Databáza liniek je chránená právom na ochranu databáz (smernica 96/9/ES). Jej kopírovanie alebo systematické vyťažovanie bez súhlasu prevádzkovateľa je zakázané.',
@@ -825,6 +944,20 @@ def main():
                     "CHYBA: v index.html chýba riadok 'let DATA_VER = \"\";' — "
                     "appka by data.json sťahovala stále odznova. Skontroluj index.html.")
             html = html.replace(ver_marker, f'let DATA_VER = "{DATA_VER}";')
+
+            # ŠTARTOVACÍ BALÍK (od 2.10.2026) — viď build_boot(). Starší index.html
+            # bez markera sa správa ako doteraz (čaká na celé dáta).
+            boot_marker = 'let BOOT = null;'
+            if boot_marker in html:
+                boot_js = json.dumps(build_boot(data, children), ensure_ascii=False,
+                                     separators=(",", ":")).replace("</", "<\\/")
+                html = html.replace(boot_marker, "let BOOT = " + boot_js + ";", 1)
+            # data.json nech sa začne sťahovať už pri čítaní HTML (preload) —
+            # rovnaká adresa a credentials ako fetch() v appke.
+            if DATA_VER and "</title>" in html:
+                html = html.replace("</title>", (
+                    "</title>\n"
+                    f'<link rel="preload" href="{SITE_ABS_ROOT}data.json?v={DATA_VER}" as="fetch" crossorigin>'), 1)
 
             # 404.html NAJPRV a BEZ hreflangu — poistka pre adresy bez vlastnej
             # statickej stránky (rozostavané sekcie, preklepy). GitHub Pages ju
