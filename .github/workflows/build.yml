@@ -1,19 +1,23 @@
-# GitHub Actions pre ANGLICKÝ web (sportlinking.com).
-# Pri každej zmene v repozitári + každý deň o 5:00 ráno si stiahne
-# aktuálny data.json zo slovenského webu a vygeneruje anglické stránky.
+# GitHub Actions: pri každej zmene v repozitári vygeneruje SEO stránky
+# a nasadí web na GitHub Pages.
+# Denný rebuild (cron): statické stránky sa každé ráno prestavajú z existujúceho
+# data.json — expirované Aktuálne/Live This Week udalosti vypadnú a dátum
+# v titulkoch sa obnoví aj bez nahrávania nových dát. Verziu dát to NEMENÍ.
+# Sitemap lastmod sa pritom NEMENÍ (od 2.10.2026 podľa skutočnej zmeny stránky,
+# stav v sitemap-lastmod.json — commitne ho krok „Ulož dátumy zmien pre sitemap").
 # UMIESTNENIE V REPOZITÁRI: .github/workflows/build.yml
 
-name: Build & Deploy (EN)
+name: Build & Deploy
 
 on:
   push:
     branches: [main]
   schedule:
-    - cron: "0 3 * * *"   # denne 3:00 UTC (5:00 v lete u nás) — prevezme zmeny dát
+    - cron: "30 2 * * *"   # denne 2:30 UTC — pred denným buildom EN webu (3:00)
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write   # commit sitemap-lastmod.json (dátumy zmien pre sitemap)
   pages: write
   id-token: write
 
@@ -34,20 +38,28 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Stiahni aktuálne dáta zo slovenského webu
-        run: |
-          # Prívesok ?build=... je zakaždým iný, takže sa obíde cache na ceste
-          # (bez neho vracala sieť GitHubu staré dáta a EN web sa staval zo
-          # starej verzie, kým sa cache sama neprečistila).
-          curl -fsSL --retry 3 "https://www.sportlinky.sk/data.json?build=$GITHUB_RUN_ID" -o data.json
-          python -c "import json; d=json.load(open('data.json')); print('data.json OK, verzia', d.get('version'), ',', len(d.get('nodes',[])), 'uzlov')"
-
-      - name: Vygeneruj anglické stránky
+      - name: Vygeneruj SEO stránky
         run: python generator.py --out _site
         env:
           BASE_URL: ${{ steps.pages.outputs.base_url }}
-          SITE_LANG: en
-          GOAT_CODE: sportlinking
+
+      # lastmod v sitemape podľa skutočnej zmeny (generator.py, od 2.10.2026):
+      # generator zapíše sitemap-lastmod.json; ak sa zmenil, uloží sa do repozitára.
+      # „[skip ci]" zabráni, aby tento commit spustil ďalší build. Zlyhanie
+      # (napr. súbežný push) deploy NEZASTAVÍ — dátumy sa dorovnajú pri ďalšom builde.
+      - name: Ulož dátumy zmien pre sitemap
+        continue-on-error: true
+        run: |
+          if git status --porcelain -- sitemap-lastmod.json | grep -q .; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add sitemap-lastmod.json
+            git commit -m "sitemap: dátumy zmien stránok [skip ci]"
+            git pull --rebase origin main || true
+            git push
+          else
+            echo "sitemap-lastmod.json bez zmeny"
+          fi
 
       - uses: actions/upload-pages-artifact@v3
         with:
