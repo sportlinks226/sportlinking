@@ -1713,20 +1713,35 @@ function socHtml(n, host){
     : `<span class="ph"></span>`;
   return `<span class="socs">${ico(fb,'facebook.com',IS_EN?'Club Facebook':'Facebook klubu')}${ico(ig,'instagram.com',IS_EN?'Club Instagram':'Instagram klubu')}</span>`;
 }
+// SYSTÉM ZNAČIEK NA DLAŽDICI (Miro 2.10.2026): logo klubu = vlastný web,
+// „f" = hlavná linka Facebook, fotoaparát = Instagram (rovnako X, YouTube,
+// TikTok, Wikipédia svojím logom), Googlova zemeguľa = web bez ikony,
+// sponka 🔗 len keď sa ikona nedá načítať. Logá sietí idú z tej istej
+// Googlovej služby ako favicony (canonical doména siete).
+const SOCIAL_LOGO = [
+  [/(^|\.)(facebook\.com|fb\.com)$/, 'facebook.com'],
+  [/(^|\.)instagram\.com$/, 'instagram.com'],
+  [/(^|\.)(x\.com|twitter\.com)$/, 'x.com'],
+  [/(^|\.)(youtube\.com|youtu\.be)$/, 'youtube.com'],
+  [/(^|\.)tiktok\.com$/, 'tiktok.com'],
+  [/(^|\.)wikipedia\.org$/, 'wikipedia.org'],
+];
 function favHtml(n, host){
-  if(SOCIAL_FAV.test(host) || NO_FAVICON_HOSTS.test(host)){
+  if(NO_FAVICON_HOSTS.test(host)){
     return `<span class="fav-fb">${renderIcon(n.icon,'24x18')||'🔗'}</span>`;
   }
-  return `<img class="fav" src="https://www.google.com/s2/favicons?domain=${host}&sz=64" alt="" loading="lazy" data-fallback="${n.icon||''}" onerror="favError(this)" onload="favLoaded(this)"/>`;
+  let dom = host;
+  for(const [re, canon] of SOCIAL_LOGO){ if(re.test(host)){ dom = canon; break; } }
+  return `<img class="fav" src="https://www.google.com/s2/favicons?domain=${dom}&sz=64" alt="" loading="lazy" data-fallback="${n.icon||''}" onerror="favError(this)"/>`;
 }
 function favError(img){
   const fb = img.getAttribute('data-fallback')||'';
   // ak je náhradná ikona kód krajiny ("sk"), ukáž vlajku — inak jednotné 🔗
   img.outerHTML = `<span class="fav-fb">${renderIcon(fb,'24x18')||'🔗'}</span>`;
 }
-function favLoaded(img){
-  if(img.naturalWidth <= 16) favError(img);
-}
+// favLoaded() zrušené 2.10.2026: pravidlo „16 px = Google nič nemá → 🔗"
+// zahadzovalo aj PRAVÉ malé logá (Hannover 96, Irish FA…, ~5 % liniek);
+// Googlova náhradná zemeguľa (16 px) sa od pravej malej ikony odlíšiť nedá.
 
 // ============================================================
 // ADMIN AUTH
