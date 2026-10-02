@@ -28,11 +28,23 @@ malý skript, ktorý ich načíta z data.json pri otvorení stránky. Denná
 aktualizácia Aktuálnych a bannerov teda NEVYŽADUJE prebudovanie webu.
 Logika zrkadlí sport-strom.html vrátane cielenia bannerov na sekcie,
 kampaní od–do a váh rotácie.
+
+SEO (od 2.10.2026):
+  - sitemap <lastmod> = dátum SKUTOČNEJ zmeny stránky. Pre každú stránku sa
+    spočíta odtlačok obsahu (page_fingerprint) a porovná so stavovým súborom
+    sitemap-lastmod.json v koreni repozitára; zmenený odtlačok → dnešný dátum,
+    inak ostáva starý. Súbor po builde commitne GitHub Action (build.yml).
+    Predtým mali všetky stránky lastmod = deň buildu a denný cron ich tak
+    každé ráno hlásil Googlu ako zmenené — signál, ktorému Google neverí.
+  - Aktuálne sa vkladajú do index.html už pri builde (inject_aktualne), aby
+    ich Google videl v surovom HTML; appka ich po štarte prekreslí na to isté.
 """
 
+import hashlib
 import json
 import os
 import re
+import time
 import shutil
 import sys
 import unicodedata
@@ -292,6 +304,117 @@ def build_boot(data: dict, children: dict) -> dict:
         if k in data:
             boot[k] = data[k]
     return boot
+
+
+# ------------------------------------------------------------
+# SITEMAP lastmod PODĽA SKUTOČNEJ ZMENY (od 2.10.2026)
+# ------------------------------------------------------------
+# Stavový súbor v koreni repozitára: { "hokej/kluby/usa/nhl/": {"h": odtlačok,
+# "d": "2026-10-02"}, ... }. Kľúč = cesta stránky ("/" = domov). Zapisuje ho
+# save_lastmod() po každom builde; na GitHube ho commitne Action (build.yml,
+# krok „Ulož dátumy zmien pre sitemap"). Lokálny build bez gitu ho len prepíše.
+LASTMOD_FILE = "sitemap-lastmod.json"
+
+
+def _fp(rows) -> str:
+    return hashlib.sha1(json.dumps(rows, ensure_ascii=False, separators=(",", ":"))
+                        .encode("utf-8")).hexdigest()[:16]
+
+
+def _row(n: dict) -> list:
+    """To, čo sa z uzla na stránke (statickej aj v appke) naozaj ukáže — v jazyku buildu."""
+    return [n.get("type") or "", node_name(n), node_desc(n), n.get("icon") or "",
+            n.get("url") or "", n.get("fb") or "", n.get("ig") or ""]
+
+
+def page_fingerprint(node: dict, children: dict) -> str:
+    """Odtlačok stránky priečinka: vlastný názov/popis/ikona + PRIAME deti v poradí
+    zobrazenia. Zmena hlbšie (vnútri podpriečinka) patrí stránke toho podpriečinka,
+    takže nová linka v NHL zmení len /hokej/kluby/usa/nhl/, nie celú cestu nad ňou."""
+    rows = [_row(node)] + [_row(k) for k in children.get(node["id"], [])]
+    return _fp(rows)
+
+
+def home_fingerprint(data: dict, children: dict) -> str:
+    """Domov: názov webu, hlavné sekcie a NESKONČENÉ Aktuálne (tie sa menia najčastejšie)."""
+    today = date.today().isoformat()
+    akt = [[a.get("name") or "", a.get("name_en") or "", a.get("url") or "", a.get("icon") or ""]
+           for a in (data.get("aktualne") or []) if not (a.get("endsAt") and today > a["endsAt"])]
+    title = [data.get("title") or "", data.get("subtitle") or "",
+             data.get("title_en") or "", data.get("subtitle_en") or ""]
+    rows = [title] + [_row(k) for k in children.get(None, [])] + akt
+    return _fp(rows)
+
+
+def load_lastmod() -> dict:
+    try:
+        with open(LASTMOD_FILE, encoding="utf-8") as f:
+            d = json.load(f)
+        return d if isinstance(d, dict) else {}
+    except (OSError, ValueError):
+        return {}
+
+
+def lastmod_for(state: dict, new_state: dict, key: str, fp: str, today: str) -> str:
+    """Rovnaký odtlačok ako minule → starý dátum; inak (zmena alebo nová stránka) dnešok."""
+    old = state.get(key)
+    d = old["d"] if (old and old.get("h") == fp and old.get("d")) else today
+    new_state[key] = {"h": fp, "d": d}
+    return d
+
+
+def save_lastmod(new_state: dict) -> None:
+    """Jeden záznam na riadok (prehľadný git diff), zotriedené podľa cesty."""
+    lines = ",\n".join(
+        f'  {json.dumps(k, ensure_ascii=False)}: {json.dumps(v, ensure_ascii=False, separators=(",", ":"))}'
+        for k, v in sorted(new_state.items()))
+    with open(LASTMOD_FILE, "w", encoding="utf-8") as f:
+        f.write("{\n" + lines + "\n}\n")
+
+
+# ------------------------------------------------------------
+# AKTUÁLNE PRIAMO V HTML (od 2.10.2026)
+# ------------------------------------------------------------
+def akt_static_html(aktualne: list):
+    """Vráti (text počítadla, HTML kariet) PRESNE v značkovaní renderAktualne()
+    v index.html (verejný režim: skončené vynechané, NEW do 24 h od pridania).
+    Appka po štarte pás prekreslí na to isté — DOM je zhodný, nič neblikne."""
+    today = date.today().isoformat()
+    now_ms = int(time.time() * 1000)
+    items = [a for a in aktualne if not (a.get("endsAt") and today > a["endsAt"])]
+    if not items:
+        txt = "No current events" if LANG == "en" else "Žiadne aktuálne udalosti"
+        return "", f'<span style="font-size:0.78rem;color:var(--muted);padding:6px 0">{txt}</span>'
+    parts = []
+    for a in items:
+        is_new = bool(a.get("addedAt")) and (now_ms - int(a["addedAt"])) < 86400000
+        name = (a.get("name_en") if (LANG == "en" and a.get("name_en")) else a.get("name")) or ""
+        parts.append(
+            '\n    <a class="akt-card" href="' + escape(a.get("url") or "", quote=True)
+            + '" target="_blank" rel="noopener">'
+            + '\n      ' + ('<span class="akt-new">NEW</span>' if is_new else '')
+            + '\n      <span class="akt-icon">' + escape(a.get("icon") or "📌") + '</span>'
+            + '\n      <span>' + escape(name) + '</span>'
+            + '\n    </a>')
+    return f"({len(items)})", "".join(parts)
+
+
+def inject_aktualne(html: str, aktualne: list) -> str:
+    """Do prázdneho #aktualneScroll (a #aktualneCount) v index.html vloží karty
+    Aktuálnych. Google číta surový HTML a JavaScript spúšťa neskoro alebo vôbec —
+    dovtedy pás vkladala až appka, takže ho Google nevidel. Denný cron rebuild
+    zabezpečí, že skončené udalosti z HTML vypadnú."""
+    m = re.search(r'(<div id="aktualneScroll"[^>]*>)\s*</div>', html)
+    c = re.search(r'(<span id="aktualneCount"[^>]*>)</span>', html)
+    if not m or not c:
+        print("UPOZORNENIE: v index.html nie je prázdny #aktualneScroll / #aktualneCount — "
+              "Aktuálne ostanú len cez JavaScript (Google ich neuvidí).")
+        return html
+    count_txt, cards = akt_static_html(aktualne)
+    # #aktualneCount je v HTML PRED #aktualneScroll — najprv zadný úsek, aby pozície sedeli
+    html = html[:m.start()] + m.group(1) + cards + "\n  </div>" + html[m.end():]
+    html = html[:c.start()] + c.group(1) + count_txt + "</span>" + html[c.end():]
+    return html
 
 
 def compute_has_link(children: dict) -> dict:
@@ -851,17 +974,19 @@ def main():
     # sitemap.xml (len v hlavnej jazykovej vetve)
     if not OUT_PREFIX:
         today = date.today().isoformat()
-        # dvojice (vlastná adresa, adresa v druhom jazyku alebo None)
-        entries = [(f"{BASE_URL}/", f"{ALT_BASE_URL}/")]
+        # lastmod podľa skutočnej zmeny (viď page_fingerprint / LASTMOD_FILE)
+        lm_state, lm_new = load_lastmod(), {}
+        # štvorice (vlastná adresa, adresa v druhom jazyku alebo None, kľúč, odtlačok)
+        entries = [(f"{BASE_URL}/", f"{ALT_BASE_URL}/", "/", home_fingerprint(data, children))]
         for fid, p in sorted(paths.items(), key=lambda kv: kv[1]):
             loc = f'{BASE_URL}/{"/".join(p)}/'
             alt = (f'{ALT_BASE_URL}/{"/".join(paths_alt[fid])}/'
                    if fid in paths_alt else None)
-            entries.append((loc, alt))
+            entries.append((loc, alt, "/".join(p) + "/", page_fingerprint(by_id[fid], children)))
         sm = ['<?xml version="1.0" encoding="UTF-8"?>',
               '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"',
               '        xmlns:xhtml="http://www.w3.org/1999/xhtml">']
-        for loc, alt in entries:
+        for loc, alt, lm_key, lm_fp in entries:
             row = f"  <url><loc>{escape(loc)}</loc>"
             # hreflang alternates aj v sitemape (rovnaké pravidlá ako v HTML)
             if BASE_URL and alt:
@@ -870,11 +995,14 @@ def main():
                 row += (f'<xhtml:link rel="alternate" hreflang="sk" href="{escape(sk_u)}"/>'
                         f'<xhtml:link rel="alternate" hreflang="en" href="{escape(en_u)}"/>'
                         f'<xhtml:link rel="alternate" hreflang="x-default" href="{escape(en_u)}"/>')
-            row += f"<lastmod>{today}</lastmod></url>"
+            row += f"<lastmod>{lastmod_for(lm_state, lm_new, lm_key, lm_fp, today)}</lastmod></url>"
             sm.append(row)
         sm.append("</urlset>")
         with open(os.path.join(out, "sitemap.xml"), "w", encoding="utf-8") as f:
             f.write("\n".join(sm))
+        save_lastmod(lm_new)
+        zmenene = sum(1 for k, v in lm_new.items() if v["d"] == today and (lm_state.get(k) or {}).get("d") != today)
+        print(f"sitemap: {len(lm_new)} adries, dnes zmenených/nových {zmenene} -> {LASTMOD_FILE}")
 
         with open(os.path.join(out, "robots.txt"), "w", encoding="utf-8") as f:
             f.write(f"User-agent: *\nAllow: /\nSitemap: {BASE_URL}/sitemap.xml\n")
@@ -952,6 +1080,8 @@ def main():
                 boot_js = json.dumps(build_boot(data, children), ensure_ascii=False,
                                      separators=(",", ":")).replace("</", "<\\/")
                 html = html.replace(boot_marker, "let BOOT = " + boot_js + ";", 1)
+            # AKTUÁLNE PRIAMO V HTML (od 2.10.2026) — viď inject_aktualne().
+            html = inject_aktualne(html, data.get("aktualne") or [])
             # (preload data.json ZRUŠENÝ 2.10.2026 večer: na pomalej sieti súperil
             # o pásmo s bannerom, ktorý je na mobile najväčším prvkom — LCP 9,4 s.
             # Appka si dáta sťahuje až po udalosti load, s nízkou prioritou.)
