@@ -1705,12 +1705,14 @@ function renderSearch(q){
 // a pôsobila by zavádzajúco).
 const SOCIAL_FAV = /(^|\.)(facebook\.com|fb\.com|instagram\.com|x\.com|twitter\.com|youtube\.com|youtu\.be|tiktok\.com|wikipedia\.org)$/;
 const NO_FAVICON_HOSTS = /(^|\.)(vereine\.oefb\.at|vereine\.fussballoesterreich\.at)$/;
-// ikonky FB/IG (polia fb/ig) — len kluby (nie linka ligy order -1); sieť zhodná s hlavnou URL sa nekreslí
+// ikonky FB/IG (polia fb/ig) — len kluby (nie linka ligy order -1); od 5.10.2026 sa kreslí aj sieť zhodná s hlavnou URL (pozri socHtml)
 const FB_HOST = /(^|\.)(facebook\.com|fb\.com)$/, IG_HOST = /(^|\.)instagram\.com$/;
 function socHtml(n, host){
   if(n.order===-1) return '';
-  const fb = (n.fb && !FB_HOST.test(host)) ? n.fb : '';
-  const ig = (n.ig && !IG_HOST.test(host)) ? n.ig : '';
+  // Miro 5.10.2026: ak je hlavná linka FB/IG, jej ikonka sa vpravo UKÁŽE tiež
+  // (vedie na tú istú adresu) — z dlaždice tak vidno všetky siete klubu naraz.
+  const fb = FB_HOST.test(host) ? n.url : (n.fb || '');
+  const ig = IG_HOST.test(host) ? n.url : (n.ig || '');
   if(!fb && !ig) return '';
   const ico = (u, dom, label) => u
     ? `<a class="si" href="${attrEsc(u)}" target="_blank" rel="noopener" title="${label}" aria-label="${label}"><img src="https://www.google.com/s2/favicons?domain=${dom}&sz=32" alt="" loading="lazy" onerror="this.parentNode.textContent='${dom[0]}'"/></a>`
