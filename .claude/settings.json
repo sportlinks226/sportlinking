@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "deny": [
+      "Edit(**/data.json)",
+      "Write(**/data.json)",
+      "Edit(**/sitemap-lastmod.json)",
+      "Write(**/sitemap-lastmod.json)"
+    ]
+  }
+}

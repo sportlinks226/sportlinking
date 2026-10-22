@@ -1,0 +1,22 @@
+# Strážca: ak pull request mení data.json alebo sitemap-lastmod.json, kontrola zlyhá (červený krížik).
+name: Strazca data.json
+
+on:
+  pull_request:
+
+jobs:
+  kontrola:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - name: Mení tento návrh data.json?
+        run: |
+          ZMENENE=$(git diff --name-only HEAD^1 HEAD)
+          echo "Zmenené súbory:"; echo "$ZMENENE"
+          if echo "$ZMENENE" | grep -qxE 'data\.json|sitemap-lastmod\.json'; then
+            echo "::error::Tento návrh mení data.json alebo sitemap-lastmod.json — NESPÁJAŤ (neklikať Merge)!"
+            exit 1
+          fi
+          echo "OK — data.json sa nemení."
