@@ -50,7 +50,7 @@ import sys
 import unicodedata
 from datetime import date, timedelta
 from html import escape
-from urllib.parse import urlsplit
+from urllib.parse import unquote, urlsplit
 
 # ------------------------------------------------------------
 # KONFIGURÁCIA
@@ -67,9 +67,10 @@ _ALT_DEFAULTS = {"sk": "https://sportlinky.sk", "en": "https://sportlinking.com"
 ALT_BASE_URL = os.environ.get("ALT_BASE_URL", _ALT_DEFAULTS[ALT_LANG]).rstrip("/")
 
 # Absolútna cesta ku koreňu webu (podľa nej appka vyrába pekné adresy).
-# POZOR: web nemusí byť v koreni domény! Slovenský beží na www.sportlinky.sk
-# (koreň "/"), anglický na sportlinks226.github.io/sportlinking/ (koreň
-# "/sportlinking/"). Preto sa berie z BASE_URL, ktorú dodá GitHub Actions.
+# Slovenský web beží na https://sportlinky.sk a anglický na
+# https://sportlinking.com (oba BEZ www, overené 22.10.2026), oba v koreni "/".
+# Kód však funguje aj pre web v podpriečinku (napr. github.io/nazov-repa/,
+# koreň "/nazov-repa/"), preto sa koreň berie z BASE_URL, ktorú dodá GitHub Actions.
 _base_path = urlsplit(BASE_URL).path.strip("/") if BASE_URL else ""
 _root_parts = [p for p in (_base_path, OUT_PREFIX.strip("/")) if p]
 SITE_ABS_ROOT = "/" + ("/".join(_root_parts) + "/" if _root_parts else "")
@@ -99,6 +100,10 @@ T = UI[LANG]
 # akcentová farba: SK červená, EN modrá
 ACCENT = "#e84242" if LANG == "sk" else "#4287e8"
 ACCENT_HOVER = "#c73535" if LANG == "sk" else "#2f6bc4"
+# kontrast podľa WCAG (bod 17 previerky): svetlejší akcent pre malý farebný
+# text na tmavom pozadí a tmavší akcent pre pozadie pod bielym textom
+ACCENT_TEXT = "#ef5a5a" if LANG == "sk" else "#5b9bf0"
+ACCENT_STRONG = "#d63333" if LANG == "sk" else "#2a6fd6"
 
 # priečinky, ktorých deti (krajiny) sa v EN verzii radia podľa anglickej abecedy
 CONTINENTS = {"Európa", "Ázia", "Afrika", "Južná Amerika", "Severná Amerika",
@@ -458,17 +463,17 @@ h1 .ic{margin-right:8px}
 .promo-tag{font-size:.65rem;letter-spacing:1px;color:#8fa3b3;margin-bottom:8px}
 .promo-txt h3{margin:0 0 10px;font-size:1.25rem;line-height:1.25;color:#fff}
 .promo-txt p{margin:0 0 10px;font-size:.9rem;line-height:1.55}
-.promo-btn{display:inline-block;background:#e84242;color:#fff!important;font-weight:700;font-size:.9rem;padding:10px 18px;border-radius:8px;margin-top:6px;text-decoration:none}
+.promo-btn{display:inline-block;background:__ACCENT_STRONG__;color:#fff!important;font-weight:700;font-size:.9rem;padding:10px 18px;border-radius:8px;margin-top:6px;text-decoration:none}
 .promo-warn{font-size:.7rem;color:#8fa3b3;border-top:1px solid #2a3642;padding-top:10px;margin-top:22px}
 @media(max-width:560px){.promo{flex-direction:column;padding:14px;gap:12px}.promo-ban{align-self:center;width:100%;max-width:300px}}
-h2{font-size:1.05rem;color:#e84242;margin:26px 0 10px;text-transform:uppercase;letter-spacing:.05em}
+h2{font-size:1.05rem;color:__ACCENT_TEXT__;margin:26px 0 10px;text-transform:uppercase;letter-spacing:.05em}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px}
 .card{display:block;background:#182635;border:1px solid #24364a;border-radius:10px;padding:12px 14px;transition:.15s}
 .card:hover{border-color:#e84242;transform:translateY(-1px)}
 .card .nm{font-weight:600}
 .card .ds{font-size:.85rem;color:#8fa3b3;margin-top:3px}
-.card .ur{font-size:.78rem;color:#5f7183;margin-top:3px;word-break:break-all}
-.appbtn{display:inline-block;background:#e84242;color:#fff;border-radius:8px;padding:10px 18px;font-weight:600;margin-top:30px}
+.card .ur{font-size:.78rem;color:#8396a8;margin-top:3px;word-break:break-all}
+.appbtn{display:inline-block;background:__ACCENT_STRONG__;color:#fff;border-radius:8px;padding:10px 18px;font-weight:600;margin-top:30px}
 .appbtn:hover{background:#c73535}
 .brow{display:flex;gap:10px;flex-wrap:wrap;margin:0 0 16px}
 .bslot{width:468px;max-width:100%;height:60px;border-radius:8px;overflow:hidden}
@@ -476,15 +481,17 @@ h2{font-size:1.05rem;color:#e84242;margin:26px 0 10px;text-transform:uppercase;l
 .bslot img{width:100%;height:100%;object-fit:cover;display:block}
 @media(max-width:560px){#bslot2{display:none!important}.bslot{aspect-ratio:468/60;height:auto}.bslot img{object-fit:contain}}
 .akt{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 20px;align-items:center}
-.akt .lbl{color:#e84242;font-weight:600;font-size:.78rem;text-transform:uppercase;letter-spacing:.05em}
+.akt .lbl{color:__ACCENT_TEXT__;font-weight:600;font-size:.78rem;text-transform:uppercase;letter-spacing:.05em}
 .akt a{background:#182635;border:1px solid #24364a;border-radius:20px;padding:6px 12px;font-size:.85rem}
 .akt a:hover{border-color:#e84242}
 .secnav{margin-top:34px;padding-top:18px;border-top:1px solid #24364a;display:flex;flex-wrap:wrap;gap:6px 16px;font-size:.85rem}
 .secnav a{color:#8fa3b3}
 .secnav a:hover{color:#e84242}
-footer{display:block;margin-top:14px;color:#5f7183;font-size:.78rem}
+footer{display:block;margin-top:14px;color:#8396a8;font-size:.78rem}
 """
 CSS = CSS.replace("#e84242", ACCENT).replace("#c73535", ACCENT_HOVER)
+# nové odtiene sú v CSS ako značky, aby ich náhrada #e84242 vyššie nepokazila
+CSS = CSS.replace("__ACCENT_TEXT__", ACCENT_TEXT).replace("__ACCENT_STRONG__", ACCENT_STRONG)
 
 FAVICON = ("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E"
            "%3Crect width='64' height='64' rx='12' fill='%230f1923'/%3E"
@@ -493,6 +500,15 @@ FAVICON = ("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox
            " font-style='italic' text-anchor='middle' fill='%23ffffff'%3ES"
            "%3Ctspan fill='%23e84242'%3EL%3C/tspan%3E%3C/text%3E%3C/svg%3E")
 FAVICON = FAVICON.replace("%23e84242", "%23" + ACCENT[1:])
+# Favicon ako SÚBORY (bod 7 previerky): Google vo výsledkoch hľadania neukáže
+# favicon vložený ako data:. Pri builde sa zapíše favicon.svg (čisté SVG
+# z FAVICON vyššie, už vo farbe jazyka) a skopírujú sa favicon.ico
+# a apple-touch-icon.png. Cesty sú od koreňa webu, aby fungovali na každej
+# podstránke aj v 404.html.
+FAVICON_SVG = unquote(FAVICON[len("data:image/svg+xml,"):])
+FAVICON_LINKS = (f'<link rel="icon" href="{SITE_ABS_ROOT}favicon.ico" sizes="48x48">\n'
+                 f'<link rel="icon" href="{SITE_ABS_ROOT}favicon.svg" type="image/svg+xml">\n'
+                 f'<link rel="apple-touch-icon" href="{SITE_ABS_ROOT}apple-touch-icon.png">')
 
 PAGE = """<!DOCTYPE html>
 <html lang="{lang}">
@@ -501,7 +517,7 @@ PAGE = """<!DOCTYPE html>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>{title}</title>
 <meta name="description" content="{meta_desc}">
-<link rel="icon" href="{favicon}">
+{favicons}
 {canonical}
 {og_tags}
 {jsonld}
@@ -932,7 +948,7 @@ def render_page(node, path, children, by_id, paths, site_title, alt_url=None):
         lang=LANG,
         title=page_title,
         meta_desc=escape(meta, quote=True),
-        favicon=FAVICON,
+        favicons=FAVICON_LINKS,
         canonical=canonical,
         og_tags=og_tags,
         jsonld=jsonld,
@@ -1089,7 +1105,9 @@ def main():
                      '© 2026 · All the world\'s sports websites in one place<br>\n  The link database is protected by database rights (Directive 96/9/EC). Copying or systematic extraction without the operator\'s consent is prohibited.'),
                     ('https://sportlinky.goatcounter.com/count',
                      f'https://{GOAT}.goatcounter.com/count'),
-                    ('e84242', ACCENT[1:]),       # akcent (aj vo favicone %23...)
+                    ('e84242', ACCENT[1:]),       # akcent
+                    ('ef5a5a', ACCENT_TEXT[1:]),  # akcent pre text (kontrast)
+                    ('d63333', ACCENT_STRONG[1:]),  # silný akcent pod bielym textom
                     ('#c03030', ACCENT_HOVER),    # tmavší odtieň akcentu
                     ('232,66,66', '66,135,232'),  # rgba() odtiene akcentu
                 ):
@@ -1107,15 +1125,24 @@ def main():
                           f'<meta property="og:image" content="{BASE_URL}/og-image.png"/>')
                 html = html.replace("<!--OG_DYNAMIC-->", og_dyn, 1)
             # Appke povedz, kde je koreň webu — podľa neho vyrába pekné adresy.
-            # Bez toho by web v podpriečinku (anglická verzia na
-            # sportlinks226.github.io/sportlinking/) vyrábal adresy od koreňa
-            # domény a odkazy by nikam neviedli.
+            # Oba weby (sportlinky.sk, sportlinking.com) dnes bežia v koreni "/",
+            # ale keby web bežal v podpriečinku (napr. github.io/nazov-repa/),
+            # bez tohto by appka vyrábala adresy od koreňa domény a odkazy by
+            # nikam neviedli.
             marker = 'let SITE_ROOT = "";'
             if marker not in html:
                 raise SystemExit(
                     "CHYBA: v index.html chýba riadok 'let SITE_ROOT = \"\";' — "
                     "appka nevie, kde je koreň webu. Skontroluj index.html.")
             html = html.replace(marker, f'let SITE_ROOT = "{SITE_ABS_ROOT}";')
+
+            # Favicon ako súbory s cestou od koreňa webu (bod 7 previerky).
+            fav_marker = "<!--FAVICONS-->"
+            if fav_marker not in html:
+                raise SystemExit(
+                    "CHYBA: v index.html chýba značka <!--FAVICONS--> — "
+                    "favicon by sa nezobrazil. Skontroluj index.html.")
+            html = html.replace(fav_marker, FAVICON_LINKS, 1)
 
             # Appke povedz verziu dát — sťahuje si data.json?v=NNN, takže si ho
             # prehliadač smie odložiť do pamäte a pri novej verzii si stiahne
@@ -1161,10 +1188,15 @@ def main():
 
             with open(os.path.join(out, "index.html"), "w", encoding="utf-8") as f:
                 f.write(html)
+        with open(os.path.join(out, "favicon.svg"), "w", encoding="utf-8") as f:
+            f.write(FAVICON_SVG)
         for fname in ("data.json", "og-image.png",
-                      "banner-sportlinking-1.png", "banner-sportlinking-2.png"):
+                      "banner-sportlinking-1.png", "banner-sportlinking-2.png",
+                      "favicon.ico", "apple-touch-icon.png"):
             if os.path.exists(fname):
                 shutil.copy(fname, os.path.join(out, fname))
+            elif fname in ("favicon.ico", "apple-touch-icon.png"):
+                print(f"UPOZORNENIE: chýba súbor {fname} — na webe nebude (build pokračuje).")
 
     print(f"Hotovo: {count} stránok priečinkov -> {out}/ (preskočených prázdnych: {len(skipped)})")
     if not BASE_URL:
