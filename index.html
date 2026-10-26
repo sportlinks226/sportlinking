@@ -2465,7 +2465,11 @@ load().then(()=>{
   const cur = curId ? DB.nodes.find(x=>x.id===curId) : null;
   const q = document.getElementById('srch').value.trim();
   const hlboko = cur && cur.parentId !== null;
-  if(q || hlboko || (curId && !cur)) render();
+  // hlavná sekcia s vlastnými linkami (Tipovanie → Tipsport): balík BOOT má len
+  // priečinky, takže linky treba dokresliť (chyba z previerky 22.10.2026, bod 1).
+  // Live This Week sa vynecháva — jeho linky sú z Aktuálnych, tie BOOT obsahuje.
+  const maLinky = cur && cur.id !== LIVE_ID && getChildren(cur.id).some(k => k.type === 'link');
+  if(q || hlboko || maLinky || (curId && !cur)) render();
   else { updateLinkCount(); updateHead(); }
   checkAdminHash();
   if(_adminPending){ _adminPending = false; toggleAdmin(); }
