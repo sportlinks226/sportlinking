@@ -474,7 +474,7 @@ h2{font-size:1.05rem;color:#e84242;margin:26px 0 10px;text-transform:uppercase;l
 .bslot{width:468px;max-width:100%;height:60px;border-radius:8px;overflow:hidden}
 .bslot a{display:block;width:100%;height:100%}
 .bslot img{width:100%;height:100%;object-fit:cover;display:block}
-@media(max-width:560px){#bslot2{display:none!important}}
+@media(max-width:560px){#bslot2{display:none!important}.bslot{aspect-ratio:468/60;height:auto}.bslot img{object-fit:contain}}
 .akt{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 20px;align-items:center}
 .akt .lbl{color:#e84242;font-weight:600;font-size:.78rem;text-transform:uppercase;letter-spacing:.05em}
 .akt a{background:#182635;border:1px solid #24364a;border-radius:20px;padding:6px 12px;font-size:.85rem}
