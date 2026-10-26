@@ -684,6 +684,10 @@ footer{
 </div>
 
 <script>
+// Titulok domova z HTML („Športové Linky — 14 000+ webov…") — vkladá ho generator.py.
+// Appka ho pre DOMOV nesmie prepísať na krátke DB.title, inak by ho Google nevidel.
+const HOME_TITLE = document.title;
+
 // ============================================================
 // DATA STRUCTURE
 // node: { id, parentId, type:'folder'|'link', icon, name, desc, url, order }
@@ -1294,7 +1298,7 @@ function updateHead(){
     if(chain.length >= 3) ctx.push(nName(chain[0]));              // šport (koreň)
   }
   const ctxStr = ctx.length ? ' — ' + ctx.join(' · ') : '';
-  document.title = n ? (nName(n) + ctxStr + (site ? ' — ' + site : '')) : (site || document.title);
+  document.title = n ? (nName(n) + ctxStr + (site ? ' — ' + site : '')) : (HOME_TITLE || site || document.title);
   const m = document.querySelector('meta[name="description"]');
   if(m){
     if(ORIG_DESC === null) ORIG_DESC = m.content;
@@ -2435,7 +2439,7 @@ function initApp(){
   if(DB.title){
     document.getElementById('siteSub').textContent =
       (IS_EN ? (DB.subtitle_en||DB.subtitle) : DB.subtitle)||'';
-    document.title = IS_EN ? (DB.title_en||DB.title) : DB.title;
+    document.title = HOME_TITLE || (IS_EN ? (DB.title_en||DB.title) : DB.title);
   }
   initFromUrl(); // otvor priečinok podľa adresy (/hokej/sutaze/ alebo staré #/hokej/sutaze)
   render();
@@ -2459,7 +2463,7 @@ if(BOOT && BOOT.nodes && PATH_ROUTING && !(location.hash && location.hash.indexO
       if(DB.title){
         document.getElementById('siteSub').textContent =
           (IS_EN ? (DB.subtitle_en||DB.subtitle) : DB.subtitle)||'';
-        document.title = IS_EN ? (DB.title_en||DB.title) : DB.title;
+        document.title = HOME_TITLE || (IS_EN ? (DB.title_en||DB.title) : DB.title);
       }
       initFromUrl();
       render();

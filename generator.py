@@ -721,11 +721,55 @@ def promo_block(anc_ids: list):
     return "".join(out), f'<div class="promo-warn">{PROMO_WARN}</div>'
 
 
+# Kód krajiny (rovnaké pravidlo ako renderIcon v index.html): „jp", „gb-eng".
+FLAG_RE = re.compile(r"^[a-z]{2}(-[a-z]{2,4})?$")
+
+
+def icon_html(icon: str, size: str = "24x18") -> str:
+    """Ikona ako HTML: kód krajiny → obrázok vlajky (flagcdn.com, ako v appke),
+    emoji → escapovaný text, prázdna → "". Výsledok sa už NEescapuje znova.
+    (Dedenie vlajky od rodiča ako nodeIcon v appke sa tu zámerne nerobí.)"""
+    icon = (icon or "").strip()
+    if not icon:
+        return ""
+    if FLAG_RE.match(icon):
+        w, h = size.split("x")
+        return (f'<img src="https://flagcdn.com/{size}/{icon}.png" width="{w}" height="{h}" '
+                f'alt="" loading="lazy" style="border-radius:2px;vertical-align:middle">')
+    return escape(icon)
+
+
+def count_links(children: dict, paths: dict) -> int:
+    """Počet liniek, ktoré sa na webe naozaj zobrazujú: viditeľné v jazyku
+    buildu (children už obsahuje len visible()) a uložené v priečinkoch, ktoré
+    dostali stránku. Umelé linky Live This Week (z lišty Aktuálne) sa nerátajú."""
+    return sum(1 for fid in paths if fid != LIVE_ID
+               for k in children.get(fid, []) if k.get("type") == "link")
+
+
+def links_label(n: int) -> str:
+    """Počet zaokrúhlený NADOL na tisíce: SK „14 000+“, EN „14,000+“.
+    Pod 1000 presné číslo bez „+“."""
+    if n < 1000:
+        return str(n)
+    s = f"{n // 1000 * 1000:,}"
+    return (s if LANG == "en" else s.replace(",", " ")) + "+"
+
+
+def home_title(n: int) -> str:
+    """Titulok domovskej stránky (index.html aj 404.html) s počtom webov."""
+    if LANG == "en":
+        return f"Sportlinking — {links_label(n)} club, league and news websites"
+    return f"Športové Linky — {links_label(n)} webov klubov, líg a správ"
+
+
 def render_page(node, path, children, by_id, paths, site_title, alt_url=None):
     depth = len(path)
     root = "../" * depth
     name = escape(node_name(node))
-    icon = escape(node.get("icon", "") or "")
+    icon = icon_html(node.get("icon", ""), "24x18")
+    if icon:
+        icon += " "   # medzera, aby názov nebol nalepený na ikonu („jpJaponsko")
     desc = escape(node_desc(node))
 
     # breadcrumbs
@@ -754,10 +798,11 @@ def render_page(node, path, children, by_id, paths, site_title, alt_url=None):
         for f in folders:
             slug = paths[f["id"]][-1]
             d = escape(node_desc(f))
+            fic = icon_html(f.get("icon", ""), "20x15")
             ds = f'<div class="ds">{d}</div>' if d else ""
             cards.append(
                 f'<a class="card" href="{slug}/">'
-                f'<div class="nm">{escape(f.get("icon","") or "")} {escape(node_name(f))}</div>{ds}</a>'
+                f'<div class="nm">{fic + " " if fic else ""}{escape(node_name(f))}</div>{ds}</a>'
             )
         fold_cards = f'<h2>{T["folders"]}</h2><div class="grid">' + "".join(cards) + "</div>"
 
@@ -766,12 +811,13 @@ def render_page(node, path, children, by_id, paths, site_title, alt_url=None):
         cards = []
         for l in links:
             d = escape(node_desc(l))
+            lic = icon_html(l.get("icon", ""), "20x15")
             ds = f'<div class="ds">{d}</div>' if d else ""
             url = escape(l.get("url", ""), quote=True)
             host = re.sub(r"^https?://(www\.)?", "", l.get("url", "")).split("/")[0]
             cards.append(
                 f'<a class="card" href="{url}" target="_blank" rel="noopener">'
-                f'<div class="nm">{escape(l.get("icon","") or "")} {escape(node_name(l))}</div>{ds}'
+                f'<div class="nm">{lic + " " if lic else ""}{escape(node_name(l))}</div>{ds}'
                 f'<div class="ur">{escape(host)}</div></a>'
             )
         link_cards = f'<h2>{T["links"]}</h2><div class="grid">' + "".join(cards) + "</div>"
@@ -1048,6 +1094,14 @@ def main():
                     ('232,66,66', '66,135,232'),  # rgba() odtiene akcentu
                 ):
                     html = html.replace(a, b)
+            # Titulok domova s počtom webov (bod 5 previerky). Až PO EN náhradách,
+            # aby prepísal akýkoľvek pôvodný titulok; og:title ostáva krátky.
+            n_links = count_links(children, paths)
+            html, n_t = re.subn(r"<title>[^<]*</title>",
+                                lambda m: f"<title>{escape(home_title(n_links))}</title>", html, count=1)
+            if not n_t:
+                raise SystemExit("CHYBA: v index.html chýba <title>...</title>.")
+            print(f"titulok domova: {home_title(n_links)} (liniek: {n_links})")
             if BASE_URL and "<!--OG_DYNAMIC-->" in html:
                 og_dyn = (f'<meta property="og:url" content="{BASE_URL}/"/>\n'
                           f'<meta property="og:image" content="{BASE_URL}/og-image.png"/>')
@@ -1093,13 +1147,14 @@ def main():
             with open(os.path.join(out, "404.html"), "w", encoding="utf-8") as f:
                 f.write(html)
 
-            # domovská stránka: hreflang trio SK ↔ EN (x-default = EN,
-            # priorita anglického trhu)
+            # domovská stránka: canonical + hreflang trio SK ↔ EN (x-default = EN,
+            # priorita anglického trhu). 404.html je už zapísaný — canonical nemá.
             if BASE_URL:
                 sk_home = f"{BASE_URL}/" if LANG == "sk" else f"{ALT_BASE_URL}/"
                 en_home = f"{ALT_BASE_URL}/" if LANG == "sk" else f"{BASE_URL}/"
                 html = html.replace("</title>", (
                     "</title>\n"
+                    f'<link rel="canonical" href="{BASE_URL}/"/>\n'
                     f'<link rel="alternate" hreflang="sk" href="{sk_home}"/>\n'
                     f'<link rel="alternate" hreflang="en" href="{en_home}"/>\n'
                     f'<link rel="alternate" hreflang="x-default" href="{en_home}"/>'), 1)
