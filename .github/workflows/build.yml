@@ -1,6 +1,6 @@
 # GitHub Actions pre ANGLICKÝ web (sportlinking.com).
 # Pri každej zmene v repozitári + každý deň o 5:00 ráno si stiahne
-# aktuálny data.json zo slovenského webu a vygeneruje anglické stránky.
+# aktuálne úplné dáta (data-full.json) zo slovenského webu a vygeneruje anglické stránky.
 # Sitemap lastmod = skutočná zmena stránky (od 2.10.2026, stav v sitemap-lastmod.json,
 # commitne ho krok „Ulož dátumy zmien pre sitemap"). data.json sa NEcommituje.
 # UMIESTNENIE V REPOZITÁRI: .github/workflows/build.yml
@@ -41,8 +41,13 @@ jobs:
           # Prívesok ?build=... je zakaždým iný, takže sa obíde cache na ceste
           # (bez neho vracala sieť GitHubu staré dáta a EN web sa staval zo
           # starej verzie, kým sa cache sama neprečistila).
-          curl -fsSL --retry 3 "https://www.sportlinky.sk/data.json?build=$GITHUB_RUN_ID" -o data.json
-          python -c "import json; d=json.load(open('data.json')); print('data.json OK, verzia', d.get('version'), ',', len(d.get('nodes',[])), 'uzlov')"
+          # Od opravy 6 (body 3+13, 26.10.2026) je na SK webe data.json ODĽAHČENÝ
+          # (bez anglických textov) — úplné dáta sú v data-full.json. Kým SK web
+          # data-full.json ešte nemá, použije sa po starom data.json.
+          curl -fsSL --retry 3 "https://www.sportlinky.sk/data-full.json?build=$GITHUB_RUN_ID" -o data.json \
+            || curl -fsSL --retry 3 "https://www.sportlinky.sk/data.json?build=$GITHUB_RUN_ID" -o data.json
+          # Poistka: odľahčené dáta (_lite) by zmazali anglické texty — build radšej zastav.
+          python -c "import json,sys; d=json.load(open('data.json', encoding='utf-8')); sys.exit('CHYBA: stiahnuté dáta sú odľahčené (_lite), chýba data-full.json') if d.get('_lite') else print('data.json OK, verzia', d.get('version'), ',', len(d.get('nodes',[])), 'uzlov')"
 
       - name: Vygeneruj anglické stránky
         run: python generator.py --out _site
