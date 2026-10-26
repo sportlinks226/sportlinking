@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Športové Linky</title>
 <meta name="description" content="Všetky športové weby sveta na jednom mieste — prehľadný rozcestník overených liniek pre každý šport a krajinu."/>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%230f1923'/%3E%3Crect y='54' width='64' height='10' fill='%23e84242'/%3E%3Ctext x='32' y='42' font-family='Arial,sans-serif' font-size='32' font-weight='800' font-style='italic' text-anchor='middle' fill='%23ffffff'%3ES%3Ctspan fill='%23e84242'%3EL%3C/tspan%3E%3C/text%3E%3C/svg%3E"/>
+<!--FAVICONS--><!-- generátor sem pri builde doplní favicon.ico, favicon.svg a apple-touch-icon.png s cestou od koreňa webu -->
 <meta property="og:title" content="Športové Linky"/>
 <meta property="og:description" content="Všetky športové weby sveta na jednom mieste — prehľadný rozcestník overených liniek."/>
 <meta property="og:type" content="website"/>
@@ -18,7 +18,7 @@
 :root{
   color-scheme:dark; /* natívne prvky (kalendárik, scrollbar) v tmavej téme */
   --bg:#0f1923;--surface:#1a2a3a;--surface2:#22334a;--border:#2a3a4a;
-  --accent:#e84242;--accent2:#c03030;--text:#e8eaf0;--muted:#90a5b7;
+  --accent:#e84242;--accent2:#c03030;--accent-text:#ef5a5a;--accent-strong:#d63333;--text:#e8eaf0;--muted:#90a5b7;
   --green:#2ecc71;--red:#e74c3c;--radius:12px;
 }
 body{font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
@@ -110,7 +110,7 @@ a.card-root,a.card-folder,a.bc-item,a.h-left,a.f-wordmark{color:inherit;text-dec
 .promo-tag{font-size:0.65rem;letter-spacing:1px;color:var(--muted);margin-bottom:8px}
 .promo-txt h3{margin:0 0 10px;font-size:1.25rem;line-height:1.25;color:#fff}
 .promo-txt p{margin:0 0 10px;font-size:0.9rem;line-height:1.55;color:var(--text)}
-.promo-btn{display:inline-block;background:var(--accent);color:#fff!important;font-weight:700;font-size:0.9rem;padding:10px 18px;border-radius:8px;margin-top:6px;text-decoration:none}
+.promo-btn{display:inline-block;background:var(--accent-strong);color:#fff!important;font-weight:700;font-size:0.9rem;padding:10px 18px;border-radius:8px;margin-top:6px;text-decoration:none}
 .promo-btn:hover{background:#c73535}
 .promo-warn{font-size:0.7rem;color:var(--muted);border-top:1px solid var(--border);padding-top:10px;margin-top:22px}
 .promo-edit-btn{display:none;margin-top:10px;font-size:0.72rem;background:none;border:1px dashed var(--border);color:var(--muted);padding:4px 10px;border-radius:6px;cursor:pointer}
@@ -145,7 +145,7 @@ a.card-root,a.card-folder,a.bc-item,a.h-left,a.f-wordmark{color:inherit;text-dec
 }
 .rotate-indicator{
   font-size:0.68rem;padding:3px 8px;border-radius:10px;margin-left:auto;
-  background:rgba(232,66,66,.15);color:var(--accent);display:none;
+  background:rgba(232,66,66,.15);color:var(--accent-text);display:none;
 }
 .rotate-indicator.on{display:inline-block}
 
@@ -222,7 +222,7 @@ footer{
 /* vo vysledkoch hladania zostava cesta na jednom riadku */
 .card-link .cl-desc.sr-path{display:block;white-space:nowrap;text-overflow:ellipsis}
 /* štítok LIGA/LEAGUE — linky líg (order -1) v priečinkoch klubov; federácie (order 0) ho nemajú */
-.liga-tag{position:absolute;top:0;right:0;background:var(--accent);color:#fff;font-size:0.55rem;font-weight:800;letter-spacing:.5px;padding:2px 7px;line-height:1.5;border-radius:0 9px 0 8px;pointer-events:none;z-index:2}
+.liga-tag{position:absolute;top:0;right:0;background:var(--accent-strong);color:#fff;font-size:0.55rem;font-weight:800;letter-spacing:.5px;padding:2px 7px;line-height:1.5;border-radius:0 9px 0 8px;pointer-events:none;z-index:2}
 .admin-mode .liga-tag{display:none}
 /* ikonky FB/IG na pravom okraji dlaždice klubu (polia fb/ig v uzle linky) — FB vždy horný roh, IG vždy dolný */
 .card-link .socs{position:absolute;right:4px;top:0;bottom:0;width:18px;display:flex;flex-direction:column;justify-content:space-between;align-items:center;padding:5px 0;z-index:2}
@@ -281,7 +281,7 @@ footer{
   padding:7px 14px;border-radius:8px;font-size:0.8rem;font-weight:600;
   display:flex;align-items:center;gap:5px;transition:.15s;cursor:pointer;
 }
-.btn-p{background:var(--accent);color:#fff;border:none}
+.btn-p{background:var(--accent-strong);color:#fff;border:none}
 .btn-p:hover{background:var(--accent2)}
 .btn-s{background:var(--surface);border:1.5px solid var(--border);color:var(--text)}
 .btn-s:hover{border-color:var(--accent)}
@@ -373,7 +373,7 @@ footer{
 /* NEW badge — zmizne po 24 h (addedAt timestamp) */
 .akt-new{
   position:absolute;top:-8px;right:-6px;
-  background:#e84242;color:#fff;font-size:0.55rem;font-weight:800;
+  background:var(--accent-strong);color:#fff;font-size:0.55rem;font-weight:800;
   padding:2px 6px;border-radius:8px;letter-spacing:.5px;
   box-shadow:0 2px 6px rgba(0,0,0,.4);pointer-events:none;
 }
@@ -440,7 +440,7 @@ footer{
   #aktualneWrap.has-more #aktMoreBadge{
     display:flex;align-items:center;
     position:absolute;right:14px;bottom:12px;z-index:2;
-    background:#e84242;color:#fff;font-size:0.68rem;font-weight:800;
+    background:var(--accent-strong);color:#fff;font-size:0.68rem;font-weight:800;
     padding:3px 8px;border-radius:10px;white-space:nowrap;cursor:pointer;
     box-shadow:0 2px 6px rgba(0,0,0,.4);
   }
@@ -498,7 +498,7 @@ footer{
 <!-- AKTUALNE -->
 <div id="aktualneWrap" style="padding:12px 24px 16px">
   <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
-    <span style="display:flex;align-items:center;gap:6px;font-size:0.78rem;font-weight:700;color:#e84242;text-transform:uppercase;letter-spacing:1px">
+    <span style="display:flex;align-items:center;gap:6px;font-size:0.78rem;font-weight:700;color:var(--accent-text);text-transform:uppercase;letter-spacing:1px">
       <span style="width:8px;height:8px;border-radius:50%;background:#e84242;display:inline-block;animation:pulse 1.5s infinite"></span>
       Aktuálne
     </span>
