@@ -462,7 +462,7 @@ footer{
     <div style="font-size:2rem;margin-bottom:10px">🔐</div>
     <h3>Admin prístup</h3>
     <input type="password" id="pwIn" aria-label="Heslo" placeholder="Heslo" onkeydown="if(event.key==='Enter')chkPw()"/>
-    <button class="btn btn-p" style="width:100%" onclick="chkPw()">Prihlásiť</button>
+    <button class="btn btn-p" id="pwBtn" style="width:100%" onclick="chkPw()">Prihlásiť</button>
     <div class="pw-err" id="pwErr"></div>
   </div>
 </div>
@@ -699,7 +699,6 @@ const HOME_TITLE = document.title;
 // a v admine (⚙️ → Import) sa dá nahrať data.json.
 const DEFAULT = {
   "version": 0,
-  "passwordHash": "20e48399f8426c925d94ede86ebcbbf35d998a815a690330e99a0ce8e8cffa96",
   "title": "Športové Linky",
   "subtitle": "Naviguj sa cez kategórie",
   "aktualne": [],
@@ -726,6 +725,9 @@ let DATA_VER = "";
 // doťahuje na pozadí. Generator hľadá presne tento riadok, NEMENIŤ formát.
 // null = lokálne / bez balíka → čaká sa na celé dáta ako predtým.
 let BOOT = null;
+// Verzia (?v=), s ktorou sa z webu stiahol data.json — rovnakou sa po
+// prihlásení admina sťahuje data-full.json. Prázdne = dáta nie sú z webu.
+let PUB_VER = "";
 let DB = {};
 let adminMode = false;
 let curId = null;      // null = root
@@ -809,7 +811,7 @@ async function load(){
         const r = await fetch(url, Object.assign({priority:'low'}, opt)); // nízka priorita — obrázky/bannery majú prednosť
         if(r.ok){
           const d = await r.json();
-          if(d && d.nodes) return d;
+          if(d && d.nodes){ PUB_VER = ver || ""; return d; }
         }
       }catch(e){ /* lokálny súbor (file://) alebo data.json neexistuje — skús ešte raz */ }
     }
@@ -921,6 +923,9 @@ async function load(){
   lsSet('sportStromVer', String(DB.version||0));
 }
 function save(force){
+  // POISTKA (bod 3 previerky): odľahčené dáta webu sa do prehliadača NIKDY
+  // neukladajú — chýbajú v nich polia druhého jazyka a heslo.
+  if(isLiteDB()){ alertLite(); return false; }
   // OCHRANA pred starým oknom: ak je v prehliadači zapísaná NOVŠIA verzia než tá,
   // na ktorej práve pracuješ, nič neprepíš — okno je zastarané, treba F5.
   // Kontrola je synchrónna (malý kľúč sportStromVer v localStorage).
@@ -947,6 +952,12 @@ function save(force){
   updateVerBadge();
   return true;
 }
+// Odľahčené dáta webu (data.json s "_lite", alebo štartovací balík BOOT) —
+// nedajú sa publikovať, exportovať ani uložiť (stiahnutý súbor by bol neúplný).
+function isLiteDB(){ return !!(DB && (DB._lite === true || DB._partial)); }
+function alertLite(){
+  alert('Toto sú odľahčené dáta webu, nedajú sa publikovať. Odhlás sa a prihlás znova.');
+}
 function updateVerBadge(){
   const el = document.getElementById('verBadge');
   if(el) el.textContent = 'v'+(DB.version||'?');
@@ -954,19 +965,51 @@ function updateVerBadge(){
 function uid(){ return 'n'+Date.now()+Math.random().toString(36).slice(2,5); }
 
 // ============================================================
-// HESLO — SHA-256 hash (v dátach sa neukladá heslo, len jeho odtlačok)
+// HESLO — v dátach sa neukladá heslo, len jeho odtlačok
 // ============================================================
-async function sha256hex(str){
-  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
-  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+// Od 26.10.2026 (bod 13 previerky): "pwKdf": {"salt", "iter", "hash"} =
+// PBKDF2-SHA-256 so soľou (16 bajtov hex), 600 000 opakovaní, 256 bitov (hex).
+// Rovnako ho vyrába nástroj nastav-heslo.html. Starý passwordHash (SHA-256
+// bez soli) sa ešte prijíma pri prihlásení, ale už sa nevyrába.
+const PW_ITER = 600000;
+function bufHex(buf){ return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join(''); }
+function hexBytes(hex){
+  const out = new Uint8Array((hex||'').length/2);
+  for(let i=0;i<out.length;i++) out[i] = parseInt(hex.substr(i*2,2),16);
+  return out;
 }
-// Migrácia: staré dáta/zálohy majú heslo v čitateľnej podobe — preveď na hash a plaintext zmaž.
+async function sha256hex(str){
+  return bufHex(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str)));
+}
+async function pbkdf2hex(pw, saltHex, iter){
+  const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(pw), 'PBKDF2', false, ['deriveBits']);
+  const bits = await crypto.subtle.deriveBits(
+    {name:'PBKDF2', hash:'SHA-256', salt:hexBytes(saltHex), iterations:iter}, key, 256);
+  return bufHex(bits);
+}
+// nový odtlačok hesla s novou náhodnou soľou
+async function makePwKdf(pw){
+  const salt = bufHex(crypto.getRandomValues(new Uint8Array(16)));
+  return {salt:salt, iter:PW_ITER, hash:await pbkdf2hex(pw, salt, PW_ITER)};
+}
+// overenie hesla voči dátam d: pwKdf → starý passwordHash → čitateľné password
+async function pwMatches(d, val){
+  if(d.pwKdf && d.pwKdf.salt && d.pwKdf.hash){
+    return (await pbkdf2hex(val, d.pwKdf.salt, d.pwKdf.iter||PW_ITER)) === String(d.pwKdf.hash).toLowerCase();
+  }
+  if(d.passwordHash) return (await sha256hex(val)) === d.passwordHash; // prechodné obdobie
+  if(d.password) return val === d.password; // stará záloha bez hashu
+  return false;
+}
+function hasPw(d){ return !!(d && (d.pwKdf || d.passwordHash || d.password)); }
+// Migrácia: staré dáta/zálohy majú heslo v čitateľnej podobe — preveď na pwKdf a plaintext zmaž.
 // Ukladá priamo do IndexedDB (bez save()), aby technická migrácia nenastavila príznak dirty.
 async function migratePw(){
-  if(!DB || !DB.password) return;
+  if(!DB || !DB.password || isLiteDB()) return;
   try{
-    if(!DB.passwordHash) DB.passwordHash = await sha256hex(DB.password);
+    if(!DB.pwKdf) DB.pwKdf = await makePwKdf(DB.password);
     delete DB.password;
+    delete DB.passwordHash;
     await idbPut(DB);
   }catch(e){ /* crypto/IndexedDB nedostupné — nechaj tak, chkPw má záložnú vetvu */ }
 }
@@ -1805,31 +1848,70 @@ let _adminPending = false;
 function toggleAdmin(){
   if(adminMode){ logoutAdmin(); return; }
   if(DB._partial){ _adminPending = true; return; } // celé dáta ešte nedorazili (BOOT)
+  // Súbor otvorený z disku bez dát (prázdna IndexedDB → DEFAULT bez hesla):
+  // pusti do admina bez hesla, aby sa dal spraviť Import. Na webe NIKDY.
+  if(!hasPw(DB) && location.protocol === 'file:'){ enterAdmin(); return; }
   document.getElementById('pwScreen').classList.add('open');
   document.getElementById('pwIn').value='';
   document.getElementById('pwErr').textContent='';
   setTimeout(()=>document.getElementById('pwIn').focus(),100);
 }
+// Úplné dáta pre admina (bod 3 previerky): návštevník dostáva odľahčený
+// data.json, admin po prihlásení stiahne data-full.json tej istej verzie.
+async function fetchFullData(){
+  const url = SITE_ROOT + 'data-full.json' + (PUB_VER ? '?v=' + PUB_VER : '');
+  const r = await fetch(url, PUB_VER ? {} : {cache:'no-store'});
+  if(!r.ok) throw new Error('HTTP ' + r.status);
+  const d = await r.json();
+  if(!d || !Array.isArray(d.nodes)) throw new Error('súbor nemá nodes');
+  if((d.version||0) !== (DB.version||0)) throw new Error('iná verzia (v'+d.version+' namiesto v'+DB.version+')');
+  delete d._lite; delete d._partial;
+  return d;
+}
+let _pwBusy = false;
 async function chkPw(){
+  if(_pwBusy) return; // Enter sa chytá dvakrát (políčko aj celé okno)
   const val = document.getElementById('pwIn').value;
-  let ok = false;
-  if(DB.passwordHash){ ok = (await sha256hex(val)) === DB.passwordHash; }
-  else if(DB.password){ ok = (val === DB.password); } // stará záloha bez hashu
-  if(ok){
-    await migratePw(); // ak dáta ešte obsahujú plaintext heslo, preveď na hash
-    document.getElementById('pwScreen').classList.remove('open');
-    adminMode = true;
-    document.getElementById('adminTog').classList.add('on');
-    document.getElementById('adminTog').textContent = '⚙️ Admin ✓';
-    document.getElementById('adminBar').classList.add('on');
-    document.body.classList.add('admin-mode');
-    render();
-    renderAktualne();
-    updateVerBadge();
-  } else {
-    document.getElementById('pwErr').textContent = 'Nesprávne heslo!';
-    document.getElementById('pwIn').value='';
+  const btn = document.getElementById('pwBtn');
+  const err = document.getElementById('pwErr');
+  _pwBusy = true; btn.disabled = true; err.textContent = '';
+  try{
+    const lite = isLiteDB();
+    let full = null;
+    // Odľahčené dáta bez odtlačku hesla (data.json ešte bez pwKdf) — heslo sa
+    // overí až z úplných dát.
+    if(lite && !hasPw(DB)){
+      err.textContent = 'Načítavam úplné dáta…';
+      try{ full = await fetchFullData(); }
+      catch(e){ err.textContent = 'Úplné dáta sa nepodarilo stiahnuť ('+e.message+'). Admin sa nezapol.'; return; }
+      err.textContent = '';
+    }
+    let ok = false;
+    try{ ok = await pwMatches(full || DB, val); }catch(e){ ok = false; }
+    if(!ok){ err.textContent = 'Nesprávne heslo!'; document.getElementById('pwIn').value=''; return; }
+    if(lite && !full){
+      err.textContent = 'Načítavam úplné dáta…';
+      try{ full = await fetchFullData(); }
+      catch(e){ err.textContent = 'Úplné dáta sa nepodarilo stiahnuť ('+e.message+'). Admin sa nezapol.'; return; }
+    }
+    if(full){ DB = full; ensureSlugs(); }
+    await migratePw(); // ak dáta ešte obsahujú plaintext heslo, preveď na pwKdf
+    err.textContent = '';
+    enterAdmin();
+  } finally {
+    _pwBusy = false; btn.disabled = false;
   }
+}
+function enterAdmin(){
+  document.getElementById('pwScreen').classList.remove('open');
+  adminMode = true;
+  document.getElementById('adminTog').classList.add('on');
+  document.getElementById('adminTog').textContent = '⚙️ Admin ✓';
+  document.getElementById('adminBar').classList.add('on');
+  document.body.classList.add('admin-mode');
+  render();
+  renderAktualne();
+  updateVerBadge();
 }
 function logoutAdmin(){
   adminMode = false;
@@ -1978,7 +2060,7 @@ async function saveSett(){
   DB.title    = document.getElementById('stTitle').value.trim()||DB.title;
   DB.subtitle = document.getElementById('stSub').value.trim();
   const pw    = document.getElementById('stPw').value;
-  if(pw){ DB.passwordHash = await sha256hex(pw); delete DB.password; }
+  if(pw){ DB.pwKdf = await makePwKdf(pw); delete DB.passwordHash; delete DB.password; }
   document.getElementById('siteSub').textContent = DB.subtitle;
   document.title = DB.title;
   save(); closeMo('settMo');
@@ -1988,19 +2070,23 @@ async function saveSett(){
 // EXPORT / IMPORT
 // ============================================================
 function downloadJSON(filename){
+  if(isLiteDB()){ alertLite(); return false; } // poistka: neúplné dáta sa nesťahujú
   const blob = new Blob([JSON.stringify(DB,null,2)],{type:'application/json'});
   const a=document.createElement('a');
   a.href=URL.createObjectURL(blob);
   a.download=filename;
   a.click();
+  return true;
 }
 function exportData(){
+  if(isLiteDB()){ alertLite(); return; }
   const d = new Date().toISOString().slice(0,10); // záloha s dátumom
   downloadJSON('sport-strom-backup-'+d+'.json');
 }
 function publishData(){
   // stiahne data.json — pripravený na nahratie na GitHub
   // zvýši verziu dát, aby web aj ostatné prehliadače nové dáta automaticky prevzali
+  if(isLiteDB()){ alertLite(); return; } // odľahčené dáta webu — verziu ani nezvyšuj
   DB.version = (DB.version||0) + 1;
   if(!save()){ DB.version--; return; } // staré okno — nesťahuj staré dáta
   downloadJSON('data.json');
@@ -2012,10 +2098,11 @@ function importData(e){
     try{
       const d=JSON.parse(ev.target.result);
       if(!d.nodes) throw new Error('Neplatný formát');
+      if(d._lite) throw new Error('toto je odľahčený data.json z webu (chýbajú v ňom polia druhého jazyka). Importuj úplný súbor z PC.');
       if(!confirm('Importovať? Nahradí všetky aktuálne dáta.')) return;
       DB=d;
       ensureSlugs(); // stará záloha nemusí mať slugy — doplň ich hneď
-      migratePw();   // stará záloha môže mať heslo v čitateľnej podobe — preveď na hash
+      migratePw();   // stará záloha môže mať heslo v čitateľnej podobe — preveď na pwKdf
       save(true); render(); renderAktualne(); renderBannerSlot(); // force — import nahrádza dáta zámerne
       stopRotation(); startRotation(); // rotácia podľa nastavení z importu
       document.getElementById('siteSub').textContent=DB.subtitle;
