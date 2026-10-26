@@ -6,7 +6,9 @@ SEO generátor pre Športové Linky (sport-strom).
 Číta data.json a vygeneruje:
   - statickú HTML stránku pre každý priečinok (napr. hokej/sutaze/index.html)
   - sitemap.xml a robots.txt
-  - skopíruje index.html (aplikáciu) a data.json do výstupného priečinka
+  - skopíruje index.html (aplikáciu) do výstupného priečinka
+  - zapíše data.json (odľahčený pre návštevníkov, "_lite") a data-full.json
+    (celé dáta pre admina) — viď lite_data()
 
 Použitie:
   python generator.py                 # výstup do _site/
@@ -308,7 +310,61 @@ def build_boot(data: dict, children: dict) -> dict:
               "banners", "bannerSettings", "promos", "promoBanner"):
         if k in data:
             boot[k] = data[k]
+    if LANG != "en":
+        # SK appka anglické polia nepoužíva (bod 3 previerky)
+        boot = strip_en(boot)
     return boot
+
+
+# ------------------------------------------------------------
+# ODĽAHČENÉ DÁTA PRE NÁVŠTEVNÍKOV (od 26.10.2026, bod 3 a 13 previerky)
+# ------------------------------------------------------------
+# Na web idú dva súbory:
+#   data-full.json — celé dáta bez zmeny obsahu (len bez medzier). Sťahuje ho
+#                    LEN admin po prihlásení, aby 🚀 Publikovať vyrobilo úplný
+#                    data.json s poliami oboch jazykov.
+#   data.json      — odľahčená kópia pre návštevníkov daného jazyka s príznakom
+#                    "_lite": true (appka ju nedovolí publikovať ani uložiť).
+# Uzly ani ich počet sa NEMENIA — počty liniek musia sedieť s BOOT a titulkom.
+# Originál data.json v repozitári ostáva bez zmeny.
+EN_NODE_KEYS = ("name_en", "desc_en", "slug_en", "order_en")
+EN_ROOT_KEYS = ("title_en", "subtitle_en")
+
+
+def strip_en(data: dict) -> dict:
+    """Kópia dát bez anglických polí (pre SK web). Originál nemení."""
+    d = {k: v for k, v in data.items() if k not in EN_ROOT_KEYS}
+    d["nodes"] = [{k: v for k, v in n.items() if k not in EN_NODE_KEYS}
+                  for n in data.get("nodes", [])]
+    for key in ("aktualne", "banners", "promos"):
+        if isinstance(data.get(key), list):
+            d[key] = [({k: v for k, v in a.items() if k != "name_en"}
+                       if isinstance(a, dict) else a) for a in data[key]]
+    return d
+
+
+def lite_data(data: dict) -> dict:
+    """Odľahčená kópia data.json pre návštevníkov webu v jazyku LANG.
+
+    Vždy bez passwordHash/password (pwKdf ostáva — overuje sa ním heslo).
+    SK: bez *_en polí. EN: bez slovenského desc tam, kde je vyplnený desc_en
+    (appka v EN berie nDesc = desc_en, inak desc). slug ostáva aj v EN
+    (pracuje s ním ensureSlugs v appke)."""
+    if LANG == "en":
+        d = dict(data)
+        d["nodes"] = [({k: v for k, v in n.items() if k != "desc"}
+                       if n.get("desc_en") else n) for n in data.get("nodes", [])]
+    else:
+        d = strip_en(data)
+    for k in ("passwordHash", "password"):
+        d.pop(k, None)
+    d["_lite"] = True
+    return d
+
+
+def write_json(path: str, data: dict) -> None:
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, separators=(",", ":"))
 
 
 # ------------------------------------------------------------
@@ -1190,7 +1246,11 @@ def main():
                 f.write(html)
         with open(os.path.join(out, "favicon.svg"), "w", encoding="utf-8") as f:
             f.write(FAVICON_SVG)
-        for fname in ("data.json", "og-image.png",
+        # dáta: data-full.json (celé, len pre admina) + data.json (odľahčený
+        # pre návštevníkov) — viď lite_data(). data.json sa už nekopíruje.
+        write_json(os.path.join(out, "data-full.json"), data)
+        write_json(os.path.join(out, "data.json"), lite_data(data))
+        for fname in ("og-image.png",
                       "banner-sportlinking-1.png", "banner-sportlinking-2.png",
                       "favicon.ico", "apple-touch-icon.png"):
             if os.path.exists(fname):
