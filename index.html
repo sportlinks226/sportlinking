@@ -391,6 +391,12 @@ footer{
   #breadcrumb{padding:12px 14px 0}
   .h-wordmark{font-size:1.2rem}
   .h-search{flex:1 1 100%;max-width:none;margin:6px 0 0}
+  /* previerka 22.10.2026, bod 9: písmo 16 px — iPhone pri ťuknutí do hľadania nepriblíži stránku */
+  .h-search input{font-size:16px}
+  /* bod 10: hlavička ostáva prilepená, ale bez podnadpisu a s menším počítadlom (menej miesta) */
+  .h-subtitle{display:none}
+  .h-count{font-size:.65rem}
+  .h-count b{font-size:16px}
   main{padding:16px 12px 100px}
   .grid-root{gap:10px}
   .card-root{flex:0 1 150px;min-width:130px}
@@ -399,6 +405,14 @@ footer{
   .card-link .socs a.si,.card-link .socs a.si img,.card-link .socs .ph{width:20px;height:20px;line-height:20px;font-size:12px}
   .card-link.has-soc{min-height:58px}
   .card-link.has-soc>a{padding-right:20px}
+  /* bod 12: väčšia neviditeľná klikacia plocha okolo ikonky (obrázok ostáva 20 px).
+     FB siaha nahor po okraj, IG nadol po okraj; medzi nimi ostáva hranica v strede
+     (pri min. výške 58 px FB 0–29 px, IG 29–58 px), doľava len do prázdneho
+     odsadenia hlavnej linky — plochy sa neprekrývajú navzájom ani s textom linky */
+  .card-link .socs a.si{position:relative}
+  .card-link .socs a.si::before{content:'';position:absolute;left:-8px;right:-5px}
+  .card-link .socs a.si:first-child::before{top:-5px;bottom:-4px}
+  .card-link .socs a.si:last-child::before{top:-4px;bottom:-5px}
 
   /* Admin bar na mobile — 2 riadky, menšie tlačidlá */
   #adminBar{padding:8px 12px;gap:6px;flex-wrap:wrap}
@@ -407,7 +421,9 @@ footer{
 
   /* Banner na mobile — druhý slot je skrytý, viditeľný je len slot 1 */
   .banner-wrap{padding:10px 14px 0}
-  .banner-slot{height:50px}
+  /* bod 11: banner celý bez orezania — výška podľa pomeru 468:60 */
+  .banner-slot{aspect-ratio:468/60;height:auto}
+  .banner-slot img{object-fit:contain}
   #bannerSlot2{display:none}
   .promo{flex-direction:column;padding:14px;gap:12px}
   .promo-ban{align-self:center;width:100%;max-width:300px}
