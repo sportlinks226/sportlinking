@@ -45,7 +45,7 @@ header{
 .h-subtitle{font-size:0.78rem;color:var(--muted);margin-top:2px;line-height:1.1}
 .h-count{font-size:0.72rem;color:var(--muted);margin-top:2px;line-height:1;display:flex;align-items:baseline;gap:5px}
 .h-count b{color:#e84242;font-weight:700;font-size:24px;line-height:1;font-variant-numeric:tabular-nums}
-.h-search{flex:1;max-width:420px;margin-left:auto}
+.h-search{flex:1;max-width:420px;min-width:230px;margin-left:auto}
 .h-search input{
   width:100%;padding:9px 16px;border-radius:30px;
   border:2px solid rgba(232,66,66,.75);background:var(--surface);
@@ -61,14 +61,57 @@ header{
 .btn-admin-tog:hover{border-color:var(--accent);color:var(--text)}
 .btn-admin-tog.on{background:var(--accent);border-color:var(--accent);color:#fff}
 /* Rýchla navigácia po športoch v strede hlavičky (29.10.2026): ikonky hlavných
-   sekcií, aktívna sekcia zvýraznená; pod 900 px sa skryje (nezmestí sa k logu a hľadaniu) */
+   sekcií, aktívna sekcia zvýraznená; pod 1150 px sa skryje (nezmestí sa k logu a hľadaniu) */
 .h-sports{display:flex;align-items:center;gap:4px;margin:0 auto;flex-wrap:nowrap}
 .h-sports a{display:flex;align-items:center;justify-content:center;width:38px;height:38px;border-radius:10px;font-size:22px;text-decoration:none;color:inherit;border:1.5px solid transparent;transition:.15s;position:relative;filter:saturate(.85)}
 .h-sports a:hover{background:var(--surface2);border-color:var(--border);filter:none;transform:translateY(-1px)}
 .h-sports a.on{background:rgba(232,66,66,.18);border-color:var(--accent);filter:none}
 .h-sports a span{position:absolute;top:44px;left:50%;transform:translateX(-50%);background:var(--surface2);border:1px solid var(--border);color:var(--text);font-size:.72rem;padding:3px 8px;border-radius:6px;white-space:nowrap;opacity:0;pointer-events:none;transition:.15s;z-index:5}
 .h-sports a:hover span,.h-sports a:focus-visible span{opacity:1}
-@media(max-width:900px){.h-sports{display:none}}
+@media(max-width:1150px){.h-sports{display:none}}
+/* Prepínač zobrazenia ▦ Dlaždice / ▥ Stĺpce (29.10.2026) — v hlavičke za hľadaním;
+   stĺpce sú len pre myš na počítači, v admine a na mobile sa prepínač neukáže */
+.vswitch{display:flex;border:1.5px solid var(--border);border-radius:30px;overflow:hidden;flex-shrink:0}
+.vswitch button{background:none;border:0;color:var(--muted);padding:7px 11px;cursor:pointer;font-size:.76rem;font-weight:600;line-height:1.2;white-space:nowrap;transition:.15s;font-family:inherit}
+.vswitch button.on{background:var(--surface2);color:#fff}
+.vswitch button:hover{color:var(--text)}
+.admin-mode .vswitch{display:none}
+@media(max-width:700px),(hover:none){.vswitch{display:none}}
+/* ===== STĹPCOVÉ ZOBRAZENIE (29.10.2026): priečinky sa otvárajú prechodom myši do
+   ďalšieho stĺpca vpravo, linka ukáže popis v paneli; staršie stĺpce sa zbalia do pásikov ===== */
+main.cols-mode{max-width:1320px}
+.cols{display:flex;gap:8px;align-items:flex-start;overflow-x:auto;padding-bottom:6px}
+.col{flex:0 0 220px;width:220px;max-height:calc(100vh - 210px);min-height:140px;overflow-y:auto;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:6px}
+.col-title{font-size:.66rem;letter-spacing:1px;text-transform:uppercase;color:var(--muted);padding:6px 10px 4px;position:sticky;top:0;background:var(--surface);z-index:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.col.collapsed{flex:0 0 34px;width:34px;cursor:pointer;padding:10px 0;display:flex;justify-content:center;overflow:hidden}
+.col.collapsed .col-vt{writing-mode:vertical-rl;transform:rotate(180deg);font-size:.74rem;color:var(--muted);white-space:nowrap}
+.col.collapsed:hover{border-color:var(--accent)}
+.col.collapsed:hover .col-vt{color:var(--text)}
+.cit{display:flex;align-items:center;gap:7px;padding:7px 8px;border-radius:8px;cursor:pointer;font-size:.85rem;line-height:1.2;border:1px solid transparent;text-decoration:none;color:inherit}
+.cit:hover{background:var(--surface2)}
+.cit.open{background:var(--surface2);border-color:var(--border)}
+.cit.pin{background:rgba(232,66,66,.16);border-color:var(--accent)}
+.cit .ic{width:22px;text-align:center;flex-shrink:0;font-size:15px;line-height:1}
+.cit .ic img{width:20px;height:15px;border-radius:2px;vertical-align:middle}
+.cit .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cit .cnt{font-size:.68rem;color:var(--muted);flex-shrink:0;white-space:nowrap}
+.cit .arr{color:var(--muted);font-size:.8rem;flex-shrink:0}
+.cit .fav{width:18px;height:18px;border-radius:3px;object-fit:contain;background:var(--bg);flex-shrink:0}
+.cit .fav-fb{width:18px;height:18px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:14px}
+.cit .lt{font-size:.55rem;font-weight:800;letter-spacing:.5px;background:var(--accent-strong);color:#fff;padding:1px 5px;border-radius:4px;margin-right:5px;vertical-align:middle}
+.cit .soc{font-size:.6rem;color:var(--muted);flex-shrink:0;letter-spacing:.5px}
+.cdetail{flex:0 0 280px;width:280px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;font-size:.85rem;max-height:calc(100vh - 210px);overflow-y:auto}
+.cdetail h3{margin:0 0 6px;font-size:1.02rem;display:flex;align-items:center;gap:8px;line-height:1.25}
+.cdetail .host{font-size:.75rem;color:var(--accent-text);margin-bottom:10px;word-break:break-all}
+.cdetail p{margin:0 0 12px;color:var(--muted);line-height:1.5}
+.cdetail .btn-open{display:inline-block;background:var(--accent-strong);color:#fff;padding:8px 14px;border-radius:8px;text-decoration:none;font-weight:600;font-size:.82rem}
+.cdetail .btn-open:hover{background:#c73535}
+.cdetail .socs{display:flex;gap:8px;margin-top:12px}
+.cdetail .socs .si img{width:22px;height:22px;border-radius:4px}
+.cdetail .socs .ph{display:none}
+.cdetail .empty-hint{color:var(--muted);font-size:.8rem}
+.col::-webkit-scrollbar,.cols::-webkit-scrollbar,.cdetail::-webkit-scrollbar{height:8px;width:8px}
+.col::-webkit-scrollbar-thumb,.cols::-webkit-scrollbar-thumb,.cdetail::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
 
 /* ===== BREADCRUMB ===== */
 #breadcrumb{
@@ -487,6 +530,7 @@ footer{
   </a>
   <nav class="h-sports" id="hSports" aria-label="Športy"></nav>
   <div class="h-search"><input type="text" id="srch" aria-label="Hľadaj v strome" placeholder="🔍  Hľadaj kdekoľvek v strome..." oninput="onSearch()"/></div>
+  <div class="vswitch" id="vSwitch" role="group" aria-label="Zobrazenie"><button type="button" data-mode="tiles" class="on" title="Dlaždice" onclick="setViewMode('tiles')">▦ Dlaždice</button><button type="button" data-mode="cols" title="Stĺpce — priečinky sa otvárajú myšou" onclick="setViewMode('cols')">▥ Stĺpce</button></div>
   <button class="btn-admin-tog" id="adminTog" onclick="toggleAdmin()">⚙️ Admin</button>
 </header>
 
@@ -1436,6 +1480,11 @@ function renderLevel(){
     const nd = DB.nodes.find(x=>x.id===curId);
     if(!nd || nd.parentId !== null){ main.innerHTML = loadingHtml(); return; }
   }
+  // STĹPCOVÉ ZOBRAZENIE (29.10.2026) — namiesto dlaždíc stĺpce; promo blok ostáva nad nimi
+  const colsOn = viewMode==='cols' && colsAllowed();
+  main.classList.toggle('cols-mode', colsOn);
+  if(colsOn){ renderColumns(main, renderPromoBlock()); return; }
+
   const children = getChildren(curId);
   const isRoot = curId === null;
 
@@ -1550,6 +1599,126 @@ function renderLevel(){
   main.innerHTML = html;
   activatePromoScripts(main);
 }
+
+// ============================================================
+// STĹPCOVÉ ZOBRAZENIE (29.10.2026) — prepínač ▦/▥ v hlavičke. Priečinok sa otvorí
+// prechodom myši (0,12 s oneskorenie), klik ho „pripne" (navigate → mení adresu,
+// breadcrumbs aj cielenie bannerov). Linka: prechod myši = popis v pravom paneli,
+// klik = otvorí web. Vidno posledné COLS_MAX stĺpce, staršie sú zbalené do pásikov.
+// Len myš na počítači (hover:hover, > 700 px) a nie v admine — inak dlaždice.
+// Voľba sa pamätá v localStorage (sportStromView). Google to nevidí — statické
+// stránky aj vyhľadávanie ostávajú v dlaždiciach.
+// ============================================================
+const COLS_MAX = 4;
+let viewMode = 'tiles';
+let colPath  = null;   // id priečinkov otvorených myšou (po úrovniach); null = podľa curId
+let colHover = null;   // id linky, ktorej popis je v paneli
+let colTimer = null;
+let _colPromo = '';
+function colsAllowed(){ return !adminMode && window.innerWidth > 700 && window.matchMedia('(hover:hover)').matches; }
+function initViewMode(){
+  viewMode = lsGet('sportStromView')==='cols' ? 'cols' : 'tiles';
+  if(IS_EN){ const t = {tiles:'▦ Tiles', cols:'▥ Columns'}; document.querySelectorAll('#vSwitch button').forEach(b=>{ b.textContent = t[b.dataset.mode]; b.title = b.dataset.mode==='cols' ? 'Columns — folders open on mouse hover' : 'Tiles'; }); }
+  updateViewSwitch();
+}
+function updateViewSwitch(){ document.querySelectorAll('#vSwitch button').forEach(b=>b.classList.toggle('on', b.dataset.mode===viewMode)); }
+function setViewMode(m){
+  viewMode = m==='cols' ? 'cols' : 'tiles';
+  lsSet('sportStromView', viewMode);
+  updateViewSwitch();
+  colPath = null; colHover = null;
+  render();
+}
+function colNode(id){ return DB.nodes.find(n=>n.id===id); }
+function colCnt(n){
+  const sub = n._sub!==undefined ? n._sub : getChildren(n.id).filter(c=>c.type==='folder').length;
+  const tot = n._cnt!==undefined ? n._cnt : countAll(n.id);
+  return sub>0 ? `${sub} 📂` : (tot>0 ? `${tot} 🔗` : '');
+}
+function colHost(n){ try{ return new URL(n.url).hostname; }catch(e){ return ''; } }
+function renderColumns(main, promoHtml){
+  _colPromo = promoHtml || '';
+  // colPath musí začínať cestou k otvorenému priečinku (curId); inak sa resetne
+  const base = getPath(curId).map(n=>n.id);
+  if(!colPath || base.some((id,i)=>colPath[i]!==id)) colPath = base;
+  const levels = [null, ...colPath];
+  const firstFull = Math.max(0, levels.length - COLS_MAX);
+  let html = _colPromo + '<div class="cols" id="colsWrap">';
+  levels.forEach((pid, lv) => {
+    const pn = pid===null ? null : colNode(pid);
+    const title = pid===null ? (IS_EN?'Sections':'Sekcie') : (pn ? nName(pn) : '');
+    if(lv < firstFull){
+      html += `<div class="col collapsed" data-lv="${lv}" title="${attrEsc(title)}" onclick="colExpand(${lv})"><span class="col-vt">${attrEsc(title)}</span></div>`;
+      return;
+    }
+    html += `<div class="col" data-lv="${lv}"><div class="col-title">${attrEsc(title)}</div>`;
+    if(DB._partial && pn && pn.parentId !== null){ html += loadingHtml() + '</div>'; return; } // štartovací balík: hlbšie deti ešte nie sú
+    getChildren(pid).forEach(n => {
+      if(n.type==='folder'){
+        const cls = (colPath[lv]===n.id?' open':'') + (curId===n.id?' pin':'');
+        html += `<a class="cit${cls}" data-id="${n.id}" data-lv="${lv}" data-t="f" href="${attrEsc(urlForId(n.id))}" onclick="return colClick(event,'${n.id}')"><span class="ic">${renderIcon(nodeIcon(n),'20x15')||''}</span><span class="nm">${nName(n)}</span><span class="cnt">${colCnt(n)}</span><span class="arr">›</span></a>`;
+      } else {
+        const host = colHost(n);
+        const liveIcon = IS_EN && pid===LIVE_ID;
+        const lt = n.order===-1 ? `<span class="lt">${IS_EN?'LEAGUE':'LIGA'}</span>` : '';
+        const soc = (n.fb?'FB':'') + (n.fb&&n.ig?' ':'') + (n.ig?'IG':'');
+        html += `<a class="cit lnk${colHover===n.id?' open':''}" data-id="${n.id}" data-t="l" href="${attrEsc(n.url)}" target="_blank" rel="noopener">${liveIcon ? `<span class="fav-fb">${n.icon||'🔗'}</span>` : favHtml(n, host)}<span class="nm">${lt}${nName(n)}</span>${soc?`<span class="soc">${soc}</span>`:''}</a>`;
+      }
+    });
+    html += '</div>';
+  });
+  html += `<div class="cdetail" id="colDetail">${colDetailHtml()}</div></div>`;
+  if(_colPromo) html += promoWarnHtml();
+  main.innerHTML = html;
+  activatePromoScripts(main);
+  const wrap = document.getElementById('colsWrap');
+  if(wrap) wrap.scrollLeft = wrap.scrollWidth;
+}
+function colDetailHtml(){
+  const h = colHover ? colNode(colHover) : null;
+  if(h && h.type==='link'){
+    const host = colHost(h);
+    const socs = socHtml(h, host);
+    return `<h3>${renderIcon(h.icon,'24x18')||''} ${nName(h)}</h3><div class="host">${attrEsc(host)}</div><p>${nDesc(h)}</p>` +
+           `<a class="btn-open" href="${attrEsc(h.url)}" target="_blank" rel="noopener">${IS_EN?'Open website':'Otvoriť web'} ›</a>${socs}`;
+  }
+  const last = colPath && colPath.length ? colNode(colPath[colPath.length-1]) : null;
+  if(last) return `<h3>${renderIcon(nodeIcon(last),'24x18')||''} ${nName(last)}</h3><p>${nDesc(last)}</p><div class="empty-hint">${colCnt(last)}</div>`;
+  return `<div class="empty-hint">${IS_EN?'Move the mouse over a section on the left…':'Prejdi myšou po sekcii vľavo…'}</div>`;
+}
+function colExpand(lv){ colPath = colPath.slice(0, lv); colHover = null; renderColumns(document.getElementById('main'), _colPromo); }
+function colClick(ev, id){
+  if(ev.ctrlKey || ev.metaKey || ev.shiftKey || ev.button === 1) return true;
+  ev.preventDefault();
+  colPath = getPath(id).map(n=>n.id); colHover = null;
+  navigate(id);
+  return false;
+}
+// prechod myšou — delegované na <main>, platí len v stĺpcovom režime
+document.getElementById('main').addEventListener('mouseover', ev => {
+  if(viewMode!=='cols' || !document.getElementById('colsWrap')) return;
+  const it = ev.target.closest('.cit'); if(!it) return;
+  clearTimeout(colTimer);
+  colTimer = setTimeout(() => {
+    if(it.dataset.t==='f'){
+      const lv = +it.dataset.lv;
+      if(colPath[lv]===it.dataset.id) return;
+      colPath = colPath.slice(0, lv); colPath[lv] = it.dataset.id; colHover = null;
+      renderColumns(document.getElementById('main'), _colPromo);
+    } else {
+      if(colHover===it.dataset.id) return;
+      colHover = it.dataset.id;
+      document.querySelectorAll('.cit.lnk.open').forEach(x=>x.classList.remove('open'));
+      it.classList.add('open');
+      const d = document.getElementById('colDetail'); if(d) d.innerHTML = colDetailHtml();
+    }
+  }, 120);
+});
+window.addEventListener('resize', () => {
+  const on = !!document.querySelector('main.cols-mode');
+  if(viewMode==='cols' && on !== colsAllowed()) render();
+});
+initViewMode();
 
 // ============================================================
 // PROMO BLOK — reklamný text (DB.promos) + banner/rotátor (DB.promoBanner)
