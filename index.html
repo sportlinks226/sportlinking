@@ -1687,9 +1687,13 @@ function colsIntoView(){
   if(top > 4){
     window.scrollBy({top, behavior:'smooth'});
     _colsQuietUntil = Date.now() + 700;   // kým sa stránka posúva, prechody myšou sa ignorujú
+    // po posune sa položka, ktorá skončila pod kurzorom, spracuje ako čerstvý prechod
+    // myšou (inak by sa stĺpce „zasekli", kým človek nepohne myšou na inú položku)
+    clearTimeout(_colsQuietT);
+    _colsQuietT = setTimeout(()=>{ const el = document.elementFromPoint(_mx, _my); if(el) el.dispatchEvent(new MouseEvent('mouseover',{bubbles:true})); }, 760);
   }
 }
-let _colsQuietUntil = 0;
+let _colsQuietUntil = 0, _colsQuietT = null, _mx = -1, _my = -1;
 // Automatické rolovanie stĺpca: myš pri spodnom (hornom) okraji stĺpca ho pomaly
 // roluje nadol (nahor). Počas rolovania sa priečinky pod kurzorom NEOTVÁRAJÚ.
 let _edgeCol = null, _edgeDir = 0, _edgeRaf = null;
@@ -1700,6 +1704,7 @@ function colEdgeStep(){
 }
 function colEdgeStop(){ _edgeCol = null; _edgeDir = 0; if(_edgeRaf){ cancelAnimationFrame(_edgeRaf); _edgeRaf = null; } }
 document.getElementById('main').addEventListener('mousemove', ev => {
+  _mx = ev.clientX; _my = ev.clientY;
   if(viewMode!=='cols'){ return; }
   const col = ev.target.closest('.col');
   if(!col || col.classList.contains('collapsed') || col.scrollHeight <= col.clientHeight + 2){ colEdgeStop(); return; }
