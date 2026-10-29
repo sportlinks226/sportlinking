@@ -1657,7 +1657,9 @@ function renderColumns(main, promoHtml, fromHover){
     if(DB._partial && pn && pn.parentId !== null){ html += loadingHtml() + '</div>'; return; } // štartovací balík: hlbšie deti ešte nie sú
     getChildren(pid).forEach(n => {
       if(n.type==='folder'){
-        const cls = (colPath[lv]===n.id?' open':'') + (curId===n.id?' pin':'');
+        // zvýrazní sa len to, kade práve ide myš; červený rámik (pripnuté = adresa
+        // stránky) iba ak pripnutý priečinok leží na tejto ceste (Miro 29.10.2026)
+        const cls = colPath[lv]===n.id ? (curId===n.id ? ' pin' : ' open') : '';
         html += `<a class="cit${cls}" data-id="${n.id}" data-lv="${lv}" data-t="f" href="${attrEsc(urlForId(n.id))}" onclick="return colClick(event,'${n.id}')"><span class="ic">${renderIcon(nodeIcon(n),'20x15')||''}</span><span class="nm">${nName(n)}</span><span class="cnt">${colCnt(n)}</span><span class="arr">›</span></a>`;
       } else {
         const host = colHost(n);
