@@ -1615,6 +1615,7 @@ let colPath  = null;   // id priečinkov otvorených myšou (po úrovniach); nul
 let colHover = null;   // id linky, ktorej popis je v paneli
 let colTimer = null;
 let _colPromo = '';
+let _colPathCur;        // curId, pre ktorý bola colPath naposledy nastavená
 function colsAllowed(){ return !adminMode && window.innerWidth > 700 && window.matchMedia('(hover:hover)').matches; }
 function initViewMode(){
   viewMode = lsGet('sportStromView')==='cols' ? 'cols' : 'tiles';
@@ -1638,9 +1639,10 @@ function colCnt(n){
 function colHost(n){ try{ return new URL(n.url).hostname; }catch(e){ return ''; } }
 function renderColumns(main, promoHtml, fromHover){
   _colPromo = promoHtml || '';
-  // colPath musí začínať cestou k otvorenému priečinku (curId); inak sa resetne
-  const base = getPath(curId).map(n=>n.id);
-  if(!colPath || base.some((id,i)=>colPath[i]!==id)) colPath = base;
+  // Pri zmene otvoreného priečinka (navigate) sa cesta stĺpcov nastaví podľa neho;
+  // pri prechodoch myšou (curId sa nemení) ostáva, nech ukazuje čokoľvek — aj
+  // nad pripnutým priečinkom (oprava 29.10.2026: predtým sa po kliknutí „zamrzlo").
+  if(!colPath || _colPathCur !== curId){ colPath = getPath(curId).map(n=>n.id); _colPathCur = curId; }
   const levels = [null, ...colPath];
   const firstFull = Math.max(0, levels.length - COLS_MAX);
   let html = _colPromo + '<div class="cols" id="colsWrap">';
