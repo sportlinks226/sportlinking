@@ -60,6 +60,15 @@ header{
 .admin-mode .btn-admin-tog{display:inline-block} /* v admin režime viditeľné ako indikátor + odhlásenie */
 .btn-admin-tog:hover{border-color:var(--accent);color:var(--text)}
 .btn-admin-tog.on{background:var(--accent);border-color:var(--accent);color:#fff}
+/* Rýchla navigácia po športoch v strede hlavičky (29.10.2026): ikonky hlavných
+   sekcií, aktívna sekcia zvýraznená; pod 900 px sa skryje (nezmestí sa k logu a hľadaniu) */
+.h-sports{display:flex;align-items:center;gap:4px;margin:0 auto;flex-wrap:nowrap}
+.h-sports a{display:flex;align-items:center;justify-content:center;width:38px;height:38px;border-radius:10px;font-size:22px;text-decoration:none;color:inherit;border:1.5px solid transparent;transition:.15s;position:relative;filter:saturate(.85)}
+.h-sports a:hover{background:var(--surface2);border-color:var(--border);filter:none;transform:translateY(-1px)}
+.h-sports a.on{background:rgba(232,66,66,.18);border-color:var(--accent);filter:none}
+.h-sports a span{position:absolute;top:44px;left:50%;transform:translateX(-50%);background:var(--surface2);border:1px solid var(--border);color:var(--text);font-size:.72rem;padding:3px 8px;border-radius:6px;white-space:nowrap;opacity:0;pointer-events:none;transition:.15s;z-index:5}
+.h-sports a:hover span,.h-sports a:focus-visible span{opacity:1}
+@media(max-width:900px){.h-sports{display:none}}
 
 /* ===== BREADCRUMB ===== */
 #breadcrumb{
@@ -476,6 +485,7 @@ footer{
       <div class="h-count" id="linkCount"></div>
     </div>
   </a>
+  <nav class="h-sports" id="hSports" aria-label="Športy"></nav>
   <div class="h-search"><input type="text" id="srch" aria-label="Hľadaj v strome" placeholder="🔍  Hľadaj kdekoľvek v strome..." oninput="onSearch()"/></div>
   <button class="btn-admin-tog" id="adminTog" onclick="toggleAdmin()">⚙️ Admin</button>
 </header>
@@ -1371,6 +1381,7 @@ function render(){
   updateLinkCount();
   updateHead();
   renderBreadcrumb();
+  renderSportsNav();
   // V priečinku Live This Week netreba lištu — sú v nej tie isté linky
   const aktWrap = document.getElementById('aktualneWrap');
   if(aktWrap) aktWrap.style.display = (IS_EN && curId===LIVE_ID && !adminMode) ? 'none' : '';
@@ -1380,6 +1391,20 @@ function render(){
     renderSearch(q); return;
   }
   renderLevel();
+}
+
+// Ikonky hlavných sekcií v hlavičke (29.10.2026). Berie koreňové priečinky cez
+// getChildren(null) — rovnaké radenie a skrývanie (en:false / enOnly) ako dlaždice.
+// Aktívna = koreňový predok práve otvoreného priečinka (prvý prvok getPath).
+function renderSportsNav(){
+  const nav = document.getElementById('hSports');
+  if(!nav) return;
+  const rootId = curId === null ? null : (getPath(curId)[0]?.id ?? null);
+  nav.setAttribute('aria-label', IS_EN ? 'Sports' : 'Športy');
+  nav.innerHTML = getChildren(null).filter(n=>n.type==='folder').map(n=>{
+    const nm = attrEsc(nName(n));
+    return `<a href="${attrEsc(urlForId(n.id))}" onclick="return navClick(event,'${n.id}')" class="${n.id===rootId?'on':''}" aria-label="${nm}">${renderIcon(n.icon,'24x18')}<span>${nm}</span></a>`;
+  }).join('');
 }
 
 function renderBreadcrumb(){
