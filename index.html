@@ -1569,7 +1569,7 @@ function renderLevel(){
       const host = (() => { try { return new URL(n.url).hostname; } catch(e){ return ''; }})();
       // Live This Week: len ručne zadaná ikona športu, žiadny favicon webu
       const liveIcon = IS_EN && curId===LIVE_ID;
-      const ligaTag = n.order===-1 ? `<span class="liga-tag">${IS_EN?'LEAGUE':'LIGA'}</span>` : '';
+      const ligaTag = (n.tag||n.order===-1) ? `<span class="liga-tag">${n.tag?String(n.tag).toUpperCase():(IS_EN?'LEAGUE':'LIGA')}</span>` : ''; // tag:'scores' → SCORES (rýchle linky live výsledkov, 1.11.2026)
       const socs = socHtml(n, host);
       html += `
         <div class="card-link${socs?' has-soc':''}">${ligaTag}
@@ -1664,7 +1664,7 @@ function renderColumns(main, promoHtml, fromHover){
       } else {
         const host = colHost(n);
         const liveIcon = IS_EN && pid===LIVE_ID;
-        const lt = n.order===-1 ? `<span class="lt">${IS_EN?'LEAGUE':'LIGA'}</span>` : '';
+        const lt = (n.tag||n.order===-1) ? `<span class="lt">${n.tag?String(n.tag).toUpperCase():(IS_EN?'LEAGUE':'LIGA')}</span>` : '';
         const soc = (n.fb?'FB':'') + (n.fb&&n.ig?' ':'') + (n.ig?'IG':'');
         html += `<a class="cit lnk${colHover===n.id?' open':''}" data-id="${n.id}" data-t="l" href="${attrEsc(n.url)}" target="_blank" rel="noopener">${liveIcon ? `<span class="fav-fb">${n.icon||'🔗'}</span>` : favHtml(n, host)}<span class="nm">${lt}${nName(n)}</span>${soc?`<span class="soc">${soc}</span>`:''}</a>`;
       }
@@ -1975,7 +1975,7 @@ function renderSearch(q){
     const host = (() => { try { return new URL(n.url).hostname; } catch(e){ return ''; }})();
     const path = pathOf(n.parentId).map(p=>nName(p)).join(' › ');
     const socs = socHtml(n, host);
-    return `<div class="card-link${socs?' has-soc':''}">${n.order===-1?`<span class="liga-tag">${IS_EN?'LEAGUE':'LIGA'}</span>`:''}
+    return `<div class="card-link${socs?' has-soc':''}">${(n.tag||n.order===-1)?`<span class="liga-tag">${n.tag?String(n.tag).toUpperCase():(IS_EN?'LEAGUE':'LIGA')}</span>`:''}
         <a href="${n.url}" target="_blank" rel="noopener">
           ${favHtml(n, host)}
           <div><div class="cl-name">${nName(n)}</div><div class="cl-desc sr-path">${path}</div></div>
