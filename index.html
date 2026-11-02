@@ -1496,13 +1496,17 @@ function renderBreadcrumb(){
 }
 
 let prvyRenderLevel = true; // bod 6 — viď koniec renderLevel()
+// Bod 2 (2.11.2026): po príchode celých dát sa obsah NEPREPÍŠE, ak je zhodný
+// s tým, čo sa vykreslilo z balíka — inak by dlaždice preblikli (animácia odznova).
+let _lvlHtml = null, _lvlSkipSame = false;
 function renderLevel(){
   const main = document.getElementById('main');
   const prvy = prvyRenderLevel; prvyRenderLevel = false;
   if(DB._partial && curId !== null){
-    // štartovací balík má len hlavné sekcie a ich podsekcie — hlbšie deti ešte nie sú
+    // štartovací balík má len hlavné sekcie a ich podsekcie — hlbšie deti ešte nie sú.
+    // _k = deti priečinka sú v balíku kompletné (mini-balík podstránky, bod 2).
     const nd = DB.nodes.find(x=>x.id===curId);
-    if(!nd || nd.parentId !== null){ main.innerHTML = loadingHtml(); return; }
+    if(!nd || (nd.parentId !== null && !nd._k)){ main.innerHTML = loadingHtml(); _lvlHtml = null; return; }
   }
   // STĹPCOVÉ ZOBRAZENIE (29.10.2026) — namiesto dlaždíc stĺpce; promo blok ostáva nad nimi
   const colsOn = viewMode==='cols' && colsAllowed();
@@ -1627,8 +1631,11 @@ function renderLevel(){
   if(prvy && main.firstChild){
     const t = document.createElement('template');
     t.innerHTML = html;
-    if(t.innerHTML === main.innerHTML) return;
+    if(t.innerHTML === main.innerHTML){ _lvlHtml = html; return; }
   }
+  const skip = _lvlSkipSame; _lvlSkipSame = false;
+  if(skip && html === _lvlHtml && main.firstChild) return;
+  _lvlHtml = html;
   main.innerHTML = html;
   activatePromoScripts(main);
 }
@@ -1687,7 +1694,7 @@ function renderColumns(main, promoHtml, fromHover){
       return;
     }
     html += `<div class="col" data-lv="${lv}"><div class="col-title">${attrEsc(title)}</div>`;
-    if(DB._partial && pn && pn.parentId !== null){ html += loadingHtml() + '</div>'; return; } // štartovací balík: hlbšie deti ešte nie sú
+    if(DB._partial && pn && pn.parentId !== null && !pn._k){ html += loadingHtml() + '</div>'; return; } // štartovací balík: hlbšie deti ešte nie sú (_k = mini-balík podstránky)
     getChildren(pid).forEach(n => {
       if(n.type==='folder'){
         // zvýrazní sa len to, kade práve ide myš; červený rámik (pripnuté = adresa
@@ -2848,11 +2855,24 @@ function initApp(){
 
 // RÝCHLY ŠTART (od 2.10.2026): ak generator vložil štartovací balík BOOT, domovská
 // stránka a hlavné sekcie sa vykreslia hneď z neho a celé data.json sa doťahuje
-// na pozadí. Hlbšia adresa (podstránka prevzatá appkou, 404) sa z balíka
-// rozlúštiť nedá — vtedy sa čaká na celé dáta ako doteraz, aby sa adresa
-// neprepísala vyššie (viď initFromUrl / CESTA_CELA).
+// na pozadí. PODSTRÁNKA prevzatá appkou (od 2.11.2026, bod 2) prinesie mini-balík
+// window.__PAGE_BOOT (vkladá ho TAKEOVER v generator.py): predkovia + táto stránka
+// + všetky jej deti. Spojí sa s BOOT, takže sa aj hlbšia adresa rozlúšti celá
+// a stránka sa vykreslí hneď. Adresa, ktorá sa rozlúštiť nedá (404, chýbajúci
+// balík), sa nevykresľuje — čaká sa na celé dáta, aby sa adresa neprepísala
+// vyššie (viď initFromUrl / CESTA_CELA).
 let bootShown = false;
 if(BOOT && BOOT.nodes && PATH_ROUTING && !(location.hash && location.hash.indexOf('#/') === 0)){
+  try{
+    const PB = window.__PAGE_BOOT;
+    if(PB && Array.isArray(PB.nodes) && PB.nodes.length){
+      const m = new Map();
+      BOOT.nodes.forEach(n => m.set(n.id, n));
+      PB.nodes.forEach(n => m.set(n.id, n));   // uzol z balíka stránky má prednosť
+      (PB.full || []).forEach(id => { const n = m.get(id); if(n) n._k = 1; });
+      BOOT.nodes = Array.from(m.values());
+    }
+  }catch(e){}
   try{
     DB = BOOT; DB._partial = true;
     idForPath(); // nastaví CESTA_CELA
@@ -2868,6 +2888,9 @@ if(BOOT && BOOT.nodes && PATH_ROUTING && !(location.hash && location.hash.indexO
       renderBannerSlot();
       startRotation();
       bootShown = true;
+      // pozícia posunu zo statickej stránky (návštevník už stihol posúvať)
+      const sy = +window.__PAGE_SCROLL || 0;
+      if(sy > 0){ try{ window.scrollTo(0, sy); }catch(e){} }
     }
   }catch(e){ bootShown = false; }
 }
@@ -2886,7 +2909,8 @@ load().then(()=>{
   // priečinky, takže linky treba dokresliť (chyba z previerky 22.10.2026, bod 1).
   // Live This Week sa vynecháva — jeho linky sú z Aktuálnych, tie BOOT obsahuje.
   const maLinky = cur && cur.id !== LIVE_ID && getChildren(cur.id).some(k => k.type === 'link');
-  if(q || hlboko || maLinky || (curId && !cur)) render();
+  // _lvlSkipSame: obsah zhodný s balíkom sa neprepisuje (karty nepreblikú)
+  if(q || hlboko || maLinky || (curId && !cur)){ _lvlSkipSame = true; render(); _lvlSkipSame = false; }
   else { updateLinkCount(); updateHead(); }
   checkAdminHash();
   if(_adminPending){ _adminPending = false; toggleAdmin(); }

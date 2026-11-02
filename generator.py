@@ -316,6 +316,76 @@ def build_boot(data: dict, children: dict) -> dict:
     return boot
 
 
+def link_counts(children: dict) -> dict:
+    """Počet liniek v podstrome každého priečinka (ako _cnt v build_boot)."""
+    out = {}
+
+    def cnt(fid):
+        c = 0
+        for k in children.get(fid, []):
+            c += 1 if k.get("type") == "link" else cnt(k["id"])
+        out[fid] = c
+        return c
+
+    for top in children.get(None, []):
+        if top.get("type") == "folder":
+            cnt(top["id"])
+    return out
+
+
+def _lite_node(n: dict) -> dict:
+    """Uzol presne tak, ako ho má návštevník v data.json (viď lite_data)."""
+    if LANG == "en":
+        return {k: v for k, v in n.items() if not (k == "desc" and n.get("desc_en"))}
+    return {k: v for k, v in n.items() if k not in EN_NODE_KEYS}
+
+
+BOOT_KEEP = ("id", "parentId", "type", "name", "name_en", "slug", "slug_en",
+             "icon", "order", "order_en", "en", "enOnly")
+
+
+def build_page_boot(node, children, by_id, boot_ids, lcnt) -> str:
+    """MINI-BALÍK PODSTRÁNKY (od 2.11.2026, bod 2 previerky).
+
+    DOPLNOK k balíku BOOT z index.html (ten má priečinky 1. a 2. úrovne,
+    Aktuálne, bannery, promá) — appka si ich po prevzatí spojí a podstránku
+    vykreslí hneď, bez čakania na celý data.json:
+      - reťazec predkov od koreňa po túto stránku (cesta z adresy sa rozlúšti celá),
+      - táto stránka celá (aj s popisom — appka ho dáva do meta popisu),
+      - VŠETKY jej deti: priečinky s _cnt/_sub, linky so všetkými poľami
+        z data.json (po príchode celých dát sa nič nezmení ani nepreblikne).
+    "full" = priečinky, ktorých deti sú v balíku kompletné (appka ich kreslí
+    hneď, inde ukáže „Načítavam…“). Výsledok je JSON so znakmi < > & zakódovanými
+    ako \\u003c \\u003e \\u0026 — bezpečný vnútri <script> (bod 14)."""
+    def folder(n, full_node=False):
+        m = _lite_node(n) if full_node else {k: n[k] for k in BOOT_KEEP if k in n}
+        if LANG != "en":
+            m = {k: v for k, v in m.items() if k not in EN_NODE_KEYS}
+        m["_cnt"] = lcnt.get(n["id"], 0)
+        m["_sub"] = sum(1 for k in children.get(n["id"], []) if k.get("type") == "folder")
+        return m
+
+    nodes = []
+    chain = []
+    a = node
+    while a is not None:
+        chain.append(a)
+        a = by_id.get(a.get("parentId"))
+    for anc in reversed(chain):
+        if anc is node:
+            nodes.append(folder(anc, True))      # vždy (popis), prepíše uzol z BOOT
+        elif anc["id"] not in boot_ids:
+            nodes.append(folder(anc))
+    if node["id"] != LIVE_ID:   # Live This Week: linky si appka skladá z Aktuálnych
+        for k in children.get(node["id"], []):
+            if k["id"] in boot_ids:
+                continue
+            nodes.append(folder(k) if k.get("type") == "folder" else _lite_node(k))
+    pb = {"version": DATA_VER, "nodes": nodes, "full": [node["id"]]}
+    return (json.dumps(pb, ensure_ascii=False, separators=(",", ":"))
+            .replace("<", "\\u003c").replace(">", "\\u003e").replace("&", "\\u0026"))
+
+
 # ------------------------------------------------------------
 # ODĽAHČENÉ DÁTA PRE NÁVŠTEVNÍKOV (od 26.10.2026, bod 3 a 13 previerky)
 # ------------------------------------------------------------
@@ -695,7 +765,7 @@ PAGE = """<!DOCTYPE html>
 {secnav}
 <footer>{site_title} — {footer}</footer>
 </div>
-{dyn_js}
+{page_boot}{dyn_js}
 {takeover}
 </body>
 </html>
@@ -775,12 +845,15 @@ function __dyn(){
 # adresu "data.json?v=138", vďaka ktorej sa smie súbor cachovať.
 DATA_VER = ""
 
-# POZOR: appka sa preberá AŽ KEĎ je isté, že sa dá stiahnuť aj data.json.
-# Keby sa prevzala skôr a dáta by neprišli (Googlebot má na vykreslenie krátky
-# limit), appka by bežala na starých zapečených dátach, nenašla by cestu z
-# adresy a prepísala by ju vyššie — Google to hlásil ako „Stránka s
-# presmerovaním" a stránku nezaindexoval. Keď sa dáta nestihnú, zostane
-# zobrazená táto statická stránka: má správny obsah aj canonical.
+# PREVZATIE BEZ ČAKANIA NA DÁTA (od 2.11.2026, bod 2 previerky): appka sa preberá
+# hneď, ako je stiahnutý index.html (po prvej stránke je v pamäti prehliadača).
+# data.json (~1 MB zbalený) si appka stiahne až PO prevzatí, na pozadí. Podstránku
+# vykreslí z mini-balíka #pageBoot (viď build_page_boot) — má v ňom celú cestu
+# z adresy aj deti tejto stránky, takže adresu nikdy neprepíše vyššie (to bol
+# pôvodný dôvod čakania na dáta: Google hlásil „Stránka s presmerovaním").
+# Balík a pozícia posunu sa odovzdajú prevzatému dokumentu VLOŽENÍM <script> do
+# HTML pred document.write — globálne premenné okna document.open() vo všetkých
+# prehliadačoch spoľahlivo neprežijú (staršie Safari/Firefox vyrábali nové okno).
 TAKEOVER = """<script>
 (function(){
   // Vyhladavacie roboty (Googlebot, Bingbot, nastroj kontroly adresy v Search
@@ -822,28 +895,32 @@ TAKEOVER = """<script>
     s.setAttribute("data-goatcounter","https://__GOAT__.goatcounter.com/count");
     document.body.appendChild(s);
   }
+  // mini-balik stranky (JSON v <script type="application/json" id="pageBoot">)
+  // a poziciu posunu si treba vziat PRED document.open(), ktory dokument vymaze
+  function balik(){
+    try{
+      var el = document.getElementById("pageBoot");
+      if(!el) return "";
+      var t = el.textContent || "";
+      JSON.parse(t); // poskodeny balik radsej vynechat — appka si pocka na data
+      // generator uz znaky < > & zakodoval; poistka, aby text nikdy nezavrel <script>
+      t = t.replace(/</g,"\\\\u003c").replace(/>/g,"\\\\u003e").replace(/&/g,"\\\\u0026");
+      return "<script>window.__PAGE_BOOT=" + t + ";window.__PAGE_SCROLL="
+           + (Math.round(window.scrollY||window.pageYOffset||0)) + ";<\\/script>";
+    }catch(e){ return ""; }
+  }
   try{
-    Promise.all([
-      fetch("__ROOT__index.html").then(function(r){
-        if(!r.ok) throw new Error("app");
-        return r.text();
-      }),
-      // dáta sa musia dať stiahnuť, inak appku nepreberáme (viď komentár vyššie);
-      // appka si ich potom vezme z pamäte prehliadača, nesťahuje ich druhýkrát
-      fetch("__DATAURL__").then(function(r){
-        if(!r.ok) throw new Error("data");
-        return r.json();
-      }).then(function(d){
-        if(!d || !d.nodes) throw new Error("data");
-      })
-    ]).then(function(res){
-      var h = res[0];
+    fetch("__ROOT__index.html").then(function(r){
+      if(!r.ok) throw new Error("app");
+      return r.text();
+    }).then(function(h){
       if(h.indexOf("let SITE_ROOT =")<0) throw new Error("marker");
       done=true;
       // POZOR na poradie: document.open() VYMAZE cely dokument, preto sa hreflang
-      // zo statickej stranky musi precitat PRED nim (chyba z 20.9.2026 — po
-      // prevzati nezostal ziadny hreflang).
-      var nh = prenesHreflang(h);
+      // aj balik zo statickej stranky musia precitat PRED nim (chyba z 20.9.2026 —
+      // po prevzati nezostal ziadny hreflang).
+      var nh = prenesHreflang(h), pb = balik();
+      if(pb) nh = nh.replace(/<head([^>]*)>/i, function(m){ return m + pb; });
       document.open(); document.write(nh); document.close();
     }).catch(fallback);
   }catch(e){ fallback(); }
@@ -938,7 +1015,7 @@ def home_title(n: int) -> str:
     return f"Športové Linky — {links_label(n)} webov klubov, líg a správ"
 
 
-def render_page(node, path, children, by_id, paths, site_title, alt_url=None):
+def render_page(node, path, children, by_id, paths, site_title, alt_url=None, page_boot=""):
     depth = len(path)
     root = "../" * depth
     name = escape(node_name(node))
@@ -1127,6 +1204,8 @@ def render_page(node, path, children, by_id, paths, site_title, alt_url=None):
         site_title=escape(site_title),
         dyn_js=dyn_js,
         takeover=takeover,
+        page_boot=(f'<script type="application/json" id="pageBoot">{page_boot}</script>\n'
+                   if page_boot else ""),
     )
 
 
@@ -1181,6 +1260,10 @@ def main():
 
     os.makedirs(out, exist_ok=True)
 
+    # mini-balíky podstránok (bod 2) — doplnok k BOOT, viď build_page_boot()
+    boot_ids = {n["id"] for n in build_boot(data, children)["nodes"]}
+    lcnt = link_counts(children)
+
     # stránky priečinkov
     count = 0
     for fid, path in paths.items():
@@ -1188,7 +1271,8 @@ def main():
         os.makedirs(d, exist_ok=True)
         alt_url = (f'{ALT_BASE_URL}/{"/".join(paths_alt[fid])}/'
                    if fid in paths_alt else None)
-        html = render_page(by_id[fid], path, children, by_id, paths, site_title, alt_url)
+        html = render_page(by_id[fid], path, children, by_id, paths, site_title, alt_url,
+                           build_page_boot(by_id[fid], children, by_id, boot_ids, lcnt))
         with open(os.path.join(d, "index.html"), "w", encoding="utf-8") as f:
             f.write(html)
         count += 1
