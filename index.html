@@ -1916,20 +1916,34 @@ function norm(s){
 }
 
 // Výrez popisu okolo hľadaného slova (pre sekciu „Spomenuté v popise“)
-function srchSnip(text, nq, wordRe){
+// Zvýrazní celý hľadaný výraz aj jednotlivé slová (pri hľadaní viacerých slov).
+function srchSnip(text, nq, words){
   if(!text) return '';
   // normalizovaný text + mapa: pozícia v normalizovanom → pozícia v pôvodnom
   let nt='', map=[];
   for(let i=0;i<text.length;i++){ const c=norm(text[i]); for(let k=0;k<c.length;k++){ nt+=c[k]; map.push(i); } }
-  const m = wordRe.exec(nt); if(!m) return '';
-  const pos = m.index + m[1].length;
-  let a = map[pos], b = map[pos+nq.length-1]+1;
   const isW = (ch)=>{ try{ return /[\p{L}\p{N}]/u.test(ch); }catch(e){ return /[a-z0-9]/i.test(ch); } };
-  while(b<text.length && isW(text[b])) b++;           // zvýrazni celé slovo („Slovanu“)
+  const reFor = (w)=>{ const e=w.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+    try{ return new RegExp('(^|[^\\p{L}\\p{N}])'+e,'gu'); }catch(_){ return new RegExp('(^|[^a-z0-9])'+e,'g'); } };
+  const terms = (words && words.length>1) ? [nq.trim(), ...words] : [nq.trim()];
+  const rng = [];
+  terms.forEach(w=>{ if(!w) return; const re=reFor(w); let m;
+    while((m=re.exec(nt))){ const p=m.index+m[1].length;
+      let a=map[p], b=map[p+w.length-1]+1;
+      while(b<text.length && isW(text[b])) b++;         // zvýrazni celé slovo („Slovanu“)
+      rng.push([a,b]); } });
+  if(!rng.length) return '';
+  rng.sort((x,y)=>x[0]-y[0]);
+  const mg=[]; rng.forEach(r=>{ const l=mg[mg.length-1]; if(l && r[0]<=l[1]) l[1]=Math.max(l[1],r[1]); else mg.push([r[0],r[1]]); });
+  const a=mg[0][0], b=mg[0][1];
   let s0 = Math.max(0, a-22), s1 = Math.min(text.length, b+70);
   if(s0>0){ const sp=text.indexOf(' ', s0); if(sp>-1 && sp<a) s0=sp+1; }
   if(s1<text.length){ const sp=text.lastIndexOf(' ', s1); if(sp>b) s1=sp; }
-  return `<div class="sr-snip">${s0>0?'…':''}${attrEsc(text.slice(s0,a))}<mark>${attrEsc(text.slice(a,b))}</mark>${attrEsc(text.slice(b,s1))}${s1<text.length?'…':''}</div>`;
+  let out='', pos=s0;
+  mg.forEach(([x,y])=>{ if(x<s0 || x>=s1) return; const yy=Math.min(y,s1);
+    out += attrEsc(text.slice(pos,x)) + '<mark>' + attrEsc(text.slice(x,yy)) + '</mark>'; pos=yy; });
+  out += attrEsc(text.slice(pos,s1));
+  return `<div class="sr-snip">${s0>0?'…':''}${out}${s1<text.length?'…':''}</div>`;
 }
 
 function renderSearch(q){
@@ -1964,13 +1978,22 @@ function renderSearch(q){
   let wordRe;
   try{ wordRe = new RegExp('(^|[^\\p{L}\\p{N}])'+esc,'u'); }
   catch(e){ wordRe = new RegExp('(^|[^a-z0-9])'+esc); }
+  // Viac slov („dac dun“): každé slovo sa hľadá samostatne, na začiatku slova, v ľubovoľnom poradí
+  const words = nq.trim().split(/\s+/).filter(Boolean);
+  const wRes = words.map(w=>{ const e=w.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+    try{ return new RegExp('(^|[^\\p{L}\\p{N}])'+e,'u'); }catch(_){ return new RegExp('(^|[^a-z0-9])'+e); } });
+  const allIn = (t)=> words.length>1 && wRes.every(r=>r.test(t));
   // Skóre: 0 = názov začína hľadaným textom, 1 = slovo v názve začína,
   // 2 = kdekoľvek v názve, 3 = slovo v popise začína (zmienka), -1 = nič
   const score = (n)=>{ const c = srchText(n);
     if(c.name.startsWith(nq)) return 0;
     if(wordRe.test(c.name)) return 1;
     if(c.name.includes(nq)) return 2;
+    if(allIn(c.name)) return 2;                  // všetky slová v názve
+    if(words.length>1 && wRes.some(r=>r.test(c.name))    // napr. „slovan hokej“ — šport je v ceste
+       && allIn(c.name+' '+norm(pathOf(n.parentId).map(p=>nName(p)).join(' ')))) return 2;
     if(wordRe.test(c.desc)) return 3;
+    if(allIn(c.name+' '+c.desc)) return 3;       // slová rozdelené medzi názov a popis
     return -1; };
   const scored = [];
   pool.forEach(n=>{ const sc = score(n); if(sc>=0) scored.push({n,sc}); });
@@ -1989,7 +2012,7 @@ function renderSearch(q){
     const d = nDesc(n);
     return `<a class="card-folder" href="${attrEsc(urlForId(n.id))}" onclick="return navClick(event,'${n.id}')"${d?` title="${attrEsc(d)}"`:''}>
         <div class="cf-icon">${renderIcon(nodeIcon(n),'24x18')||''}</div>
-        <div class="cf-info"><div class="cf-name">${nName(n)}</div><div class="cf-count sr-path">${path}</div>${snip?srchSnip(d,nq,wordRe):''}</div>
+        <div class="cf-info"><div class="cf-name">${nName(n)}</div><div class="cf-count sr-path">${path}</div>${snip?srchSnip(d,nq,words):''}</div>
         <div class="cf-arrow">›</div></a>`;
   };
   const linkCard = (n, snip)=>{
@@ -1999,7 +2022,7 @@ function renderSearch(q){
     return `<div class="card-link${socs?' has-soc':''}">${(n.tag||n.order===-1)?`<span class="liga-tag">${n.tag?String(n.tag).toUpperCase():(IS_EN?'LEAGUE':'LIGA')}</span>`:''}
         <a href="${n.url}" target="_blank" rel="noopener" title="${attrEsc(nDesc(n))}">
           ${favHtml(n, host)}
-          <div style="min-width:0"><div class="cl-name">${nName(n)}</div><div class="cl-desc sr-path">${path}</div>${snip?srchSnip(nDesc(n),nq,wordRe):''}</div>
+          <div style="min-width:0"><div class="cl-name">${nName(n)}</div><div class="cl-desc sr-path">${path}</div>${snip?srchSnip(nDesc(n),nq,words):''}</div>
         </a>${socs}</div>`;
   };
   const card = (n, snip)=> n.type==='folder' ? folderCard(n, snip) : linkCard(n, snip);
