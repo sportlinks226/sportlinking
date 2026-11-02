@@ -1,0 +1,55 @@
+# SKÚŠKA IKONIEK (bod 15) — spustí sa pri pull requeste, ktorý mení ikony.py,
+# alebo ručne (Actions → „Skúška ikoniek" → Run workflow). NIČ nenasadzuje ani necommituje: stiahne vzorku ikoniek cez
+# ikony.py a porovná ju s tým, čo by ukázal prehliadač po starom (Google → Yandex).
+# Výsledok je v logu a v prílohe „ikony-vzorka" (Summary → Artifacts).
+name: Skúška ikoniek
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths: [ikony.py, .github/workflows/ikony-vzorka.yml, .github/ikony-vzorka/**]
+
+permissions:
+  contents: read
+
+jobs:
+  vzorka:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Stiahni aktuálne dáta zo slovenského webu (ako build)
+        run: |
+          curl -fsSL --retry 3 "https://www.sportlinky.sk/data-full.json?build=$GITHUB_RUN_ID" -o data.json \
+            || curl -fsSL --retry 3 "https://www.sportlinky.sk/data.json?build=$GITHUB_RUN_ID" -o data.json
+      - name: Vzorka 200 webov (ikony.py)
+        run: |
+          python ikony.py --vzorka 200 --dir _vzorka --vystup vzorka.json \
+            --hosty hannover96.de,irishfa.com,www.hannover96.de,www.irishfa.com
+          python - <<'PY'
+          import json; d = json.load(open('vzorka.json'))['hosty']
+          for h in ('hannover96.de', 'www.hannover96.de', 'irishfa.com', 'www.irishfa.com'):
+              print('ZNÁMY WEB', h, d.get(h))
+          print('BEZ IKONKY (none):', [h for h, v in sorted(d.items()) if v.get('vysledok') == 'none'])
+          PY
+      - name: Porovnanie s prehliadačom (dnešná logika appky)
+        run: |
+          cd .github/ikony-vzorka && npm install --no-save --silent playwright-core@1.48.2
+          node porovnaj.js ../../vzorka.json ../../porovnanie.json
+      - name: Odhad času prvého stiahnutia (ďalších 1000 webov, len skript)
+        run: |
+          python ikony.py --vzorka 1000 --dir _odhad --vystup odhad.json
+          du -sh _vzorka _odhad; ls _odhad | wc -l
+          python -c "import json;d=json.load(open('odhad.json'));print('ODHAD:',d['trvanie_s'],'s na 1000 webov',d['pocty'])"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ikony-vzorka
+          path: |
+            vzorka.json
+            porovnanie.json
+            odhad.json
+            _vzorka/
