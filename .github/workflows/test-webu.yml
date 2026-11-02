@@ -1,0 +1,66 @@
+# AUTOMATICKÝ TEST WEBU — po každom nasadení (aj po dennom nočnom builde) otvorí
+# ŽIVÝ web v prehliadači a skontroluje, či funguje (skript testy/test_webu.py).
+# Beží AŽ PO skončení buildu ako samostatný workflow, takže nasadenie nezastaví
+# ani nespomalí a build.yml sa nemení. Pri chybe: červený krížik v Actions
+# (a e-mail od GitHubu). Výsledok s ✅/⚠️/❌ je rovno na stránke behu (Summary),
+# snímky obrazovky v prílohe „test-webu" (Artifacts, 14 dní).
+# Súbor je ROVNAKÝ v sport-linky aj sportlinking — adresu webu zistí configure-pages.
+# Ručné spustenie: Actions → „Test webu" → Run workflow.
+name: Test webu
+
+on:
+  workflow_run:
+    workflows: ["Build & Deploy", "Build & Deploy (EN)"]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+  # pull request, ktorý mení samotný test — overí ho proti živému webu
+  pull_request:
+    paths: [testy/**, .github/workflows/test-webu.yml]
+
+permissions:
+  contents: read
+  pages: read       # configure-pages zisťuje adresu webu
+
+# keď príde nové nasadenie skôr, ako test dobehne, starší test sa zruší
+concurrency:
+  group: test-webu-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    # po builde len ak build skončil úspešne; ručne a pri PR vždy
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/configure-pages@v5
+        id: pages
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Nainštaluj Playwright + Chromium
+        run: |
+          pip install playwright==1.64.1
+          python -m playwright install --with-deps chromium
+
+      - name: Otestuj živý web
+        env:
+          WEB_URL: ${{ steps.pages.outputs.base_url }}
+          # čas štartu buildu — test počká, kým živý web nemá novšiu verziu
+          # (pri ručnom spustení a PR je prázdny = bez čakania)
+          BUILD_START: ${{ github.event.workflow_run.run_started_at }}
+        run: python testy/test_webu.py --url "$WEB_URL" --od "$BUILD_START" --vystup test-vystup
+
+      - name: Ulož snímky obrazovky a zoznam chýb
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-webu
+          path: test-vystup/
+          retention-days: 14
+          if-no-files-found: ignore
