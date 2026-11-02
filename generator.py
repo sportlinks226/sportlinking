@@ -478,6 +478,106 @@ def inject_aktualne(html: str, aktualne: list) -> str:
     return html
 
 
+# ------------------------------------------------------------
+# DLAŽDICE DOMOVA A IKONKY ŠPORTOV PRIAMO V HTML (od 2.11.2026, bod 6 previerky)
+# ------------------------------------------------------------
+_SKL_EN = {"sekcia": "section", "sekcie": "sections", "sekcií": "sections",
+           "linka": "link", "linky": "links", "liniek": "links"}
+
+
+def skl(n: int, jedna: str, dvestyri: str, vela: str) -> str:
+    """Skloňovanie — ROVNAKÉ ako skl() v index.html (EN: section/sections, link/links)."""
+    if LANG == "en":
+        return _SKL_EN.get(jedna, jedna) if n == 1 else _SKL_EN.get(vela, vela)
+    return jedna if n == 1 else (dvestyri if 2 <= n <= 4 else vela)
+
+
+def home_static_html(children: dict, paths: dict):
+    """Vráti (HTML do #main, HTML do #hSports) PRESNE v značkovaní renderLevel()
+    (domov, bežný režim — vrátane skrytej admin lišty, aby bol obsah zhodný
+    s appkou) a renderSportsNav() (bez triedy "on"). Počty _cnt/_sub sa rátajú
+    ako v build_boot(), zo stromu children už filtrovaného podľa jazyka.
+    Appka pri prvom vykreslení obsah porovná a ak je zhodný, neprepíše ho."""
+    def cnt(fid):
+        return sum(1 if k.get("type") == "link" else cnt(k["id"])
+                   for k in children.get(fid, []))
+
+    def href(fid):
+        return escape(SITE_ABS_ROOT + "/".join(paths.get(fid, [])) + "/", quote=True)
+
+    top = children.get(None, [])
+    folders = [n for n in top if n.get("type") == "folder"]
+    has_links = any(n.get("type") == "link" for n in top)
+    main = ""
+    if folders:
+        if has_links:
+            main += '<div class="section-label">' + ("Categories" if LANG == "en" else "Kategórie") + "</div>"
+        big = len(folders) <= 10
+        main += '<div class="grid-root anim">' if big else '<div class="grid-deep anim">'
+        for n in folders:
+            i = n["id"]
+            total = cnt(i)
+            sub = sum(1 for k in children.get(i, []) if k.get("type") == "folder")
+            sek = f"{sub} {skl(sub, 'sekcia', 'sekcie', 'sekcií')}"
+            lin = f"{total} {skl(total, 'linka', 'linky', 'liniek')}"
+            c = f"{sek} · {lin}" if (sub > 0 and total > 0) else (sek if sub > 0 else lin)
+            name = escape(node_name(n), quote=True)
+            if big:
+                main += f"""
+          <a class="card-root" href="{href(i)}" onclick="return navClick(event,'{i}')">
+            <div class="card-admin-bar">
+              <button class="ibtn" title="Hore" onclick="event.stopPropagation();event.preventDefault();moveNode('{i}',-1)">▲</button>
+              <button class="ibtn" title="Dole" onclick="event.stopPropagation();event.preventDefault();moveNode('{i}',1)">▼</button>
+              <button class="ibtn" title="Upraviť" onclick="event.stopPropagation();event.preventDefault();openEdit('{i}')">✏️</button>
+              <button class="ibtn d" title="Zmazať" onclick="event.stopPropagation();event.preventDefault();delNode('{i}')">🗑</button>
+            </div>
+            <div class="c-icon">{icon_html(n.get("icon", ""), "40x30")}</div>
+            <div class="c-name">{name}</div>
+            <div class="c-count">{c}</div>
+            <div class="c-arrow">→</div>
+          </a>"""
+            else:
+                main += f"""
+          <a class="card-folder" href="{href(i)}" onclick="return navClick(event,'{i}')">
+            <div class="card-admin-bar">
+              <button class="ibtn" onclick="event.stopPropagation();event.preventDefault();moveNode('{i}',-1)">▲</button>
+              <button class="ibtn" onclick="event.stopPropagation();event.preventDefault();moveNode('{i}',1)">▼</button>
+              <button class="ibtn" onclick="event.stopPropagation();event.preventDefault();openEdit('{i}')">✏️</button>
+              <button class="ibtn d" onclick="event.stopPropagation();event.preventDefault();delNode('{i}')">🗑</button>
+            </div>
+            <div class="cf-icon">{icon_html(n.get("icon", ""), "24x18")}</div>
+            <div class="cf-info">
+              <div class="cf-name">{name}</div>
+              <div class="cf-count">{c}</div>
+            </div>
+            <div class="cf-arrow">›</div>
+          </a>"""
+        main += "</div>"
+    nav = "".join(
+        f'<a href="{href(n["id"])}" onclick="return navClick(event,\'{n["id"]}\')" class="" '
+        f'aria-label="{escape(node_name(n), quote=True)}">{icon_html(n.get("icon", ""), "24x18")}'
+        f'<span>{escape(node_name(n), quote=True)}</span></a>'
+        for n in folders)
+    return main, nav
+
+
+def inject_home(html: str, children: dict, paths: dict) -> str:
+    """Do prázdneho #main vloží dlaždice hlavných sekcií a do prázdneho #hSports
+    ikonky športov. Dovtedy ich kreslil len JavaScript, takže roboti bez neho
+    nevideli na domove žiadny odkaz dovnútra webu. Rovnako ako inject_aktualne()."""
+    m = re.search(r'<main id="main"></main>', html)
+    v = re.search(r'(<nav class="h-sports" id="hSports"[^>]*>)</nav>', html)
+    if not m or not v:
+        print("UPOZORNENIE: v index.html nie je prázdny #main / #hSports — "
+              "dlaždice domova ostanú len cez JavaScript (roboti ich neuvidia).")
+        return html
+    main, nav = home_static_html(children, paths)
+    # #hSports je v HTML PRED #main — najprv zadný úsek, aby pozície sedeli
+    html = html[:m.start()] + '<main id="main">' + main + "</main>" + html[m.end():]
+    html = html[:v.start()] + v.group(1) + nav + "</nav>" + html[v.end():]
+    return html
+
+
 def compute_has_link(children: dict) -> dict:
     """Pre každý priečinok zistí, či má v podstrome aspoň 1 linku.
     Priečinky bez liniek nedostanú statickú stránku („tenký obsah")."""
@@ -708,7 +808,7 @@ TAKEOVER = """<script>
         moje += '<link rel="alternate" hreflang="' + ls[i].getAttribute("hreflang")
               + '" href="' + ls[i].getAttribute("href") + '">';
       }
-      h = h.replace(/<link[^>]*hreflang=[^>]*>\s*/gi, "");
+      h = h.replace(/<link[^>]*hreflang=[^>]*>\\s*/gi, "");
       if(moje) h = h.replace(/<head([^>]*)>/i, "<head$1>" + moje);
     }catch(e){}
     return h;
@@ -1068,6 +1168,7 @@ def main():
     # vyrobí automaticky pri najbližšom builde.
     has_link = compute_has_link(children)
     skipped = [fid for fid in paths if not has_link.get(fid)]
+    all_paths = paths   # aj priečinky bez liniek — appka na ne tiež odkazuje (dlaždice domova)
     paths = {fid: p for fid, p in paths.items() if has_link.get(fid)}
 
     # hreflang: strom a cesty DRUHÉHO jazyka — aby sme vedeli, či tá istá
@@ -1222,6 +1323,8 @@ def main():
                 html = html.replace(boot_marker, "let BOOT = " + boot_js + ";", 1)
             # AKTUÁLNE PRIAMO V HTML (od 2.10.2026) — viď inject_aktualne().
             html = inject_aktualne(html, data.get("aktualne") or [])
+            # DLAŽDICE DOMOVA + IKONKY ŠPORTOV PRIAMO V HTML (od 2.11.2026) — viď inject_home().
+            html = inject_home(html, children, all_paths)
             # (preload data.json ZRUŠENÝ 2.10.2026 večer: na pomalej sieti súperil
             # o pásmo s bannerom, ktorý je na mobile najväčším prvkom — LCP 9,4 s.
             # Appka si dáta sťahuje až po udalosti load, s nízkou prioritou.)

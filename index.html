@@ -568,6 +568,22 @@ footer{
 
 <!-- MAIN -->
 <main id="main"></main>
+<script>
+// Bod 6 (2.11.2026): generator vkladá do #main dlaždice DOMOVA (pre roboty bez
+// JavaScriptu). Ten istý HTML však slúži aj ako 404.html a pre podstránky
+// prevzaté appkou — tam #main vyprázdni HNEĎ (ešte pred appkou a čakaním na
+// dáta), aby sa počas načítania neukazoval domov. Koreň webu sa zistí z adresy
+// prvej dlaždice (/futbal/ → /), lebo SITE_ROOT appky tu ešte nie je známy.
+(function(){
+  var m = document.getElementById('main'), a = m && m.querySelector('a[href]');
+  if(!a) return;
+  var hashCesta = !!(location.hash && location.hash.indexOf('#/') === 0);
+  var web = location.protocol === 'http:' || location.protocol === 'https:';
+  var koren = a.getAttribute('href').replace(/[^\/]*\/$/, '');
+  var cesta = location.pathname.replace(/[^\/]*\.html?$/i, '');
+  if(hashCesta || (web && cesta !== koren)) m.innerHTML = '';
+})();
+</script>
 
 <!-- FOOTER -->
 <footer>
@@ -1478,8 +1494,10 @@ function renderBreadcrumb(){
   bc.innerHTML = html;
 }
 
+let prvyRenderLevel = true; // bod 6 — viď koniec renderLevel()
 function renderLevel(){
   const main = document.getElementById('main');
+  const prvy = prvyRenderLevel; prvyRenderLevel = false;
   if(DB._partial && curId !== null){
     // štartovací balík má len hlavné sekcie a ich podsekcie — hlbšie deti ešte nie sú
     const nd = DB.nodes.find(x=>x.id===curId);
@@ -1601,6 +1619,15 @@ function renderLevel(){
   }
   if(promoHtml) html += promoWarnHtml();
 
+  // Bod 6 (2.11.2026): pri PRVOM vykreslení už v #main môžu byť dlaždice domova
+  // z generátora. Ak sú zhodné, NEPREPISUJ ich — animácia by začala odznova
+  // a na pomalom pripojení by dlaždice blikli. Porovnáva sa až po spracovaní
+  // prehliadačom (<template>), nie surový text, ktorý vyrobil generátor.
+  if(prvy && main.firstChild){
+    const t = document.createElement('template');
+    t.innerHTML = html;
+    if(t.innerHTML === main.innerHTML) return;
+  }
   main.innerHTML = html;
   activatePromoScripts(main);
 }
