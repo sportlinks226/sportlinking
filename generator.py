@@ -122,6 +122,9 @@ NO_EN_ALPHA = {"f_bas_sut_eu", "f_bas_sut_oc", "f_bas_sut_na", "f_bas_sut_ja", "
 # MUSÍ zostať zhodné s LIVE_ID v sport-strom.html.
 LIVE_ID = "f_ltw"
 
+# og:locale (bod 23 previerky) — jazyk webu pre Facebook a pod.
+OG_LOCALE = "en_US" if LANG == "en" else "sk_SK"
+
 # GoatCounter kód (oddelené štatistiky pre SK a EN web)
 GOAT = os.environ.get("GOAT_CODE", "sportlinky" if LANG == "sk" else "sportlinking")
 
@@ -238,14 +241,7 @@ def folder_paths(children: dict, lang: str = None):
         for n in children.get(parent_id, []):
             if n.get("type") != "folder":
                 continue
-            if lang == "en":
-                slug = (n.get("slug_en")
-                        or slugify(node_name(n, lang))
-                        or "cat-" + slugify(n["id"]))
-            else:
-                slug = (n.get("slug")
-                        or slugify(n.get("name", ""))
-                        or "kat-" + slugify(n["id"]))
+            slug = slug_base(n, lang)
             base, i = slug, 2
             while slug in used:          # súrodenci s rovnakým slugom
                 slug = f"{base}-{i}"
@@ -259,12 +255,45 @@ def folder_paths(children: dict, lang: str = None):
     return paths
 
 
+def slug_base(n: dict, lang: str = None) -> str:
+    """Slug priečinka PRED riešením duplicít medzi súrodencami.
+    ROVNAKÉ ako nodeSlugBase() v index.html."""
+    lang = lang or LANG
+    if lang == "en":
+        return (n.get("slug_en")
+                or slugify(node_name(n, lang))
+                or "cat-" + slugify(n["id"]))
+    return (n.get("slug")
+            or slugify(n.get("name", ""))
+            or "kat-" + slugify(n["id"]))
+
+
+# SLUGY SÚRODENCOV S ROVNAKÝM NÁZVOM (bod 21 previerky, 2.11.2026): folder_paths()
+# dá druhému „-2", tretiemu „-3"… Appka (nodeSlug v index.html) dostane tie isté
+# výsledné slugy ako mapu id -> slug (len priečinky, ktorých slug sa líši od
+# slug_base) — kľúč "_slugFix" v odľahčenom data.json, v BOOT a v mini-balíku.
+# Appka tak nemusí opakovať poradie súrodencov (EN abeceda kontinentov sa v appke
+# a generátore radí trochu inak) a adresy sú zaručene zhodné. Do data-full.json
+# sa NEPÍŠE. Vypĺňa main().
+SLUG_FIX = {}
+
+
+def gen_meta(ids) -> dict:
+    """Kľúče _titleNoSport a _slugFix obmedzené na dané id-čka (BOOT, mini-balík).
+    ids=None = všetko (odľahčený data.json)."""
+    if ids is None:
+        return {"_titleNoSport": sorted(TITLE_NOSPORT), "_slugFix": dict(sorted(SLUG_FIX.items()))}
+    ids = set(ids)
+    return {"_titleNoSport": sorted(i for i in TITLE_NOSPORT if i in ids),
+            "_slugFix": {k: v for k, v in sorted(SLUG_FIX.items()) if k in ids}}
+
+
 def build_boot(data: dict, children: dict) -> dict:
     """ŠTARTOVACÍ BALÍK pre appku (od 2.10.2026, rýchlosť domovskej stránky).
 
     Appka (index.html) má riadok `let BOOT = null;` — main() doň vloží tento
-    malý výrez dát (~25 kB), z ktorého sa domovská stránka a hlavné sekcie
-    vykreslia OKAMŽITE, ešte pred stiahnutím celého data.json (8 MB):
+    malý výrez dát (~28 kB), z ktorého sa domovská stránka a hlavné sekcie
+    vykreslia OKAMŽITE, ešte pred stiahnutím celého data.json (~5,5 MB):
       - priečinky 1. a 2. úrovne (bez popisov) s predpočítanými počtami
         _cnt (liniek v podstrome) a _sub (podpriečinkov) — presne to, čo appka
         píše na karty, takže po príchode celých dát čísla nepreskočia;
@@ -313,6 +342,7 @@ def build_boot(data: dict, children: dict) -> dict:
     if LANG != "en":
         # SK appka anglické polia nepoužíva (bod 3 previerky)
         boot = strip_en(boot)
+    boot.update(gen_meta(n["id"] for n in nodes))   # bod 21 + 23 (viď SLUG_FIX, TITLE_NOSPORT)
     return boot
 
 
@@ -382,6 +412,7 @@ def build_page_boot(node, children, by_id, boot_ids, lcnt) -> str:
                 continue
             nodes.append(folder(k) if k.get("type") == "folder" else _lite_node(k))
     pb = {"version": DATA_VER, "nodes": nodes, "full": [node["id"]]}
+    pb.update(gen_meta(n["id"] for n in nodes))     # bod 21 + 23 (viď SLUG_FIX, TITLE_NOSPORT)
     return (json.dumps(pb, ensure_ascii=False, separators=(",", ":"))
             .replace("<", "\\u003c").replace(">", "\\u003e").replace("&", "\\u0026"))
 
@@ -389,6 +420,9 @@ def build_page_boot(node, children, by_id, boot_ids, lcnt) -> str:
 # ------------------------------------------------------------
 # ODĽAHČENÉ DÁTA PRE NÁVŠTEVNÍKOV (od 26.10.2026, bod 3 a 13 previerky)
 # ------------------------------------------------------------
+# VEĽKOSŤ DÁT (zmerané 2.11.2026, verzia dát z repozitára): data.json v repozitári
+# ~9,6 MB (s odsadením); na webe data-full.json ~8,0 MB (zbalený ~1,7 MB),
+# odľahčený data.json SK ~5,5 MB / EN ~5,8 MB (zbalený ~1,2 MB); BOOT ~28 kB.
 # Na web idú dva súbory:
 #   data-full.json — celé dáta bez zmeny obsahu (len bez medzier). Sťahuje ho
 #                    LEN admin po prihlásení, aby 🚀 Publikovať vyrobilo úplný
@@ -429,6 +463,10 @@ def lite_data(data: dict) -> dict:
     for k in ("passwordHash", "password"):
         d.pop(k, None)
     d["_lite"] = True
+    # bod 21 + 23: výsledné slugy duplicít a priečinky s titulkom bez športu —
+    # appka si ich pri načítaní odloží bokom a z dát ich zmaže (do dát admina
+    # sa nikdy nedostanú; data-full.json ich nemá)
+    d.update(gen_meta(None))
     return d
 
 
@@ -518,13 +556,17 @@ def akt_static_html(aktualne: list):
         return "", f'<span style="font-size:0.78rem;color:var(--muted);padding:6px 0">{txt}</span>'
     parts = []
     for a in items:
-        is_new = bool(a.get("addedAt")) and (now_ms - int(a["addedAt"])) < 86400000
+        try:   # bod 21 previerky: zlá hodnota addedAt (text, prázdne) nesmie zhodiť build
+            added = int(a.get("addedAt") or 0)
+        except (TypeError, ValueError):
+            added = 0
+        is_new = bool(added) and (now_ms - added) < 86400000
         name = (a.get("name_en") if (LANG == "en" and a.get("name_en")) else a.get("name")) or ""
         parts.append(
             '\n    <a class="akt-card" href="' + escape(a.get("url") or "", quote=True)
             + '" target="_blank" rel="noopener">'
             + '\n      ' + ('<span class="akt-new">NEW</span>' if is_new else '')
-            + '\n      <span class="akt-icon">' + escape(a.get("icon") or "📌") + '</span>'
+            + '\n      <span class="akt-icon" aria-hidden="true">' + escape(a.get("icon") or "📌") + '</span>'
             + '\n      <span>' + escape(name) + '</span>'
             + '\n    </a>')
     return f"({len(items)})", "".join(parts)
@@ -695,7 +737,7 @@ h1 .ic{margin-right:8px}
 h2{font-size:1.05rem;color:__ACCENT_TEXT__;margin:26px 0 10px;text-transform:uppercase;letter-spacing:.05em}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px}
 .card{display:block;background:#182635;border:1px solid #24364a;border-radius:10px;padding:12px 14px;transition:.15s}
-.card:hover{border-color:#e84242;transform:translateY(-1px)}
+@media(hover:hover){.card:hover{border-color:#e84242;transform:translateY(-1px)}}
 .card .nm{font-weight:600}
 .card .ds{font-size:.85rem;color:#8fa3b3;margin-top:3px}
 .card .ur{font-size:.78rem;color:#8396a8;margin-top:3px;word-break:break-all}
@@ -744,7 +786,7 @@ PAGE = """<!DOCTYPE html>
 <title>{title}</title>
 <meta name="description" content="{meta_desc}">
 {favicons}
-{canonical}
+{preconnect}{canonical}
 {og_tags}
 {jsonld}
 <style>{css}</style>
@@ -779,11 +821,14 @@ PAGE = """<!DOCTYPE html>
 DYN_JS = """<script>
 function __dyn(){
   var ANC=__ANC__;
-  // bod 14: text z dát → HTML entity; adresa len http(s), inak "#"
+  // bod 14: text z dát → HTML entity; adresa len http(s) alebo relatívna od koreňa
+  // webu („/obrazok.png", nie „//cudzi-web"), inak "#" — ROVNAKO ako safeUrl v index.html
   function esc(s){return String(s||"").replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;").replace(/>/g,"&gt;")}
-  function safeUrl(u){var s=String(u||"").trim(),l=s.toLowerCase();return (l.indexOf("http://")===0||l.indexOf("https://")===0)?s:"#"}
+  function safeUrl(u){var s=String(u||"").trim();return /^(https?:\\/\\/|\\/(?!\\/))/i.test(s)?s:"#"}
   fetch("__DATAURL__").then(function(r){return r.json()}).then(function(d){
-    var today=new Date().toISOString().slice(0,10);
+    // bod 19: MIESTNY dátum (slovenský čas), nie UTC — po polnoci by banner
+    // s kampaňou do včera svietil ešte 1–2 hodiny (toISOString je v UTC)
+    var _d=new Date(),today=_d.getFullYear()+"-"+("0"+(_d.getMonth()+1)).slice(-2)+"-"+("0"+_d.getDate()).slice(-2);
     var bs=(d.banners||[]).filter(function(b){
       if((b.lang||"sk")!=="__LANG__")return false;
       if(b.active===false)return false;
@@ -847,7 +892,7 @@ DATA_VER = ""
 
 # PREVZATIE BEZ ČAKANIA NA DÁTA (od 2.11.2026, bod 2 previerky): appka sa preberá
 # hneď, ako je stiahnutý index.html (po prvej stránke je v pamäti prehliadača).
-# data.json (~1 MB zbalený) si appka stiahne až PO prevzatí, na pozadí. Podstránku
+# data.json (~1,2 MB zbalený) si appka stiahne až PO prevzatí, na pozadí. Podstránku
 # vykreslí z mini-balíka #pageBoot (viď build_page_boot) — má v ňom celú cestu
 # z adresy aj deti tejto stránky, takže adresu nikdy neprepíše vyššie (to bol
 # pôvodný dôvod čakania na dáta: Google hlásil „Stránka s presmerovaním").
@@ -988,7 +1033,8 @@ def icon_html(icon: str, size: str = "24x18") -> str:
         w, h = size.split("x")
         return (f'<img src="https://flagcdn.com/{size}/{icon}.png" width="{w}" height="{h}" '
                 f'alt="" loading="lazy" style="border-radius:2px;vertical-align:middle">')
-    return escape(icon)
+    # bod 25: emoji je len ozdoba — čítačka ho nečíta (rovnako renderIcon v index.html)
+    return f'<span aria-hidden="true">{escape(icon)}</span>'
 
 
 def count_links(children: dict, paths: dict) -> int:
@@ -1013,6 +1059,83 @@ def home_title(n: int) -> str:
     if LANG == "en":
         return f"Sportlinking — {links_label(n)} club, league and news websites"
     return f"Športové Linky — {links_label(n)} webov klubov, líg a správ"
+
+
+# ------------------------------------------------------------
+# TITULKY STRÁNOK (bod 23 previerky, 2.11.2026)
+# ------------------------------------------------------------
+# Titulok má tvar „{názov} — {rodič} · {šport} — {web}". Google vo výsledkoch
+# ukáže zhruba 60–65 znakov, dlhšie titulky odreže. Ak je titulok dlhší ako
+# TITLE_MAX znakov, vynechá sa z kontextu ŠPORT („{názov} — {rodič} — {web}"),
+# ale IBA vtedy, keď je takto skrátený titulok na celom webe JEDINEČNÝ (inak by
+# Google stránky bral ako duplicity — kvôli tomu sa šport do titulku pridával).
+# Zoznam priečinkov so skráteným titulkom (TITLE_NOSPORT) dostane aj appka —
+# kľúč "_titleNoSport" v odľahčenom data.json, v BOOT a v mini-balíku stránky —
+# aby titulok po prevzatí appkou bol presne taký istý ako na statickej stránke.
+# Do data-full.json (dáta admina) sa NEPÍŠE.
+TITLE_MAX = 65
+TITLES = {}             # id priečinka -> titulok (bez HTML escapovania)
+TITLE_NOSPORT = set()   # id priečinkov, ktorým sa šport z titulku vynechal
+
+
+def live_title(name: str, site_title: str) -> str:
+    """Titulok Live This Week s rozsahom aktuálneho týždňa (pondelok–nedeľa).
+    Vďaka dennému cron rebuildu je dátum vždy čerstvý — vo výsledkoch Googlu to
+    signalizuje živú stránku. Mení sa LEN <title>, názov priečinka ostáva."""
+    _mon = date.today() - timedelta(days=date.today().weekday())
+    _sun = _mon + timedelta(days=6)
+    _m = ["January", "February", "March", "April", "May", "June", "July",
+          "August", "September", "October", "November", "December"]
+    if _mon.month == _sun.month:
+        _rng = f"{_mon.day}–{_sun.day} {_m[_sun.month-1]}"
+    else:
+        _rng = f"{_mon.day} {_m[_mon.month-1]} – {_sun.day} {_m[_sun.month-1]}"
+    return f"{name} ({_rng}) — {site_title}"
+
+
+def compute_titles(folder_ids, by_id, site_title: str, home: str):
+    """Vypočíta titulky všetkých priečinkov (folder_ids = všetky priečinky, na
+    ktoré sa dá v appke prekliknúť, aj tie bez statickej stránky) a rozhodne,
+    ktorým sa vynechá šport. Vracia (titulky, množina id bez športu).
+
+    Skrátený titulok sa použije, len ak sa na webe nevyskytuje nikde inde —
+    ani medzi plnými titulkami iných stránok, ani medzi inými skrátenými,
+    ani ako titulok domova. Kontroluje sa opakovane, kým sa nič nemení
+    (stránka, ktorej sa skrátenie zamietne, má zase plný titulok)."""
+    full, short = {}, {}
+    for fid in folder_ids:
+        n = by_id[fid]
+        chain = []
+        a = n
+        while a is not None:
+            chain.append(a)
+            a = by_id.get(a.get("parentId"))
+        name = node_name(n)
+        if fid == LIVE_ID:
+            full[fid] = live_title(name, site_title)
+            continue
+        ctx = []
+        if len(chain) >= 2:
+            ctx.append(node_name(chain[1]))          # rodič
+        if len(chain) >= 3:
+            ctx.append(node_name(chain[-1]))         # šport (koreň)
+        full[fid] = (f"{name} — {' · '.join(ctx)} — {site_title}" if ctx
+                     else f"{name} — {site_title}")
+        if len(chain) >= 3 and len(full[fid]) > TITLE_MAX:
+            short[fid] = f"{name} — {ctx[0]} — {site_title}"
+    nosport = set(short)
+    while True:
+        cnt = {}
+        for fid in folder_ids:
+            t = short[fid] if fid in nosport else full[fid]
+            cnt[t] = cnt.get(t, 0) + 1
+        cnt[home] = cnt.get(home, 0) + 1
+        bad = {fid for fid in nosport if cnt[short[fid]] > 1}
+        if not bad:
+            break
+        nosport -= bad
+    titles = {fid: (short[fid] if fid in nosport else full[fid]) for fid in folder_ids}
+    return titles, nosport
 
 
 def render_page(node, path, children, by_id, paths, site_title, alt_url=None, page_boot=""):
@@ -1096,32 +1219,14 @@ def render_page(node, path, children, by_id, paths, site_title, alt_url=None, pa
     # <title> s kontextom: „Europe — Competitions · Football — Sportlinking".
     # Bez kontextu mali napr. futbalová a hokejová „Europe" rovnaký titulok
     # a Google ich bral ako duplicity (Search Console 29.8.2026).
-    # chain = [uzol, rodič, ..., šport]; berie sa rodič + koreňový šport.
-    ctx = []
-    if len(chain) >= 2:
-        ctx.append(escape(node_name(chain[1])))          # rodič
-    if len(chain) >= 3:
-        ctx.append(escape(node_name(chain[-1])))         # šport (koreň)
-    page_title = (f"{name} — {' · '.join(ctx)} — {escape(site_title)}" if ctx
-                  else f"{name} — {escape(site_title)}")
-
-    # Live This Week: do titulku sa pri builde doplní rozsah aktuálneho týždňa
-    # (pondelok–nedeľa). Vďaka dennému cron rebuildu je dátum vždy čerstvý —
-    # vo výsledkoch Googlu to signalizuje živú stránku. Mení sa LEN <title>,
-    # názov priečinka zostáva „Live This Week".
-    if node["id"] == LIVE_ID:
-        _mon = date.today() - timedelta(days=date.today().weekday())
-        _sun = _mon + timedelta(days=6)
-        _m = ["January", "February", "March", "April", "May", "June", "July",
-              "August", "September", "October", "November", "December"]
-        if _mon.month == _sun.month:
-            _rng = f"{_mon.day}–{_sun.day} {_m[_sun.month-1]}"
-        else:
-            _rng = f"{_mon.day} {_m[_mon.month-1]} – {_sun.day} {_m[_sun.month-1]}"
-        page_title = f"{name} ({_rng}) — {escape(site_title)}"
+    # Titulok (aj skrátený bez športu a Live This Week s dátumom) vyrába
+    # compute_titles() — viď TITLES / TITLE_NOSPORT.
+    page_title = escape(TITLES[node["id"]])
     og = [f'<meta property="og:title" content="{page_title}">',
           f'<meta property="og:description" content="{escape(meta, quote=True)}">',
-          '<meta property="og:type" content="website">']
+          '<meta property="og:type" content="website">',
+          f'<meta property="og:site_name" content="{escape(site_title)}">',     # bod 23
+          f'<meta property="og:locale" content="{OG_LOCALE}">']
     if BASE_URL:
         og.append(f'<meta property="og:url" content="{BASE_URL}/{url_path}">')
         og.append(f'<meta property="og:image" content="{BASE_URL}/og-image.png">')
@@ -1161,6 +1266,7 @@ def render_page(node, path, children, by_id, paths, site_title, alt_url=None, pa
                   + json.dumps({"@context": "https://schema.org",
                                 "@type": "BreadcrumbList",
                                 "itemListElement": items}, ensure_ascii=False)
+                     .replace("</", "<\\/")   # bod 21: názov s „</script>" nesmie ukončiť značku
                   + "</script>")
 
     # dynamický JS: banner + Aktuálne z data.json (ANC = id-čka od koreňa po túto stránku)
@@ -1180,8 +1286,12 @@ def render_page(node, path, children, by_id, paths, site_title, alt_url=None, pa
                 .replace("__ROOT__", root)
                 .replace("__GOAT__", GOAT))
 
+    body = fold_cards + link_cards + icon
     return PAGE.format(
         lang=LANG,
+        # bod 22: vlajky sú z flagcdn.com — spojenie sa nadviaže vopred (len ak tu vlajky sú)
+        preconnect=('<link rel="preconnect" href="https://flagcdn.com" crossorigin>\n'
+                    if "https://flagcdn.com/" in body else ""),
         title=page_title,
         meta_desc=escape(meta, quote=True),
         favicons=FAVICON_LINKS,
@@ -1250,6 +1360,20 @@ def main():
     all_paths = paths   # aj priečinky bez liniek — appka na ne tiež odkazuje (dlaždice domova)
     paths = {fid: p for fid, p in paths.items() if has_link.get(fid)}
 
+    # bod 21: výsledné slugy, ktoré sa líšia od základného (duplicity súrodencov)
+    SLUG_FIX.clear()
+    SLUG_FIX.update({fid: p[-1] for fid, p in all_paths.items() if p[-1] != slug_base(by_id[fid])})
+
+    # bod 23: titulky všetkých priečinkov (aj bez statickej stránky — appka ich
+    # tiež ukazuje) a zoznam tých, ktorým sa vynechá šport
+    n_links = count_links(children, paths)
+    titles, nosport = compute_titles(list(all_paths), by_id, site_title, home_title(n_links))
+    TITLES.clear(); TITLES.update(titles)
+    TITLE_NOSPORT.clear(); TITLE_NOSPORT.update(nosport)
+    n_long = sum(1 for fid in paths if len(titles[fid]) > TITLE_MAX)
+    print(f"titulky: {len(nosport)} priečinkov bez športu v titulku "
+          f"(statických stránok s titulkom nad {TITLE_MAX} znakov ostáva: {n_long})")
+
     # hreflang: strom a cesty DRUHÉHO jazyka — aby sme vedeli, či tá istá
     # stránka existuje aj na druhom webe a na akej adrese. Live This Week sa
     # do alt stromu nedopĺňa (nemá slovenský náprotivok, hreflang nedostane).
@@ -1311,7 +1435,10 @@ def main():
         print(f"sitemap: {len(lm_new)} adries, dnes zmenených/nových {zmenene} -> {LASTMOD_FILE}")
 
         with open(os.path.join(out, "robots.txt"), "w", encoding="utf-8") as f:
-            f.write(f"User-agent: *\nAllow: /\nSitemap: {BASE_URL}/sitemap.xml\n")
+            # bod 23: dátové súbory appky nie sú stránky — roboti appku nepreberajú
+            # (TAKEOVER), statickým stránkam stačí HTML; domov sa vykreslí z BOOT
+            f.write(f"User-agent: *\nAllow: /\nDisallow: /data.json\nDisallow: /data-full.json\n"
+                    f"Sitemap: {BASE_URL}/sitemap.xml\n")
 
         # version.txt — pár bajtov s číslom verzie dát. Appka si ho pýta bez
         # cache pri každom otvorení. Keď má návštevník v pamäti prehliadača
@@ -1324,7 +1451,8 @@ def main():
         # skopíruj aplikáciu a dáta; do index.html doplň og:url a og:image
         # (marker <!--OG_DYNAMIC--> — absolútna adresa je známa až pri builde)
         if os.path.exists("index.html"):
-            html = open("index.html", encoding="utf-8").read()
+            with open("index.html", encoding="utf-8") as f:
+                html = f.read()
             if LANG == "en":
                 # EN build: prepni jazyk aplikácie, texty, farby a analytiku
                 for a, b in (
@@ -1335,6 +1463,10 @@ def main():
                      'content="All the world\'s sports websites in one place — a clear directory of verified links for every sport and country."'),
                     ('<meta property="og:title" content="Športové Linky"/>',
                      '<meta property="og:title" content="Sportlinking"/>'),
+                    ('<meta property="og:site_name" content="Športové Linky"/>',
+                     '<meta property="og:site_name" content="Sportlinking"/>'),
+                    ('<meta property="og:locale" content="sk_SK"/>',
+                     '<meta property="og:locale" content="en_US"/>'),
                     ('content="Všetky športové weby sveta na jednom mieste — prehľadný rozcestník overených liniek."',
                      'content="All the world\'s sports websites in one place — a clear directory of verified links."'),
                     ('<span class="wm-w">ŠPORTOVÉ</span><span class="wm-r">LINKY</span>',
@@ -1343,6 +1475,7 @@ def main():
                     ('🔍  Hľadaj kdekoľvek v strome...', '🔍  Search anywhere in the tree...'),
                     ('aria-label="Hľadaj v strome"', 'aria-label="Search the tree"'),
                     ('aria-label="Heslo"', 'aria-label="Password"'),
+                    ('aria-label="Zobraziť ďalšie linky"', 'aria-label="Show more links"'),
                     ('animation:pulse 1.5s infinite"></span>\n      Aktuálne',
                      'animation:pulse 1.5s infinite"></span>\n      Live this week'),
                     ('© 2026 · Všetky športové weby sveta na jednom mieste<br>\n  Databáza liniek je chránená právom na ochranu databáz (smernica 96/9/ES). Jej kopírovanie alebo systematické vyťažovanie bez súhlasu prevádzkovateľa je zakázané.',
@@ -1358,7 +1491,6 @@ def main():
                     html = html.replace(a, b)
             # Titulok domova s počtom webov (bod 5 previerky). Až PO EN náhradách,
             # aby prepísal akýkoľvek pôvodný titulok; og:title ostáva krátky.
-            n_links = count_links(children, paths)
             html, n_t = re.subn(r"<title>[^<]*</title>",
                                 lambda m: f"<title>{escape(home_title(n_links))}</title>", html, count=1)
             if not n_t:
@@ -1390,7 +1522,7 @@ def main():
 
             # Appke povedz verziu dát — sťahuje si data.json?v=NNN, takže si ho
             # prehliadač smie odložiť do pamäte a pri novej verzii si stiahne
-            # čerstvý. Bez toho by sa 3,6 MB ťahalo pri každom otvorení stránky.
+            # čerstvý. Bez toho by sa data.json ťahal pri každom otvorení stránky.
             ver_marker = 'let DATA_VER = "";'
             if ver_marker not in html:
                 raise SystemExit(
@@ -1425,12 +1557,17 @@ def main():
             if BASE_URL:
                 sk_home = f"{BASE_URL}/" if LANG == "sk" else f"{ALT_BASE_URL}/"
                 en_home = f"{ALT_BASE_URL}/" if LANG == "sk" else f"{BASE_URL}/"
+                # bod 23: štruktúrované dáta WebSite (názov webu pre Google), bez SearchAction
+                website_ld = json.dumps({"@context": "https://schema.org", "@type": "WebSite",
+                                         "name": site_title, "url": f"{BASE_URL}/",
+                                         "inLanguage": LANG}, ensure_ascii=False).replace("</", "<\\/")
                 html = html.replace("</title>", (
                     "</title>\n"
                     f'<link rel="canonical" href="{BASE_URL}/"/>\n'
                     f'<link rel="alternate" hreflang="sk" href="{sk_home}"/>\n'
                     f'<link rel="alternate" hreflang="en" href="{en_home}"/>\n'
-                    f'<link rel="alternate" hreflang="x-default" href="{en_home}"/>'), 1)
+                    f'<link rel="alternate" hreflang="x-default" href="{en_home}"/>\n'
+                    f'<script type="application/ld+json">{website_ld}</script>'), 1)
 
             with open(os.path.join(out, "index.html"), "w", encoding="utf-8") as f:
                 f.write(html)

@@ -9,7 +9,11 @@
 <meta property="og:title" content="Športové Linky"/>
 <meta property="og:description" content="Všetky športové weby sveta na jednom mieste — prehľadný rozcestník overených liniek."/>
 <meta property="og:type" content="website"/>
+<meta property="og:site_name" content="Športové Linky"/>
+<meta property="og:locale" content="sk_SK"/>
 <!--OG_DYNAMIC--><!-- generátor sem pri builde doplní og:url a og:image s absolútnou adresou webu -->
+<!-- vlajky krajín sú z flagcdn.com — spojenie sa nadviaže hneď (bod 22 previerky) -->
+<link rel="preconnect" href="https://flagcdn.com" crossorigin>
 <!-- Posledná úprava kostry: 2026-07-15 — soc. linky ukazujú vlajku/emoji; ochrana pred starým oknom (save guard) + odznak verzie v admin lište -->
 
 
@@ -64,10 +68,10 @@ header{
    sekcií, aktívna sekcia zvýraznená; pod 1150 px sa skryje (nezmestí sa k logu a hľadaniu) */
 .h-sports{display:flex;align-items:center;gap:4px;margin:0 auto;flex-wrap:nowrap}
 .h-sports a{display:flex;align-items:center;justify-content:center;width:38px;height:38px;border-radius:10px;font-size:22px;text-decoration:none;color:inherit;border:1.5px solid transparent;transition:.15s;position:relative;filter:saturate(.85)}
-.h-sports a:hover{background:var(--surface2);border-color:var(--border);filter:none;transform:translateY(-1px)}
+@media(hover:hover){.h-sports a:hover{background:var(--surface2);border-color:var(--border);filter:none;transform:translateY(-1px)}}
 .h-sports a.on{background:rgba(232,66,66,.18);border-color:var(--accent);filter:none}
-.h-sports a span{position:absolute;top:44px;left:50%;transform:translateX(-50%);background:var(--surface2);border:1px solid var(--border);color:var(--text);font-size:.72rem;padding:3px 8px;border-radius:6px;white-space:nowrap;opacity:0;pointer-events:none;transition:.15s;z-index:5}
-.h-sports a:hover span,.h-sports a:focus-visible span{opacity:1}
+.h-sports a>span:not([aria-hidden]){position:absolute;top:44px;left:50%;transform:translateX(-50%);background:var(--surface2);border:1px solid var(--border);color:var(--text);font-size:.72rem;padding:3px 8px;border-radius:6px;white-space:nowrap;opacity:0;pointer-events:none;transition:.15s;z-index:5}
+.h-sports a:hover>span:not([aria-hidden]),.h-sports a:focus-visible>span:not([aria-hidden]){opacity:1}
 @media(max-width:1150px){.h-sports{display:none}}
 /* Prepínač zobrazenia ▦ Dlaždice / ▥ Stĺpce (29.10.2026) — v hlavičke za hľadaním;
    stĺpce sú len pre myš na počítači, v admine a na mobile sa prepínač neukáže */
@@ -121,6 +125,8 @@ main.cols-mode{max-width:1320px;min-height:calc(100vh - 100px)} /* aby sa strán
 .bc-item{cursor:pointer;transition:.15s;display:flex;align-items:center;gap:4px}
 .bc-item:hover{color:var(--text)}
 .bc-item.active{color:var(--text);font-weight:600;cursor:default}
+/* bod 26: názov otvorenej sekcie je nadpis H1 (pre čítačky) — vyzerá rovnako ako predtým */
+.bc-h{font-size:inherit;font-weight:inherit;line-height:inherit;margin:0;display:flex}
 /* SEO: dlaždice/breadcrumbs/logá sú <a> — bez podčiarknutia, zdedená farba */
 a.card-root,a.card-folder,a.bc-item,a.h-left,a.f-wordmark{color:inherit;text-decoration:none}
 .bc-sep{color:var(--border);user-select:none}
@@ -217,6 +223,8 @@ footer{
 .f-note{font-size:0.75rem;color:var(--muted)}
 .admin-mode footer{margin-bottom:64px} /* nech ju neprekrýva admin lišta */
 
+/* Efekty pri prejdení myšou (nadvihnutie kariet a pod.) sú v @media(hover:hover):
+   na dotykovej obrazovke by po ťuknutí ostali „zaseknuté“; na počítači bez zmeny. */
 /* ===== CARDS (root level - big) ===== */
 /* flexbox namiesto grid-u: neúplný posledný riadok dlaždíc je vycentrovaný */
 .grid-root{
@@ -230,7 +238,7 @@ footer{
   display:flex;flex-direction:column;align-items:center;gap:10px;
   cursor:pointer;transition:.2s;position:relative;text-align:center;
 }
-.card-root:hover{background:var(--surface2);border-color:var(--accent);transform:translateY(-4px);box-shadow:0 10px 24px rgba(0,0,0,.4)}
+@media(hover:hover){.card-root:hover{background:var(--surface2);border-color:var(--accent);transform:translateY(-4px);box-shadow:0 10px 24px rgba(0,0,0,.4)}}
 .card-root .c-icon{font-size:2.6rem}
 .card-root .c-name{font-weight:700;font-size:1rem;color:var(--text)}
 .card-root .c-count{font-size:0.78rem;color:var(--text);opacity:0.75}
@@ -248,7 +256,7 @@ footer{
   display:flex;align-items:center;gap:12px;
   cursor:pointer;transition:.2s;position:relative;
 }
-.card-folder:hover{background:var(--surface2);border-color:var(--accent);transform:translateY(-2px);box-shadow:0 8px 18px rgba(0,0,0,.35)}
+@media(hover:hover){.card-folder:hover{background:var(--surface2);border-color:var(--accent);transform:translateY(-2px);box-shadow:0 8px 18px rgba(0,0,0,.35)}}
 .card-folder .cf-icon{font-size:1.5rem;flex-shrink:0}
 .card-folder .cf-info .cf-name{font-weight:600;font-size:0.92rem}
 .card-folder .cf-info .cf-count{font-size:0.78rem;color:var(--muted);margin-top:1px}
@@ -260,14 +268,14 @@ footer{
   display:flex;align-items:center;gap:10px;
   transition:.2s;position:relative;
 }
-.card-link:hover{background:var(--surface2);border-color:var(--accent);transform:translateY(-2px);box-shadow:0 8px 18px rgba(0,0,0,.35)}
+@media(hover:hover){.card-link:hover{background:var(--surface2);border-color:var(--accent);transform:translateY(-2px);box-shadow:0 8px 18px rgba(0,0,0,.35)}}
 .card-link a{display:flex;align-items:center;gap:10px;flex:1;overflow:hidden}
 .card-link .fav{width:24px;height:24px;border-radius:5px;object-fit:contain;background:var(--bg);flex-shrink:0}
 .card-link .fav-fb{width:24px;height:24px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:18px}
 /* tlmená ikona športu = klub bez vlastného webu (hlavná linka FB/IG…); farbu dostane pri prejdení myšou */
 .card-link .fav.fav-wait{opacity:0}
 .card-link .fav-fb.fav-sport{filter:grayscale(1);opacity:.45;transition:.2s}
-.card-link:hover .fav-fb.fav-sport{filter:none;opacity:1}
+@media(hover:hover){.card-link:hover .fav-fb.fav-sport{filter:none;opacity:1}}
 /* nazov linky sa smie zalomit do dvoch riadkov (cely web) */
 .card-link .cl-name{font-weight:600;font-size:0.88rem;line-height:1.2;white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .card-link .cl-desc{font-size:0.78rem;color:var(--muted);margin-top:1px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;white-space:normal;overflow:hidden}
@@ -283,7 +291,7 @@ footer{
 .card-link .socs{position:absolute;right:4px;top:0;bottom:0;width:18px;display:flex;flex-direction:column;justify-content:space-between;align-items:center;padding:5px 0;z-index:2}
 .card-link .socs a.si{display:block;flex:none;width:15px;height:15px;overflow:visible;border-radius:3px;transition:.15s}
 .card-link .socs a.si img{width:15px;height:15px;display:block;border-radius:3px}
-.card-link .socs a.si:hover{transform:scale(1.2)}
+@media(hover:hover){.card-link .socs a.si:hover{transform:scale(1.2)}}
 .card-link .socs a.si{font-size:10px;font-weight:800;line-height:15px;text-align:center;color:#fff;background:var(--surface2)}
 .card-link .socs a.si:has(img){background:none}
 .card-link .socs .ph{width:15px;height:15px;visibility:hidden}
@@ -408,11 +416,14 @@ footer{
 /* ===== SCROLLBAR ===== */
 /* PULSE ANIMÁCIA */
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+@media (prefers-reduced-motion: reduce){.akt-dot{animation:none!important}} /* bod 25: bez blikania */
 
 /* AKTUÁLNE SCROLL */
 #aktualneScroll::-webkit-scrollbar{display:none}
 /* Štítok "+N ›" je skrytý všade; ukáže sa len na mobile cez media query nižšie */
 #aktMoreBadge{display:none}
+/* bod 25: štítok je tlačidlo (ťuknutie aj klávesnica) — štýly tlačidla vynulované, vzhľad ako predtým */
+button#aktMoreBadge{-webkit-appearance:none;appearance:none;margin:0;border:0;font-family:inherit;line-height:normal;letter-spacing:normal;text-align:center}
 .akt-card{
   position:relative;
   flex-shrink:0;display:flex;align-items:center;gap:8px;
@@ -421,7 +432,7 @@ footer{
   text-decoration:none;color:var(--text);font-size:0.9rem;font-weight:600;
   white-space:nowrap;transition:.18s;
 }
-.akt-card:hover{background:rgba(232,66,66,.25);border-color:#e84242}
+@media(hover:hover){.akt-card:hover{background:rgba(232,66,66,.25);border-color:#e84242}}
 .akt-card .akt-icon{font-size:1.15rem}
 /* Skončená aktuálna linka — vidí ju len admin, vysivená */
 .akt-expired{opacity:.4;filter:grayscale(.6)}
@@ -512,7 +523,7 @@ footer{
 <body>
 
 <!-- PW -->
-<div id="pwScreen">
+<div id="pwScreen" role="dialog" aria-modal="true" aria-label="Admin prístup">
   <div class="pw-box">
     <div style="font-size:2rem;margin-bottom:10px">🔐</div>
     <h3>Admin prístup</h3>
@@ -556,14 +567,14 @@ footer{
 <div id="aktualneWrap" style="padding:12px 24px 16px">
   <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
     <span style="display:flex;align-items:center;gap:6px;font-size:0.78rem;font-weight:700;color:var(--accent-text);text-transform:uppercase;letter-spacing:1px">
-      <span style="width:8px;height:8px;border-radius:50%;background:#e84242;display:inline-block;animation:pulse 1.5s infinite"></span>
+      <span class="akt-dot" style="width:8px;height:8px;border-radius:50%;background:#e84242;display:inline-block;animation:pulse 1.5s infinite"></span>
       Aktuálne
     </span>
     <span id="aktualneCount" style="font-size:0.75rem;color:var(--muted)"></span>
   </div>
   <div id="aktualneScroll" style="display:flex;gap:8px;overflow-x:auto;padding:8px 0 6px;scrollbar-width:none">
   </div>
-  <span id="aktMoreBadge" onclick="aktScrollMore()">+0 ›</span>
+  <button type="button" id="aktMoreBadge" onclick="aktScrollMore()" aria-label="Zobraziť ďalšie linky">+0 ›</button>
 </div>
 
 <!-- MAIN -->
@@ -607,7 +618,7 @@ footer{
 </div>
 
 <!-- MODAL: BANNER FARM -->
-<div class="mo" id="bannerFarmMo">
+<div class="mo" role="dialog" aria-modal="true" id="bannerFarmMo">
   <div class="mo-box" style="max-width:520px">
     <h3>🖼️ Správa bannerov</h3>
     <div class="rotate-settings">
@@ -625,7 +636,7 @@ footer{
 </div>
 
 <!-- MODAL: AKTUÁLNE -->
-<div class="mo" id="aktualneListMo">
+<div class="mo" role="dialog" aria-modal="true" id="aktualneListMo">
   <div class="mo-box" style="max-width:520px">
     <h3>📌 Správa aktuálnych liniek</h3>
     <div id="aktualneListGrid" style="display:flex;flex-direction:column;gap:8px;max-height:340px;overflow-y:auto;margin-bottom:14px"></div>
@@ -637,7 +648,7 @@ footer{
 </div>
 
 <!-- MODAL: ADD/EDIT AKTUÁLNE -->
-<div class="mo" id="aktualneEditMo">
+<div class="mo" role="dialog" aria-modal="true" id="aktualneEditMo">
   <div class="mo-box">
     <h3 id="aktEditTitle">Pridať aktuálnu linku</h3>
     <div class="fg"><label>URL *</label><input type="url" id="aUrl" placeholder="https://..."/></div>
@@ -653,7 +664,7 @@ footer{
 </div>
 
 <!-- MODAL: PROMO BLOK (zoznam) -->
-<div class="mo" id="promoListMo">
+<div class="mo" role="dialog" aria-modal="true" id="promoListMo">
   <div class="mo-box" style="max-width:560px">
     <h3>💰 Promo blok (reklamný text + rotátor)</h3>
     <div class="fg"><label>Kód bannera / rotátora (HTML — zobrazuje sa vľavo od textu)</label><textarea id="pbHtml" rows="3" placeholder="<div class=...></div><script src=... async></script>"></textarea></div>
@@ -671,7 +682,7 @@ footer{
 </div>
 
 <!-- MODAL: ADD/EDIT PROMO TEXT -->
-<div class="mo" id="promoEditMo">
+<div class="mo" role="dialog" aria-modal="true" id="promoEditMo">
   <div class="mo-box">
     <h3 id="promoEditTitle">Pridať reklamný text</h3>
     <div class="fg"><label>Názov (pre teba)</label><input type="text" id="pName" placeholder="napr. Streamy"/></div>
@@ -696,7 +707,7 @@ footer{
 </div>
 
 <!-- MODAL: ADD/EDIT BANNER -->
-<div class="mo" id="bannerEditMo">
+<div class="mo" role="dialog" aria-modal="true" id="bannerEditMo">
   <div class="mo-box">
     <h3 id="bannerEditTitle">Pridať banner</h3>
     <div class="fg"><label>Názov (pre teba)</label><input type="text" id="bName" placeholder="napr. Partner Tipsport"/></div>
@@ -720,7 +731,7 @@ footer{
 </div>
 
 <!-- MODAL: ADD/EDIT NODE -->
-<div class="mo" id="nodeMo">
+<div class="mo" role="dialog" aria-modal="true" id="nodeMo">
   <div class="mo-box">
     <h3 id="moTitle">Pridať</h3>
     <div class="type-toggle">
@@ -743,7 +754,7 @@ footer{
 </div>
 
 <!-- MODAL: SETTINGS -->
-<div class="mo" id="settMo">
+<div class="mo" role="dialog" aria-modal="true" id="settMo">
   <div class="mo-box">
     <h3>Nastavenia</h3>
     <div class="fg"><label>Názov stránky</label><input type="text" id="stTitle"/></div>
@@ -792,9 +803,9 @@ let SITE_ROOT = "";
 // verzii si sám stiahne čerstvý. Prázdne = beží sa lokálne (bez cache).
 let DATA_VER = "";
 // ŠTARTOVACÍ BALÍK (od 2.10.2026, rýchlosť domovskej stránky): generator.py sem
-// pri builde doplní malý výrez dát (~25 kB: hlavné sekcie + podsekcie
+// pri builde doplní malý výrez dát (~28 kB: hlavné sekcie + podsekcie
 // s predpočítanými počtami _cnt/_sub, Aktuálne, bannery, promá, _totalLinks).
-// Appka z neho vykreslí domovskú stránku OKAMŽITE, celé data.json (8 MB) sa
+// Appka z neho vykreslí domovskú stránku OKAMŽITE, celý data.json (~5,5 MB) sa
 // doťahuje na pozadí. Generator hľadá presne tento riadok, NEMENIŤ formát.
 // null = lokálne / bez balíka → čaká sa na celé dáta ako predtým.
 let BOOT = null;
@@ -810,7 +821,7 @@ let nodeType = 'folder';
 // ============================================================
 // ÚLOŽISKO V PREHLIADAČI (od v605, 16.9.2026)
 // ============================================================
-// Celé dáta (5+ MB) sa ukladajú do IndexedDB — localStorage má limit ~5 MB
+// Celé dáta (~8 MB) sa ukladajú do IndexedDB — localStorage má limit ~5 MB
 // na doménu (Chrome aj Safari, znaky sa rátajú po 2 bajtoch), takže od
 // augusta 2026 tam uloženie VŽDY zlyhávalo a ochrany nefungovali.
 // V localStorage ostávajú len dva malé kľúče:
@@ -884,7 +895,7 @@ async function load(){
         const r = await fetch(url, Object.assign({priority:'low'}, opt)); // nízka priorita — obrázky/bannery majú prednosť
         if(r.ok){
           const d = await r.json();
-          if(d && d.nodes){ PUB_VER = ver || ""; return d; }
+          if(d && d.nodes){ PUB_VER = ver || ""; takeGenMeta(d); return d; }
         }
       }catch(e){ /* lokálny súbor (file://) alebo data.json neexistuje — skús ešte raz */ }
     }
@@ -908,7 +919,7 @@ async function load(){
   }
   // Pri rýchlom štarte z balíka BOOT sa celé dáta začnú sťahovať až po udalosti
   // load (najneskôr po 2,5 s): bannery, obrázky a skripty stránky majú prednosť.
-  // Na pomalej sieti 1,4 MB data.json zdržiaval banner, ktorý je na mobile
+  // Na pomalej sieti data.json (zbalený ~1,2 MB) zdržiaval banner, ktorý je na mobile
   // najväčším prvkom (LCP 9,4 s v PageSpeed 2.10.2026 aj po zrýchlení).
   if(typeof bootShown !== 'undefined' && bootShown){
     await new Promise(r=>{
@@ -1137,9 +1148,45 @@ function slugify(name){
 }
 // TRVALÝ SLUG: adresa priečinka sa priradí raz a pri premenovaní sa NEMENÍ
 // (inak by premenovanie po spustení webu rozbilo URL pre Google aj uložené linky)
+// Slug pred riešením duplicít — ROVNAKÝ ako slug_base() v generator.py.
+function nodeSlugBase(n){
+  if(IS_EN) return n.slug_en || slugify(String(n.name_en||'').trim() || String(n.name||'').trim()) || 'cat-'+slugify(n.id);
+  return n.slug || slugify(n.name) || 'kat-'+slugify(n.id);
+}
+// DUPLICITNÉ SLUGY SÚRODENCOV (bod 21 previerky, 2.11.2026): generátor dá druhému
+// priečinku s rovnakým slugom „-2", tretiemu „-3"… Výsledné slugy, ktoré sa líšia
+// od základného, posiela generátor ako mapu SLUG_FIX (kľúč _slugFix v data.json,
+// BOOT a mini-balíku) — adresy v appke sú tak ZHODNÉ s generátorom aj tam, kde
+// sa poradie súrodencov v appke a generátore líši. Bez mapy (súbor z disku,
+// Import) sa duplicity riešia tu, rovnakým postupom ako folder_paths().
 function nodeSlug(n){
-  if(IS_EN) return n.slug_en || slugify(nName(n));
-  return n.slug || slugify(n.name);
+  if(SLUG_FIX) return SLUG_FIX[n.id] || nodeSlugBase(n);
+  if(!_slugMemo) _slugMemo = new Map();
+  let m = _slugMemo.get(n.parentId);
+  if(!m){
+    m = new Map();
+    const used = new Set();
+    for(const k of getChildren(n.parentId)){
+      if(k.type!=='folder') continue;
+      let s = nodeSlugBase(k); const base = s; let i = 2;
+      while(used.has(s)){ s = base+'-'+(i++); } // súrodenci s rovnakým slugom
+      used.add(s); m.set(k.id, s);
+    }
+    _slugMemo.set(n.parentId, m);
+  }
+  return m.get(n.id) || nodeSlugBase(n);
+}
+let _slugMemo = null; // vyprázdni ho rebuildChildIndex() (každý render, zmena dát)
+// Údaje, ktoré generátor pridáva do odľahčeného data.json, BOOT a mini-balíka
+// stránky (bod 21 a 23). Appka si ich odloží SEM a z dát ich zmaže — do dát
+// admina (data-full.json, Publikovať, Export) sa tak nikdy nedostanú.
+let SLUG_FIX = null;                 // {id: slug}; null = mapa nie je (lokálne)
+const TITLE_NOSPORT = new Set();     // id priečinkov s titulkom bez športu
+function takeGenMeta(o){
+  if(!o || typeof o !== 'object') return;
+  if(o._slugFix && typeof o._slugFix === 'object') SLUG_FIX = Object.assign(SLUG_FIX || {}, o._slugFix);
+  if(Array.isArray(o._titleNoSport)) o._titleNoSport.forEach(id => TITLE_NOSPORT.add(id));
+  delete o._slugFix; delete o._titleNoSport;
 }
 // Migrácia: doplní slug všetkým priečinkom, ktoré ho ešte nemajú.
 // Deterministická (prechádza deti podľa order) — rovnaký výsledok pre každého.
@@ -1246,6 +1293,7 @@ function navClick(ev, id){
 
 function navigate(id, fromPopState){
   curId = id;
+  if(!fromPopState) CESTA_CELA = true; // adresu teraz zapisuje appka — sedí s obrazovkou
   document.getElementById('srch').value = '';
   if(!fromPopState){
     const url = urlForId(id) + (PATH_ROUTING && id !== null ? location.search : '');
@@ -1257,6 +1305,7 @@ function navigate(id, fromPopState){
 }
 
 window.addEventListener('popstate', function(e){
+  if(e.state && e.state.curId !== undefined) CESTA_CELA = true; // záznam zapísala appka — adresa sedí
   const id = (e.state && e.state.curId !== undefined) ? e.state.curId
            : (PATH_ROUTING ? idForPath() : idForHash(location.hash));
   navigate(id, true);
@@ -1280,6 +1329,7 @@ function liveWeekLinks(){
 // zmeny dĺžky).
 let _cIdx = null, _cSrc = null, _cLen = -1;
 function rebuildChildIndex(){
+  _slugMemo = null;
   _cIdx = new Map(); _cSrc = DB.nodes; _cLen = DB.nodes ? DB.nodes.length : 0;
   if(!DB.nodes) return;
   for(const n of DB.nodes){
@@ -1374,9 +1424,17 @@ function renderIcon(icon, flagSize){
   if(!icon) return '';
   if(/^[a-z]{2}(-[a-z]{2,4})?$/.test(icon)){
     const s = flagSize || '24x18';
-    return `<img src="https://flagcdn.com/${s}/${icon}.png" style="border-radius:2px;vertical-align:middle;" alt="" loading="lazy"/>`;
+    const [w, h] = s.split('x');
+    // width/height (bod 22): miesto pre vlajku je vyhradené ešte pred načítaním — text neposkočí.
+    // Značkovanie je ZHODNÉ s icon_html() v generator.py (domov sa pri štarte porovnáva).
+    return `<img src="https://flagcdn.com/${s}/${icon}.png" width="${w}" height="${h}" alt="" loading="lazy" style="border-radius:2px;vertical-align:middle">`;
   }
-  return attrEsc(icon);
+  return `<span aria-hidden="true">${attrEsc(icon)}</span>`; // bod 25: emoji je ozdoba, čítačka ho nečíta
+}
+// Ikona + text v prvku s display:flex a medzerou (gap): emoji spolu s textom do
+// jedného <span>, aby medzi nimi nevznikla medzera navyše (vzhľad ako predtým).
+function iconText(iconHtml, textHtml){
+  return (iconHtml && iconHtml.indexOf('<span') === 0) ? `<span>${iconHtml} ${textHtml}</span>` : `${iconHtml} ${textHtml}`;
 }
 
 // Priečinok bez vlastnej ikony (napr. ligová súťaž) zdedí vlajku od najbližšieho
@@ -1416,7 +1474,11 @@ function updateHead(){
     if(chain.length >= 2) ctx.push(nName(chain[chain.length-2])); // rodič
     if(chain.length >= 3) ctx.push(nName(chain[0]));              // šport (koreň)
   }
-  const ctxStr = ctx.length ? ' — ' + ctx.join(' · ') : '';
+  // Bod 23 (2.11.2026): titulok dlhší ako 65 znakov je bez športu, ak tak ostane
+  // na webe jedinečný. Rozhoduje generátor (compute_titles) — appka len číta jeho
+  // zoznam TITLE_NOSPORT, takže titulok je zhodný so statickou stránkou.
+  const ctxT = (n && TITLE_NOSPORT.has(n.id)) ? ctx.slice(0, 1) : ctx;
+  const ctxStr = ctxT.length ? ' — ' + ctxT.join(' · ') : '';
   document.title = n ? (nName(n) + ctxStr + (site ? ' — ' + site : '')) : (HOME_TITLE || site || document.title);
   const m = document.querySelector('meta[name="description"]');
   if(m){
@@ -1433,6 +1495,10 @@ function updateHead(){
     m.content = d || ORIG_DESC;
   }
   if(!PATH_ROUTING) return;
+  // bod 20: cesta z adresy sa nerozlúštila celá (napr. ešte nie sú dáta) — na
+  // obrazovke je vyšší priečinok, než ukazuje adresa. Canonical sa NEMENÍ
+  // (ostáva ten zo statickej stránky), inak by ukazoval na inú stránku.
+  if(CESTA_CELA === false) return;
   let l = document.querySelector('link[rel="canonical"]');
   if(!l){ l = document.createElement('link'); l.rel = 'canonical'; document.head.appendChild(l); }
   l.href = location.origin + urlForId(curId);
@@ -1489,10 +1555,23 @@ function renderBreadcrumb(){
 
   path.forEach(node => {
     html += `<span class="bc-sep">›</span>`;
-    html += `<a class="bc-item ${node.id===curId?'active':''}" href="${attrEsc(urlForId(node.id))}" onclick="return navClick(event,'${node.id}')">${renderIcon(nodeIcon(node),'16x12')} ${attrEsc(nName(node))}</a>`;
+    const a = `<a class="bc-item ${node.id===curId?'active':''}" href="${attrEsc(urlForId(node.id))}" onclick="return navClick(event,'${node.id}')">${iconText(renderIcon(nodeIcon(node),'16x12'), attrEsc(nName(node)))}</a>`;
+    // bod 26: otvorená sekcia je nadpis H1 (čítačky po nadpisoch skáču)
+    html += node.id===curId ? `<h1 class="bc-h">${a}</h1>` : a;
   });
 
   bc.innerHTML = html;
+  setLogoTag(curId === null ? 'H1' : 'DIV');
+}
+// Bod 26: na domove je H1 logo (názov webu), v sekcii je H1 jej názov v drobčekovej
+// navigácii a logo je obyčajný <div> s tým istým vzhľadom (trieda h-wordmark).
+function setLogoTag(tag){
+  const el = document.querySelector('#homeLink .h-wordmark');
+  if(!el || el.tagName === tag) return;
+  const nw = document.createElement(tag);
+  nw.className = el.className;
+  nw.innerHTML = el.innerHTML;
+  el.replaceWith(nw);
 }
 
 let prvyRenderLevel = true; // bod 6 — viď koniec renderLevel()
@@ -1608,7 +1687,7 @@ function renderLevel(){
             <button class="ibtn d" onclick="delNode('${n.id}')">🗑</button>
           </div>
           <a href="${attrEsc(safeUrl(n.url))}" target="_blank" rel="noopener" title="${attrEsc(nDesc(n))}" ${adminMode?'onclick="return false"':''}>
-            ${liveIcon ? `<span class="fav-fb">${attrEsc(n.icon||'🔗')}</span>` : favHtml(n, host)}
+            ${liveIcon ? `<span class="fav-fb" aria-hidden="true">${attrEsc(n.icon||'🔗')}</span>` : favHtml(n, host)}
             <div>
               <div class="cl-name">${(!liveIcon && n.icon && !SOCIAL_FAV.test(host) && !NO_FAVICON_HOSTS.test(host) && !/^[a-z]{2}(-[a-z]{2,4})?$/.test(n.icon))?attrEsc(n.icon)+' ':''}${attrEsc(nName(n))}</div>
               <div class="cl-desc">${attrEsc(nDesc(n))}</div>
@@ -1706,7 +1785,7 @@ function renderColumns(main, promoHtml, fromHover){
         const liveIcon = IS_EN && pid===LIVE_ID;
         const lt = (n.tag||n.order===-1) ? `<span class="lt">${n.tag?String(n.tag).toUpperCase():(IS_EN?'LEAGUE':'LIGA')}</span>` : '';
         const soc = (n.fb?'FB':'') + (n.fb&&n.ig?' ':'') + (n.ig?'IG':'');
-        html += `<a class="cit lnk${colHover===n.id?' open':''}" data-id="${n.id}" data-t="l" href="${attrEsc(safeUrl(n.url))}" target="_blank" rel="noopener">${liveIcon ? `<span class="fav-fb">${attrEsc(n.icon||'🔗')}</span>` : favHtml(n, host)}<span class="nm">${lt}${attrEsc(nName(n))}</span>${soc?`<span class="soc">${soc}</span>`:''}</a>`;
+        html += `<a class="cit lnk${colHover===n.id?' open':''}" data-id="${n.id}" data-t="l" href="${attrEsc(safeUrl(n.url))}" target="_blank" rel="noopener">${liveIcon ? `<span class="fav-fb" aria-hidden="true">${attrEsc(n.icon||'🔗')}</span>` : favHtml(n, host)}<span class="nm">${lt}${attrEsc(nName(n))}</span>${soc?`<span class="soc">${soc}</span>`:''}</a>`;
       }
     });
     html += '</div>';
@@ -1762,11 +1841,11 @@ function colDetailHtml(){
   if(h && h.type==='link'){
     const host = colHost(h);
     const socs = socHtml(h, host);
-    return `<h3>${renderIcon(h.icon,'24x18')||''} ${attrEsc(nName(h))}</h3><div class="host">${attrEsc(host)}</div><p>${attrEsc(nDesc(h))}</p>` +
+    return `<h3>${iconText(renderIcon(h.icon,'24x18')||'', attrEsc(nName(h)))}</h3><div class="host">${attrEsc(host)}</div><p>${attrEsc(nDesc(h))}</p>` +
            `<a class="btn-open" href="${attrEsc(safeUrl(h.url))}" target="_blank" rel="noopener">${IS_EN?'Open website':'Otvoriť web'} ›</a>${socs}`;
   }
   const last = colPath && colPath.length ? colNode(colPath[colPath.length-1]) : null;
-  if(last) return `<h3>${renderIcon(nodeIcon(last),'24x18')||''} ${attrEsc(nName(last))}</h3><p>${attrEsc(nDesc(last))}</p><div class="empty-hint">${colCnt(last)}</div>`;
+  if(last) return `<h3>${iconText(renderIcon(nodeIcon(last),'24x18')||'', attrEsc(nName(last)))}</h3><p>${attrEsc(nDesc(last))}</p><div class="empty-hint">${colCnt(last)}</div>`;
   return `<div class="empty-hint">${IS_EN?'Move the mouse over a section on the left…':'Prejdi myšou po sekcii vľavo…'}</div>`;
 }
 function colExpand(lv){ colPath = colPath.slice(0, lv); colHover = null; renderColumns(document.getElementById('main'), _colPromo); }
@@ -2118,7 +2197,7 @@ function sportIcon(parentId){
   if(!DB._partial) _sportCache.set(parentId, ic);
   return ic;
 }
-function sportFav(n){ return `<span class="fav-fb fav-sport">${sportIcon(n.parentId)}</span>`; }
+function sportFav(n){ return `<span class="fav-fb fav-sport" aria-hidden="true">${sportIcon(n.parentId)}</span>`; }
 // IKONKY WEBOV Z VLASTNÉHO WEBU (bod 15, 2.11.2026): ikonky sťahuje ikony.py
 // pri builde na GitHube (Google s2 → pri ≤17 px Yandex — logika, ktorú predtým
 // robil prehliadač) a web ich servíruje sám z /ikony/<host>.png. Návštevník tak
@@ -2143,13 +2222,13 @@ function favLoad(img){
   img.classList.remove('fav-wait');
 }
 function favSportSwap(img){
-  img.outerHTML = `<span class="fav-fb fav-sport">${attrEsc(img.getAttribute('data-sport')||'🔗')}</span>`;
+  img.outerHTML = `<span class="fav-fb fav-sport" aria-hidden="true">${attrEsc(img.getAttribute('data-sport')||'🔗')}</span>`;
 }
 function favFallbackHtml(fb, sport){
   // ak je náhradná ikona kód krajiny ("sk"), ukáž vlajku — inak tlmená ikona športu
   const r = renderIcon(fb,'24x18');
   return r ? `<span class="fav-fb">${r}</span>`
-           : `<span class="fav-fb fav-sport">${attrEsc(sport||'🔗')}</span>`;
+           : `<span class="fav-fb fav-sport" aria-hidden="true">${attrEsc(sport||'🔗')}</span>`;
 }
 function favError(img){
   img.outerHTML = favFallbackHtml(img.getAttribute('data-fallback')||'', img.getAttribute('data-sport'));
@@ -2441,6 +2520,40 @@ document.addEventListener('keydown',e=>{
   if(e.key==='Escape') document.querySelectorAll('.mo.open').forEach(m=>m.classList.remove('open'));
   if(e.key==='Enter'&&document.getElementById('pwScreen').classList.contains('open')) chkPw();
 });
+// Bod 26 (2.11.2026): admin okná sú dialógy (role="dialog", aria-modal v HTML).
+// Po otvorení sa fokus presunie na prvé pole okna (ak ho tam už nedal kód okna),
+// po zatvorení sa vráti na prvok, z ktorého sa okno otvorilo. Sleduje sa len
+// trieda "open" — samotné otváranie/zatváranie okien ostáva bez zmeny.
+(function(){
+  const spat = new Map();
+  document.querySelectorAll('.mo').forEach(m=>{
+    const h = m.querySelector('h3');
+    if(h){ if(!h.id) h.id = m.id + 'Nadpis'; m.setAttribute('aria-labelledby', h.id); }
+    let otvorene = m.classList.contains('open');
+    new MutationObserver(()=>{
+      const teraz = m.classList.contains('open');
+      if(teraz === otvorene) return;
+      otvorene = teraz;
+      if(teraz){
+        const pred = document.activeElement;
+        spat.set(m, (pred && pred !== document.body && !m.contains(pred)) ? pred : null);
+        setTimeout(()=>{
+          if(!m.classList.contains('open') || m.contains(document.activeElement)) return;
+          const pole = Array.from(m.querySelectorAll('input,select,textarea,button'))
+            .find(x=>!x.disabled && x.type!=='hidden' && x.type!=='file' && x.offsetParent!==null);
+          if(pole){ try{ pole.focus(); }catch(e){} }
+        }, 150);
+      } else {
+        const pred = spat.get(m); spat.delete(m);
+        const vOkne = m.contains(document.activeElement);
+        const mo = pred && pred.closest('.mo');
+        if(pred && document.contains(pred) && !(mo && !mo.classList.contains('open'))
+           && (vOkne || document.activeElement === document.body)){ try{ pred.focus(); }catch(e){} }
+        else if(vOkne){ try{ document.activeElement.blur(); }catch(e){} } // pôvodný prvok už nie je (prekreslené karty) — fokus nesmie ostať v zavretom okne
+      }
+    }).observe(m, {attributes:true, attributeFilter:['class']});
+  });
+})();
 
 // ============================================================
 // BANNER FARM
@@ -2449,8 +2562,14 @@ let rotateTimer = null;
 let editingBannerId = null;
 
 // Kampaň od–do: banner sa zobrazuje len v rozsahu dátumov (ak sú vyplnené)
+// Bod 19: dnešný MIESTNY dátum (slovenský čas) ako RRRR-MM-DD. toISOString() je
+// v UTC — po polnoci by banner s kampaňou do včera svietil ešte 1–2 hodiny.
+function todayLocal(){
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
 function bannerDateOk(b){
-  const today = new Date().toISOString().slice(0,10);
+  const today = todayLocal();
   if(b.startsAt && today < b.startsAt) return false;
   if(b.endsAt && today > b.endsAt) return false;
   return true;
@@ -2485,7 +2604,7 @@ function renderOneSlot(el, slotNum){
     // vážená rotácia podľa časového okna: banner s váhou 3 dostane 3 sloty v kole
     const pool = [];
     banners.forEach(b=>{ for(let i=0;i<bannerWeight(b);i++) pool.push(b); });
-    const idx = Math.floor(Date.now()/1000/DB.bannerSettings.interval) % pool.length;
+    const idx = Math.floor(Date.now()/1000/bannerInterval()) % pool.length;
     banner = pool[idx];
   } else {
     banner = banners.find(b=>b.id===DB.bannerSettings.activeId) || banners[0];
@@ -2526,10 +2645,12 @@ function renderBannerSlot(){
   renderOneSlot(document.getElementById('bannerSlot2'), 2);
 }
 
+// bod 21: interval rotácie v sekundách — chýbajúci alebo 0 = 30 (žiadne delenie nulou)
+function bannerInterval(){ return (DB.bannerSettings && +DB.bannerSettings.interval) || 30; }
 function startRotation(){
   stopRotation();
-  if(!DB.bannerSettings.rotate) return;
-  rotateTimer = setInterval(renderBannerSlot, DB.bannerSettings.interval*1000);
+  if(!DB.bannerSettings || !DB.bannerSettings.rotate) return;
+  rotateTimer = setInterval(renderBannerSlot, bannerInterval()*1000);
 }
 function stopRotation(){ if(rotateTimer){ clearInterval(rotateTimer); rotateTimer=null; } }
 
@@ -2799,7 +2920,7 @@ function renderAktualne(){
     return `
     <a class="akt-card${exp?' akt-expired':''}" href="${attrEsc(safeUrl(a.url))}" target="_blank" rel="noopener"${exp?' title="Skončené — verejnosť túto linku nevidí"':''}>
       ${isNew&&!exp?'<span class="akt-new">NEW</span>':''}
-      <span class="akt-icon">${attrEsc(a.icon||'📌')}</span>
+      <span class="akt-icon" aria-hidden="true">${attrEsc(a.icon||'📌')}</span>
       <span>${attrEsc((IS_EN && a.name_en) ? a.name_en : a.name)}</span>
     </a>`;
   }).join('');
@@ -2817,7 +2938,14 @@ function updateAktFade(){
     const rightEdge = s.scrollLeft + s.clientWidth;
     let hidden = 0;
     s.querySelectorAll('.akt-card').forEach(c=>{ if(c.offsetLeft >= rightEdge - 8) hidden++; });
-    document.getElementById('aktMoreBadge').textContent = hidden > 0 ? '+'+hidden+' ›' : '›';
+    const badge = document.getElementById('aktMoreBadge');
+    badge.textContent = hidden > 0 ? '+'+hidden+' ›' : '›';
+    // bod 25: popis tlačidla pre čítačky — „Zobraziť ďalšie 4 linky" / „Show 4 more links"
+    badge.setAttribute('aria-label', IS_EN
+      ? (hidden > 0 ? 'Show '+hidden+' more '+(hidden===1?'link':'links') : 'Show more links')
+      : (hidden === 1 ? 'Zobraziť ďalšiu 1 linku'
+        : hidden >= 2 && hidden <= 4 ? 'Zobraziť ďalšie '+hidden+' linky'
+        : hidden > 4 ? 'Zobraziť ďalších '+hidden+' liniek' : 'Zobraziť ďalšie linky'));
   }
 }
 // Klik na štítok — posunie Aktuálne o jednu obrazovku doprava
@@ -2843,6 +2971,10 @@ window.addEventListener('hashchange', checkAdminHash);
 // ============================================================
 // INIT
 // ============================================================
+// Bannery + rotácia. Chyba v banneroch (zlé dáta) NESMIE zastaviť štart appky (bod 21).
+function startBanners(){
+  try{ renderBannerSlot(); startRotation(); }catch(e){}
+}
 function initApp(){
   // migrácia: doplň trvalé slugy priečinkom bez nich — LEN v pamäti, NEUKLADÁ SA.
   // (Predtým tu bolo `if(ensureSlugs()) save();` — v604 chýbalo 263 slugov a každý
@@ -2858,8 +2990,7 @@ function initApp(){
   initFromUrl(); // otvor priečinok podľa adresy (/hokej/sutaze/ alebo staré #/hokej/sutaze)
   render();
   renderAktualne();
-  renderBannerSlot();
-  startRotation(); // rotácia bannerov musí bežať hneď od načítania stránky
+  startBanners(); // rotácia bannerov musí bežať hneď od načítania stránky
   checkAdminHash();
 }
 
@@ -2875,6 +3006,7 @@ let bootShown = false;
 if(BOOT && BOOT.nodes && PATH_ROUTING && !(location.hash && location.hash.indexOf('#/') === 0)){
   try{
     const PB = window.__PAGE_BOOT;
+    takeGenMeta(BOOT); takeGenMeta(PB);
     if(PB && Array.isArray(PB.nodes) && PB.nodes.length){
       const m = new Map();
       BOOT.nodes.forEach(n => m.set(n.id, n));
@@ -2895,8 +3027,7 @@ if(BOOT && BOOT.nodes && PATH_ROUTING && !(location.hash && location.hash.indexO
       initFromUrl();
       render();
       renderAktualne();
-      renderBannerSlot();
-      startRotation();
+      startBanners();
       bootShown = true;
       // pozícia posunu zo statickej stránky (návštevník už stihol posúvať)
       const sy = +window.__PAGE_SCROLL || 0;
