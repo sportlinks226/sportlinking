@@ -2494,7 +2494,17 @@ function renderOneSlot(el, slotNum){
   if(String(el.dataset.bid||'') === String(banner.id)) return;
   el.dataset.bid = String(banner.id);
   if(banner.html){
-    el.innerHTML = banner.html;
+    // Živé značky v HTML banneroch (od 2.11.2026): {{live}} = počet aktuálnych udalostí
+    // (Live This Week), {{links}} = všetky linky webu, {{links:f_fut}} = linky v sekcii.
+    let h = banner.html;
+    if(h.indexOf('{{')>=0){
+      const fmt = n => n.toLocaleString(IS_EN ? 'en-US' : 'sk-SK');
+      const live = (DB.aktualne||[]).filter(a=>!(a.endsAt && Date.now() > new Date(a.endsAt+'T23:59:59').getTime())).length;
+      let total = DB._totalLinks; if(total===undefined){ total=0; for(const n of DB.nodes){ if(n.type==='link') total++; } }
+      h = h.replace(/\{\{live\}\}/g, String(live)).replace(/\{\{links\}\}/g, fmt(total))
+           .replace(/\{\{links:([\w-]+)\}\}/g, (m,id)=>{ const n=(DB.nodes||[]).find(x=>x.id===id); return fmt(n && n._cnt!==undefined ? n._cnt : countAll(id)); });
+    }
+    el.innerHTML = h;
     // <script> vložený cez innerHTML sa sám nespustí — vytvoríme ho nanovo, tým sa aktivuje
     el.querySelectorAll('script').forEach(old=>{
       const s = document.createElement('script');
