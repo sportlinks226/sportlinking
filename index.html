@@ -1083,6 +1083,8 @@ function nName(n){ return (IS_EN && n.name_en) ? n.name_en : (n.name||''); }
 function nDesc(n){ return (IS_EN && n.desc_en) ? n.desc_en : (n.desc||''); }
 // bezpecny text do HTML atributu (title="...") — aby uvodzovky nerozbili znacku
 function attrEsc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+// bezpečná adresa do href/src — len http:// alebo https://, inak '#' (bod 14)
+function safeUrl(u){ const s = String(u||'').trim(); return /^https?:\/\//i.test(s) ? s : '#'; }
 // priečinky, ktorých deti (krajiny) sa v EN radia podľa anglickej abecedy
 const CONTINENTS_SK = new Set(["Európa","Ázia","Afrika","Južná Amerika",
   "Severná Amerika","Severná a Stredná Amerika","Oceánia","Ázia & Oceánia",
@@ -1357,7 +1359,7 @@ function renderIcon(icon, flagSize){
     const s = flagSize || '24x18';
     return `<img src="https://flagcdn.com/${s}/${icon}.png" style="border-radius:2px;vertical-align:middle;" alt="" loading="lazy"/>`;
   }
-  return icon;
+  return attrEsc(icon);
 }
 
 // Priečinok bez vlastnej ikony (napr. ligová súťaž) zdedí vlajku od najbližšieho
@@ -1470,7 +1472,7 @@ function renderBreadcrumb(){
 
   path.forEach(node => {
     html += `<span class="bc-sep">›</span>`;
-    html += `<a class="bc-item ${node.id===curId?'active':''}" href="${attrEsc(urlForId(node.id))}" onclick="return navClick(event,'${node.id}')">${renderIcon(nodeIcon(node),'16x12')} ${nName(node)}</a>`;
+    html += `<a class="bc-item ${node.id===curId?'active':''}" href="${attrEsc(urlForId(node.id))}" onclick="return navClick(event,'${node.id}')">${renderIcon(nodeIcon(node),'16x12')} ${attrEsc(nName(node))}</a>`;
   });
 
   bc.innerHTML = html;
@@ -1531,7 +1533,7 @@ function renderLevel(){
               <button class="ibtn d" title="Zmazať" onclick="event.stopPropagation();event.preventDefault();delNode('${n.id}')">🗑</button>
             </div>
             <div class="c-icon">${renderIcon(nodeIcon(n),'40x30')||''}</div>
-            <div class="c-name">${nName(n)}</div>
+            <div class="c-name">${attrEsc(nName(n))}</div>
             <div class="c-count">${cnt}</div>
             <div class="c-arrow">→</div>
           </a>`;
@@ -1555,7 +1557,7 @@ function renderLevel(){
             </div>
             <div class="cf-icon">${renderIcon(nodeIcon(n),'24x18')||''}</div>
             <div class="cf-info">
-              <div class="cf-name">${nName(n)}</div>
+              <div class="cf-name">${attrEsc(nName(n))}</div>
               <div class="cf-count">${cnt}</div>
             </div>
             <div class="cf-arrow">›</div>
@@ -1582,11 +1584,11 @@ function renderLevel(){
             <button class="ibtn" onclick="openEdit('${n.id}')">✏️</button>
             <button class="ibtn d" onclick="delNode('${n.id}')">🗑</button>
           </div>
-          <a href="${n.url}" target="_blank" rel="noopener" title="${attrEsc(nDesc(n))}" ${adminMode?'onclick="return false"':''}>
-            ${liveIcon ? `<span class="fav-fb">${n.icon||'🔗'}</span>` : favHtml(n, host)}
+          <a href="${attrEsc(safeUrl(n.url))}" target="_blank" rel="noopener" title="${attrEsc(nDesc(n))}" ${adminMode?'onclick="return false"':''}>
+            ${liveIcon ? `<span class="fav-fb">${attrEsc(n.icon||'🔗')}</span>` : favHtml(n, host)}
             <div>
-              <div class="cl-name">${(!liveIcon && n.icon && !SOCIAL_FAV.test(host) && !NO_FAVICON_HOSTS.test(host) && !/^[a-z]{2}(-[a-z]{2,4})?$/.test(n.icon))?n.icon+' ':''}${nName(n)}</div>
-              <div class="cl-desc">${nDesc(n)}</div>
+              <div class="cl-name">${(!liveIcon && n.icon && !SOCIAL_FAV.test(host) && !NO_FAVICON_HOSTS.test(host) && !/^[a-z]{2}(-[a-z]{2,4})?$/.test(n.icon))?attrEsc(n.icon)+' ':''}${attrEsc(nName(n))}</div>
+              <div class="cl-desc">${attrEsc(nDesc(n))}</div>
             </div>
           </a>${socs}
         </div>`;
@@ -1663,13 +1665,13 @@ function renderColumns(main, promoHtml, fromHover){
         // zvýrazní sa len to, kade práve ide myš; červený rámik (pripnuté = adresa
         // stránky) iba ak pripnutý priečinok leží na tejto ceste (Miro 29.10.2026)
         const cls = colPath[lv]===n.id ? (curId===n.id ? ' pin' : ' open') : '';
-        html += `<a class="cit${cls}" data-id="${n.id}" data-lv="${lv}" data-t="f" href="${attrEsc(urlForId(n.id))}" onclick="return colClick(event,'${n.id}')"><span class="ic">${renderIcon(nodeIcon(n),'20x15')||''}</span><span class="nm">${nName(n)}</span><span class="cnt">${colCnt(n)}</span><span class="arr">›</span></a>`;
+        html += `<a class="cit${cls}" data-id="${n.id}" data-lv="${lv}" data-t="f" href="${attrEsc(urlForId(n.id))}" onclick="return colClick(event,'${n.id}')"><span class="ic">${renderIcon(nodeIcon(n),'20x15')||''}</span><span class="nm">${attrEsc(nName(n))}</span><span class="cnt">${colCnt(n)}</span><span class="arr">›</span></a>`;
       } else {
         const host = colHost(n);
         const liveIcon = IS_EN && pid===LIVE_ID;
         const lt = (n.tag||n.order===-1) ? `<span class="lt">${n.tag?String(n.tag).toUpperCase():(IS_EN?'LEAGUE':'LIGA')}</span>` : '';
         const soc = (n.fb?'FB':'') + (n.fb&&n.ig?' ':'') + (n.ig?'IG':'');
-        html += `<a class="cit lnk${colHover===n.id?' open':''}" data-id="${n.id}" data-t="l" href="${attrEsc(n.url)}" target="_blank" rel="noopener">${liveIcon ? `<span class="fav-fb">${n.icon||'🔗'}</span>` : favHtml(n, host)}<span class="nm">${lt}${nName(n)}</span>${soc?`<span class="soc">${soc}</span>`:''}</a>`;
+        html += `<a class="cit lnk${colHover===n.id?' open':''}" data-id="${n.id}" data-t="l" href="${attrEsc(safeUrl(n.url))}" target="_blank" rel="noopener">${liveIcon ? `<span class="fav-fb">${attrEsc(n.icon||'🔗')}</span>` : favHtml(n, host)}<span class="nm">${lt}${attrEsc(nName(n))}</span>${soc?`<span class="soc">${soc}</span>`:''}</a>`;
       }
     });
     html += '</div>';
@@ -1725,11 +1727,11 @@ function colDetailHtml(){
   if(h && h.type==='link'){
     const host = colHost(h);
     const socs = socHtml(h, host);
-    return `<h3>${renderIcon(h.icon,'24x18')||''} ${nName(h)}</h3><div class="host">${attrEsc(host)}</div><p>${nDesc(h)}</p>` +
-           `<a class="btn-open" href="${attrEsc(h.url)}" target="_blank" rel="noopener">${IS_EN?'Open website':'Otvoriť web'} ›</a>${socs}`;
+    return `<h3>${renderIcon(h.icon,'24x18')||''} ${attrEsc(nName(h))}</h3><div class="host">${attrEsc(host)}</div><p>${attrEsc(nDesc(h))}</p>` +
+           `<a class="btn-open" href="${attrEsc(safeUrl(h.url))}" target="_blank" rel="noopener">${IS_EN?'Open website':'Otvoriť web'} ›</a>${socs}`;
   }
   const last = colPath && colPath.length ? colNode(colPath[colPath.length-1]) : null;
-  if(last) return `<h3>${renderIcon(nodeIcon(last),'24x18')||''} ${nName(last)}</h3><p>${nDesc(last)}</p><div class="empty-hint">${colCnt(last)}</div>`;
+  if(last) return `<h3>${renderIcon(nodeIcon(last),'24x18')||''} ${attrEsc(nName(last))}</h3><p>${attrEsc(nDesc(last))}</p><div class="empty-hint">${colCnt(last)}</div>`;
   return `<div class="empty-hint">${IS_EN?'Move the mouse over a section on the left…':'Prejdi myšou po sekcii vľavo…'}</div>`;
 }
 function colExpand(lv){ colPath = colPath.slice(0, lv); colHover = null; renderColumns(document.getElementById('main'), _colPromo); }
@@ -1806,7 +1808,7 @@ function renderPromoBlock(){
   if(banOn) html += `<div class="promo-ban">${pb.html}</div>`;
   if(p){
     html += `<div class="promo-txt"><div class="promo-tag">${label}</div><h3>${attrEsc(p.title||'')}</h3>${promoParas(p.text)}`;
-    if(p.btnUrl) html += `<a class="promo-btn" href="${attrEsc(p.btnUrl)}" target="_blank" rel="noopener sponsored">${attrEsc(p.btnText||'Viac')} ›</a>`;
+    if(p.btnUrl) html += `<a class="promo-btn" href="${attrEsc(safeUrl(p.btnUrl))}" target="_blank" rel="noopener sponsored">${attrEsc(p.btnText||'Viac')} ›</a>`;
     html += `</div>`;
   }
   html += `</div>`;
@@ -1840,8 +1842,8 @@ function renderPromoListGrid(){
   const grid = document.getElementById('promoListGrid');
   if(!DB.promos.length){ grid.innerHTML='<div style="text-align:center;color:var(--muted);font-size:0.82rem;padding:12px 0">Žiadne texty. Pridaj prvý!</div>'; return; }
   grid.innerHTML = DB.promos.map(p=>{
-    const info=[]; if(p.sectionId){ const sn=DB.nodes.find(n=>n.id===p.sectionId); info.push('📂 '+(sn?sn.name:'?')); }
-    info.push('⚖️ '+promoWeight(p)); if(p.endsAt) info.push('do '+p.endsAt); if(p.active===false) info.push('⏸ vypnutý');
+    const info=[]; if(p.sectionId){ const sn=DB.nodes.find(n=>n.id===p.sectionId); info.push('📂 '+attrEsc(sn?sn.name:'?')); }
+    info.push('⚖️ '+promoWeight(p)); if(p.endsAt) info.push('do '+attrEsc(p.endsAt)); if(p.active===false) info.push('⏸ vypnutý');
     return `<div class="promo-list-row ${p.active===false?'off':''}">
       <span class="pl-name" title="${attrEsc(p.title||'')}">${attrEsc(p.name||p.title||'?')}<br><small style="color:var(--muted)">${info.join(' · ')}</small></span>
       <button class="ibtn" title="Zapnúť/vypnúť" onclick="togglePromo('${p.id}')">${p.active===false?'▶':'⏸'}</button>
@@ -2008,21 +2010,21 @@ function renderSearch(q){
   const more = (all)=> all.length > SRCH_MAX
     ? `<p class="sr-path" style="margin:8px 0 0">${IS_EN?`Showing first ${SRCH_MAX} of ${all.length} — refine your search`:`Zobrazených prvých ${SRCH_MAX} z ${all.length} — spresni hľadanie`}</p>` : '';
   const folderCard = (n, snip)=>{
-    const path = pathOf(n.id).map(p=>nName(p)).join(' › ');
+    const path = attrEsc(pathOf(n.id).map(p=>nName(p)).join(' › '));
     const d = nDesc(n);
     return `<a class="card-folder" href="${attrEsc(urlForId(n.id))}" onclick="return navClick(event,'${n.id}')"${d?` title="${attrEsc(d)}"`:''}>
         <div class="cf-icon">${renderIcon(nodeIcon(n),'24x18')||''}</div>
-        <div class="cf-info"><div class="cf-name">${nName(n)}</div><div class="cf-count sr-path">${path}</div>${snip?srchSnip(d,nq,words):''}</div>
+        <div class="cf-info"><div class="cf-name">${attrEsc(nName(n))}</div><div class="cf-count sr-path">${path}</div>${snip?srchSnip(d,nq,words):''}</div>
         <div class="cf-arrow">›</div></a>`;
   };
   const linkCard = (n, snip)=>{
     const host = (() => { try { return new URL(n.url).hostname; } catch(e){ return ''; }})();
-    const path = pathOf(n.parentId).map(p=>nName(p)).join(' › ');
+    const path = attrEsc(pathOf(n.parentId).map(p=>nName(p)).join(' › '));
     const socs = socHtml(n, host);
     return `<div class="card-link${socs?' has-soc':''}">${(n.tag||n.order===-1)?`<span class="liga-tag">${n.tag?String(n.tag).toUpperCase():(IS_EN?'LEAGUE':'LIGA')}</span>`:''}
-        <a href="${n.url}" target="_blank" rel="noopener" title="${attrEsc(nDesc(n))}">
+        <a href="${attrEsc(safeUrl(n.url))}" target="_blank" rel="noopener" title="${attrEsc(nDesc(n))}">
           ${favHtml(n, host)}
-          <div style="min-width:0"><div class="cl-name">${nName(n)}</div><div class="cl-desc sr-path">${path}</div>${snip?srchSnip(nDesc(n),nq,words):''}</div>
+          <div style="min-width:0"><div class="cl-name">${attrEsc(nName(n))}</div><div class="cl-desc sr-path">${path}</div>${snip?srchSnip(nDesc(n),nq,words):''}</div>
         </a>${socs}</div>`;
   };
   const card = (n, snip)=> n.type==='folder' ? folderCard(n, snip) : linkCard(n, snip);
@@ -2061,7 +2063,7 @@ function socHtml(n, host){
   const ig = IG_HOST.test(host) ? n.url : (n.ig || '');
   if(!fb && !ig) return '';
   const ico = (u, dom, label) => u
-    ? `<a class="si" href="${attrEsc(u)}" target="_blank" rel="noopener" title="${label}" aria-label="${label}"><img src="https://www.google.com/s2/favicons?domain=${dom}&sz=32" alt="" loading="lazy" onerror="this.parentNode.textContent='${dom[0]}'"/></a>`
+    ? `<a class="si" href="${attrEsc(safeUrl(u))}" target="_blank" rel="noopener" title="${label}" aria-label="${label}"><img src="https://www.google.com/s2/favicons?domain=${dom}&sz=32" alt="" loading="lazy" onerror="this.parentNode.textContent='${dom[0]}'"/></a>`
     : `<span class="ph"></span>`;
   return `<span class="socs">${ico(fb,'facebook.com',IS_EN?'Club Facebook':'Facebook klubu')}${ico(ig,'instagram.com',IS_EN?'Club Instagram':'Instagram klubu')}</span>`;
 }
@@ -2087,7 +2089,7 @@ function favHtml(n, host){
     return r ? `<span class="fav-fb">${r}</span>` : sportFav(n);
   }
   if(SOCIAL_FAV.test(host)) return sportFav(n);
-  return `<img class="fav fav-wait" src="https://www.google.com/s2/favicons?domain=${host}&sz=64" alt="" loading="lazy" data-host="${attrEsc(host)}" data-fallback="${n.icon||''}" data-sport="${attrEsc(sportIcon(n.parentId))}" onload="favLoad(this)" onerror="favError(this)"/>`;
+  return `<img class="fav fav-wait" src="https://www.google.com/s2/favicons?domain=${attrEsc(host)}&sz=64" alt="" loading="lazy" data-host="${attrEsc(host)}" data-fallback="${attrEsc(n.icon||'')}" data-sport="${attrEsc(sportIcon(n.parentId))}" onload="favLoad(this)" onerror="favError(this)"/>`;
 }
 // GOOGLOVA ZEMEGUĽA → TLMENÁ IKONA ŠPORTU (Miro 5.10.2026). Google pri webe bez
 // ikony vráti 16 px zemeguľu, ktorá sa od pravej 16 px ikony nedá odlíšiť. Preto
@@ -2106,7 +2108,7 @@ function favLoad(img){
   img.classList.remove('fav-wait');
 }
 function favSportSwap(img){
-  img.outerHTML = `<span class="fav-fb fav-sport">${img.getAttribute('data-sport')||'🔗'}</span>`;
+  img.outerHTML = `<span class="fav-fb fav-sport">${attrEsc(img.getAttribute('data-sport')||'🔗')}</span>`;
 }
 function favError(img){
   if(img.dataset.st === 'y'){ // Yandex nedostupný → späť Googlov obrázok
@@ -2118,7 +2120,7 @@ function favError(img){
   // ak je náhradná ikona kód krajiny ("sk"), ukáž vlajku — inak tlmená ikona športu
   const r = renderIcon(fb,'24x18');
   img.outerHTML = r ? `<span class="fav-fb">${r}</span>`
-                    : `<span class="fav-fb fav-sport">${img.getAttribute('data-sport')||'🔗'}</span>`;
+                    : `<span class="fav-fb fav-sport">${attrEsc(img.getAttribute('data-sport')||'🔗')}</span>`;
 }
 // favLoaded() zrušené 2.10.2026: pravidlo „16 px = Google nič nemá → 🔗"
 // zahadzovalo aj PRAVÉ malé logá (Hannover 96, Irish FA…, ~5 % liniek);
@@ -2469,8 +2471,8 @@ function renderOneSlot(el, slotNum){
       old.parentNode.replaceChild(s, old);
     });
   } else {
-    el.innerHTML = `<a href="${banner.linkUrl||'#'}" target="_blank" rel="noopener sponsored">
-      <img src="${banner.imageUrl}" alt="${banner.alt||'Reklama'}" style="width:100%;height:100%;object-fit:cover;display:block"/>
+    el.innerHTML = `<a href="${attrEsc(safeUrl(banner.linkUrl))}" target="_blank" rel="noopener sponsored">
+      <img src="${attrEsc(safeUrl(banner.imageUrl))}" alt="${attrEsc(banner.alt||'Reklama')}" style="width:100%;height:100%;object-fit:cover;display:block"/>
     </a>`;
   }
 }
@@ -2517,14 +2519,14 @@ function renderBannerFarmGrid(){
     const inDate = bannerDateOk(b);
     const info = [];
     info.push(bannerSlotNum(b)===2 ? '2️⃣ Slot 2' : '1️⃣ Slot 1');
-    if(b.sectionId){ const s=DB.nodes.find(n=>n.id===b.sectionId); info.push('📂 '+(s?s.name:'?')); }
-    if(b.startsAt||b.endsAt) info.push('📅 '+(b.startsAt||'…')+' → '+(b.endsAt||'…'));
+    if(b.sectionId){ const s=DB.nodes.find(n=>n.id===b.sectionId); info.push('📂 '+attrEsc(s?s.name:'?')); }
+    if(b.startsAt||b.endsAt) info.push('📅 '+attrEsc(b.startsAt||'…')+' → '+attrEsc(b.endsAt||'…'));
     if(bannerWeight(b)>1) info.push('⚖️ '+bannerWeight(b)+'×');
     return `<div class="bfarm-row ${isActive&&!DB.bannerSettings.rotate?'active-banner':''}">
-      ${b.imageUrl?`<img class="bfarm-preview" src="${b.imageUrl}" alt=""/>` : `<div class="bfarm-preview" style="display:flex;align-items:center;justify-content:center;font-size:0.65rem;color:var(--muted)">HTML</div>`}
+      ${b.imageUrl?`<img class="bfarm-preview" src="${attrEsc(safeUrl(b.imageUrl))}" alt=""/>` : `<div class="bfarm-preview" style="display:flex;align-items:center;justify-content:center;font-size:0.65rem;color:var(--muted)">HTML</div>`}
       <div class="bfarm-info">
-        <div class="bfarm-name">${b.name||'Banner '+(i+1)}</div>
-        <div class="bfarm-url">${b.linkUrl||b.html||'–'}</div>
+        <div class="bfarm-name">${attrEsc(b.name||'Banner '+(i+1))}</div>
+        <div class="bfarm-url">${attrEsc(b.linkUrl||b.html||'–')}</div>
         ${info.length?`<div class="bfarm-url">${info.join(' · ')}</div>`:''}
       </div>
       <span class="bfarm-status ${isOn?(inDate?'on':'off'):'off'}">${isOn?(inDate?'✓ Aktívny':'⏱ Mimo kampane'):'Vypnutý'}</span>
@@ -2561,7 +2563,7 @@ function fillBannerSectionSelect(){
   const sel = document.getElementById('bSection');
   sel.innerHTML = '<option value="">🌐 Celý web</option>' +
     getChildren(null).filter(n=>n.type==='folder')
-      .map(f=>`<option value="${f.id}">${f.icon&&f.icon.length<=4?f.icon+' ':''}${f.name}</option>`).join('');
+      .map(f=>`<option value="${attrEsc(f.id)}">${f.icon&&f.icon.length<=4?attrEsc(f.icon)+' ':''}${attrEsc(f.name)}</option>`).join('');
 }
 
 function openAddBanner(){
@@ -2662,9 +2664,9 @@ function renderAktList(){
     const exp = a.endsAt && Date.now() > new Date(a.endsAt+'T23:59:59').getTime();
     return `
     <div style="background:var(--surface);border:1.5px solid var(--border);border-radius:8px;padding:10px 14px;display:flex;align-items:center;gap:10px">
-      <span style="font-size:1.2rem">${a.icon||'📌'}</span>
-      <span style="flex:1;font-size:0.88rem;font-weight:600">${a.name}</span>
-      ${a.endsAt?`<span style="font-size:0.68rem;white-space:nowrap;color:${exp?'var(--red)':'var(--muted)'}">${exp?'⏱ skončené':'do '+a.endsAt.split('-').reverse().join('.')}</span>`:''}
+      <span style="font-size:1.2rem">${attrEsc(a.icon||'📌')}</span>
+      <span style="flex:1;font-size:0.88rem;font-weight:600">${attrEsc(a.name)}</span>
+      ${a.endsAt?`<span style="font-size:0.68rem;white-space:nowrap;color:${exp?'var(--red)':'var(--muted)'}">${exp?'⏱ skončené':'do '+attrEsc(a.endsAt.split('-').reverse().join('.'))}</span>`:''}
       <button class="ibtn" onclick="moveAkt(${i},-1)" title="Hore">▲</button>
       <button class="ibtn" onclick="moveAkt(${i},1)" title="Dole">▼</button>
       <button class="ibtn" onclick="openEditAkt('${a.id}')" title="Upraviť">✏️</button>
@@ -2753,10 +2755,10 @@ function renderAktualne(){
     const isNew = a.addedAt && (now - a.addedAt) < 86400000; // 24 hodín
     const exp = isExpired(a);
     return `
-    <a class="akt-card${exp?' akt-expired':''}" href="${a.url}" target="_blank" rel="noopener"${exp?' title="Skončené — verejnosť túto linku nevidí"':''}>
+    <a class="akt-card${exp?' akt-expired':''}" href="${attrEsc(safeUrl(a.url))}" target="_blank" rel="noopener"${exp?' title="Skončené — verejnosť túto linku nevidí"':''}>
       ${isNew&&!exp?'<span class="akt-new">NEW</span>':''}
-      <span class="akt-icon">${a.icon||'📌'}</span>
-      <span>${(IS_EN && a.name_en) ? a.name_en : a.name}</span>
+      <span class="akt-icon">${attrEsc(a.icon||'📌')}</span>
+      <span>${attrEsc((IS_EN && a.name_en) ? a.name_en : a.name)}</span>
     </a>`;
   }).join('');
   updateAktFade();

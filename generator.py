@@ -609,6 +609,9 @@ PAGE = """<!DOCTYPE html>
 DYN_JS = """<script>
 function __dyn(){
   var ANC=__ANC__;
+  // bod 14: text z dát → HTML entity; adresa len http(s), inak "#"
+  function esc(s){return String(s||"").replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;").replace(/>/g,"&gt;")}
+  function safeUrl(u){var s=String(u||"").trim(),l=s.toLowerCase();return (l.indexOf("http://")===0||l.indexOf("https://")===0)?s:"#"}
   fetch("__DATAURL__").then(function(r){return r.json()}).then(function(d){
     var today=new Date().toISOString().slice(0,10);
     var bs=(d.banners||[]).filter(function(b){
@@ -634,7 +637,7 @@ function __dyn(){
       if(!b)return;
       var el=document.getElementById(elId);
       el.hidden=false;
-      el.innerHTML=b.html?b.html:'<a href="'+(b.linkUrl||"#")+'" target="_blank" rel="noopener sponsored"><img src="'+b.imageUrl+'" alt="'+(b.alt||"Reklama")+'"></a>';
+      el.innerHTML=b.html?b.html:'<a href="'+esc(safeUrl(b.linkUrl))+'" target="_blank" rel="noopener sponsored"><img src="'+esc(safeUrl(b.imageUrl))+'" alt="'+esc(b.alt||"Reklama")+'"></a>';
       if(b.html){
         var scr=el.querySelectorAll("script");
         for(var i=0;i<scr.length;i++){
@@ -652,7 +655,7 @@ function __dyn(){
       var el2=document.getElementById("akt");
       el2.hidden=false;
       el2.innerHTML='<span class="lbl">__AKT_LABEL__</span>'+ak.map(function(a){
-        return '<a href="'+a.url+'" target="_blank" rel="noopener">'+(a.icon?a.icon+" ":"")+(("__LANG__"==="en"&&a.name_en)?a.name_en:a.name)+'</a>';
+        return '<a href="'+esc(safeUrl(a.url))+'" target="_blank" rel="noopener">'+(a.icon?esc(a.icon)+" ":"")+esc(("__LANG__"==="en"&&a.name_en)?a.name_en:a.name)+'</a>';
       }).join("");
     }
   }).catch(function(e){});
