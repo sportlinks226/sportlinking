@@ -15,7 +15,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write   # commit sitemap-lastmod.json (dátumy zmien pre sitemap)
+  contents: write   # commit sitemap-lastmod.json (dátumy zmien pre sitemap) a ikony/
   pages: write
   id-token: write
 
@@ -48,6 +48,22 @@ jobs:
             || curl -fsSL --retry 3 "https://www.sportlinky.sk/data.json?build=$GITHUB_RUN_ID" -o data.json
           # Poistka: odľahčené dáta (_lite) by zmazali anglické texty — build radšej zastav.
           python -c "import json,sys; d=json.load(open('data.json', encoding='utf-8')); sys.exit('CHYBA: stiahnuté dáta sú odľahčené (_lite), chýba data-full.json') if d.get('_lite') else print('data.json OK, verzia', d.get('version'), ',', len(d.get('nodes',[])), 'uzlov')"
+
+      # IKONKY WEBOV (bod 15, 2.11.2026): ikonky sa sťahujú LEN tu, na serveri —
+      # návštevník už nič neposiela Googlu ani Yandexu. Krok je ZA stiahnutím dát:
+      # ikony.py berie weby z práve stiahnutého data.json (zo SK webu). Ak sa dáta
+      # stiahnuť nepodarilo, predošlý krok build zastaví a sem sa nedôjde (nič sa
+      # nemaže). Vlastné ikonky EN webu sa ukladajú do ikony/ v TOMTO repozitári
+      # a PRIEBEŽNE (každé ~3 min) sa commitujú „[skip ci]" — commituje sa LEN
+      # ikony/, stiahnutý data.json NIE. Limit 12 min — čo nestihne, dotiahne ďalší
+      # build. Build kvôli ikonkám NIKDY nespadne (continue-on-error, timeout).
+      - name: Stiahni ikonky webov
+        continue-on-error: true
+        timeout-minutes: 15
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          python ikony.py --git --limit 720
 
       - name: Vygeneruj anglické stránky
         run: python generator.py --out _site

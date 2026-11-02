@@ -1167,6 +1167,7 @@ function ensureSlugs(){
 // tam zostáva pôvodné #-routovanie. Staré zdieľané #/-adresy fungujú ďalej.
 const PATH_ROUTING = (location.protocol === 'http:' || location.protocol === 'https:');
 const BASE_PATH = SITE_ROOT || '/';
+const IKONY = BASE_PATH + 'ikony/'; // ikonky webov zo /ikony/ (bod 15, pozri favHtml)
 
 function pathForId(id){
   if(id === null) return '';
@@ -2090,7 +2091,7 @@ function socHtml(n, host){
   const ig = IG_HOST.test(host) ? n.url : (n.ig || '');
   if(!fb && !ig) return '';
   const ico = (u, dom, label) => u
-    ? `<a class="si" href="${attrEsc(safeUrl(u))}" target="_blank" rel="noopener" title="${label}" aria-label="${label}"><img src="https://www.google.com/s2/favicons?domain=${dom}&sz=32" alt="" loading="lazy" onerror="this.parentNode.textContent='${dom[0]}'"/></a>`
+    ? `<a class="si" href="${attrEsc(safeUrl(u))}" target="_blank" rel="noopener" title="${label}" aria-label="${label}"><img src="${IKONY}${dom}.png" alt="" loading="lazy" onerror="this.parentNode.textContent='${dom[0]}'"/></a>`
     : `<span class="ph"></span>`;
   return `<span class="socs">${ico(fb,'facebook.com',IS_EN?'Club Facebook':'Facebook klubu')}${ico(ig,'instagram.com',IS_EN?'Club Instagram':'Instagram klubu')}</span>`;
 }
@@ -2098,7 +2099,8 @@ function socHtml(n, host){
 // klub bez vlastného webu (hlavná linka FB, IG, X, YouTube, TikTok, Wikipédia)
 // = TLMENÁ (sivá, priesvitná) ikona športu podľa hlavnej sekcie (⚽ 🏐 🏀 🤾 🏒…),
 // farbu dostane pri prejdení myšou; tá istá značka aj keď sa ikona nedá načítať.
-// Googlova zemeguľa = web, ktorého ikonu Google nemá. (2.–5.10. boli vľavo logá
+// Web bez ikonky (1×1 px v /ikony/) alebo bez stiahnutej ikonky = tiež ikona športu
+// (vlajka, ak má linka ako ikonu kód krajiny). (2.–5.10. boli vľavo logá
 // sietí — Mirovi to pôsobilo rozhádzane; záloha index-2026-10-05-pred-tlmeny-sport.html)
 const _sportCache = new Map();
 function sportIcon(parentId){
@@ -2110,44 +2112,40 @@ function sportIcon(parentId){
   return ic;
 }
 function sportFav(n){ return `<span class="fav-fb fav-sport">${sportIcon(n.parentId)}</span>`; }
+// IKONKY WEBOV Z VLASTNÉHO WEBU (bod 15, 2.11.2026): ikonky sťahuje ikony.py
+// pri builde na GitHube (Google s2 → pri ≤17 px Yandex — logika, ktorú predtým
+// robil prehliadač) a web ich servíruje sám z /ikony/<host>.png. Návštevník tak
+// NEposiela Googlu ani Yandexu svoju IP ani to, aké weby si prezerá.
+//  - web bez ikonky („none") má v /ikony/ priehľadný obrázok 1×1 px → ikona športu
+//  - súbor chýba (nová linka z adminu pred ďalším buildom) → onerror → vlajka
+//    podľa data-fallback, inak tlmená ikona športu (ako predtým pri chybe)
+//  - fav-wait: obrázok je neviditeľný, kým sa nenačíta — 1×1 px ani prázdny
+//    štvorček sa pred výmenou za ikonu športu neukáže (nič nebliká)
+const IKONA_HOST = /^[a-z0-9.-]+$/;
 function favHtml(n, host){
   if(NO_FAVICON_HOSTS.test(host)){
     const r = renderIcon(n.icon,'24x18');
     return r ? `<span class="fav-fb">${r}</span>` : sportFav(n);
   }
   if(SOCIAL_FAV.test(host)) return sportFav(n);
-  return `<img class="fav fav-wait" src="https://www.google.com/s2/favicons?domain=${attrEsc(host)}&sz=64" alt="" loading="lazy" data-host="${attrEsc(host)}" data-fallback="${attrEsc(n.icon||'')}" data-sport="${attrEsc(sportIcon(n.parentId))}" onload="favLoad(this)" onerror="favError(this)"/>`;
+  if(!IKONA_HOST.test(host)) return favFallbackHtml(n.icon||'', sportIcon(n.parentId)); // zlá adresa → bez požiadavky
+  return `<img class="fav fav-wait" src="${IKONY}${host}.png" alt="" loading="lazy" data-fallback="${attrEsc(n.icon||'')}" data-sport="${attrEsc(sportIcon(n.parentId))}" onload="favLoad(this)" onerror="favError(this)"/>`;
 }
-// GOOGLOVA ZEMEGUĽA → TLMENÁ IKONA ŠPORTU (Miro 5.10.2026). Google pri webe bez
-// ikony vráti 16 px zemeguľu, ktorá sa od pravej 16 px ikony nedá odlíšiť. Preto
-// pri 16 px výsledku sa spýtame Yandexu: ten pri chýbajúcej ikone vráti 1×1 px
-// (rozlíšiteľné!) → ikona športu; inak ukážeme pravú malú ikonu z Yandexu.
-// Ak je Yandex nedostupný, ostane Googlov obrázok. Kým sa rozhoduje, obrázok je
-// neviditeľný (fav-wait), aby zemeguľa neprebliknla. Overené na vzorke 150 hostov.
 function favLoad(img){
-  const st = img.dataset.st || 'g';
-  if(st === 'g' && img.naturalWidth <= 17){
-    img.dataset.st = 'y';
-    img.src = 'https://favicon.yandex.net/favicon/' + img.dataset.host;
-    return;
-  }
-  if(st === 'y' && img.naturalWidth <= 1){ favSportSwap(img); return; }
+  if(img.naturalWidth <= 1){ favSportSwap(img); return; } // web ikonku nemá
   img.classList.remove('fav-wait');
 }
 function favSportSwap(img){
   img.outerHTML = `<span class="fav-fb fav-sport">${attrEsc(img.getAttribute('data-sport')||'🔗')}</span>`;
 }
-function favError(img){
-  if(img.dataset.st === 'y'){ // Yandex nedostupný → späť Googlov obrázok
-    img.dataset.st = 'done';
-    img.src = 'https://www.google.com/s2/favicons?domain=' + img.dataset.host + '&sz=64';
-    return;
-  }
-  const fb = img.getAttribute('data-fallback')||'';
+function favFallbackHtml(fb, sport){
   // ak je náhradná ikona kód krajiny ("sk"), ukáž vlajku — inak tlmená ikona športu
   const r = renderIcon(fb,'24x18');
-  img.outerHTML = r ? `<span class="fav-fb">${r}</span>`
-                    : `<span class="fav-fb fav-sport">${attrEsc(img.getAttribute('data-sport')||'🔗')}</span>`;
+  return r ? `<span class="fav-fb">${r}</span>`
+           : `<span class="fav-fb fav-sport">${attrEsc(sport||'🔗')}</span>`;
+}
+function favError(img){
+  img.outerHTML = favFallbackHtml(img.getAttribute('data-fallback')||'', img.getAttribute('data-sport'));
 }
 // favLoaded() zrušené 2.10.2026: pravidlo „16 px = Google nič nemá → 🔗"
 // zahadzovalo aj PRAVÉ malé logá (Hannover 96, Irish FA…, ~5 % liniek);

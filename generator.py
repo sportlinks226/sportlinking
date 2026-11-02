@@ -1363,6 +1363,19 @@ def main():
                 shutil.copy(fname, os.path.join(out, fname))
             elif fname in ("favicon.ico", "apple-touch-icon.png"):
                 print(f"UPOZORNENIE: chýba súbor {fname} — na webe nebude (build pokračuje).")
+        # IKONKY WEBOV (bod 15, 2.11.2026): ikony/*.png (sťahuje ikony.py pri
+        # builde) → _site/ikony/. Appka ich načíta od koreňa webu (/ikony/<host>.png).
+        # stav.json sa na web nekopíruje (je len pre ikony.py).
+        if os.path.isdir("ikony"):
+            os.makedirs(os.path.join(out, "ikony"), exist_ok=True)
+            n_ikon = 0
+            for fname in os.listdir("ikony"):
+                if fname.endswith(".png"):
+                    shutil.copy(os.path.join("ikony", fname), os.path.join(out, "ikony", fname))
+                    n_ikon += 1
+            print(f"Ikonky webov: {n_ikon} súborov -> {out}/ikony/")
+        else:
+            print("UPOZORNENIE: priečinok ikony/ chýba — ikonky webov na webe nebudú (build pokračuje).")
 
     print(f"Hotovo: {count} stránok priečinkov -> {out}/ (preskočených prázdnych: {len(skipped)})")
     if not BASE_URL:
