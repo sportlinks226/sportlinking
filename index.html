@@ -1100,7 +1100,7 @@ function nDesc(n){ return (IS_EN && n.desc_en) ? n.desc_en : (n.desc||''); }
 // bezpecny text do HTML atributu (title="...") — aby uvodzovky nerozbili znacku
 function attrEsc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 // bezpečná adresa do href/src — len http:// alebo https://, inak '#' (bod 14)
-function safeUrl(u){ const s = String(u||'').trim(); return /^https?:\/\//i.test(s) ? s : '#'; }
+function safeUrl(u){ const s = String(u||'').trim(); return /^(https?:\/\/|\/(?!\/))/i.test(s) ? s : '#'; } // https://… alebo relatívna od koreňa webu (/obrazok.png, /) — nie //cudzi-web (oprava 2.11.2026: EN bannery mali po bode 14 adresu #)
 // priečinky, ktorých deti (krajiny) sa v EN radia podľa anglickej abecedy
 const CONTINENTS_SK = new Set(["Európa","Ázia","Afrika","Južná Amerika",
   "Severná Amerika","Severná a Stredná Amerika","Oceánia","Ázia & Oceánia",
