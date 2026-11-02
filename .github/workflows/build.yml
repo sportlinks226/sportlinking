@@ -14,10 +14,10 @@ on:
     - cron: "0 3 * * *"   # denne 3:00 UTC (5:00 v lete u nás) — prevezme zmeny dát
   workflow_dispatch:
 
+# Oprávnenia (bod 27 previerky): na úrovni celého workflow len čítanie;
+# každá úloha dostane len to, čo naozaj potrebuje (pri úlohe nižšie).
 permissions:
-  contents: write   # commit sitemap-lastmod.json (dátumy zmien pre sitemap) a ikony/
-  pages: write
-  id-token: write
+  contents: read
 
 concurrency:
   group: pages
@@ -26,6 +26,9 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write   # commit sitemap-lastmod.json (dátumy zmien pre sitemap) a ikony/
+      pages: read       # configure-pages zisťuje adresu webu (BASE_URL)
     steps:
       - uses: actions/checkout@v4
 
@@ -97,6 +100,9 @@ jobs:
   deploy:
     needs: build
     runs-on: ubuntu-latest
+    permissions:
+      pages: write      # nasadenie na GitHub Pages
+      id-token: write   # overenie nasadenia (OIDC)
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
