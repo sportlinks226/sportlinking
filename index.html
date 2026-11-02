@@ -273,6 +273,9 @@ footer{
 .card-link .cl-desc{font-size:0.78rem;color:var(--muted);margin-top:1px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;white-space:normal;overflow:hidden}
 /* vo vysledkoch hladania zostava cesta na jednom riadku */
 .card-link .cl-desc.sr-path{display:block;white-space:nowrap;text-overflow:ellipsis}
+/* výrez popisu pri „Spomenuté v popise“ */
+.sr-snip{font-size:0.76rem;color:#c3cfdb;margin-top:4px;line-height:1.3;font-style:italic;white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.sr-snip mark{background:rgba(232,66,66,.25);color:#ff8a8a;font-style:normal;font-weight:700;border-radius:3px;padding:0 2px}
 /* štítok LIGA/LEAGUE — linky líg (order -1) v priečinkoch klubov; federácie (order 0) ho nemajú */
 .liga-tag{position:absolute;top:0;right:0;background:var(--accent-strong);color:#fff;font-size:0.55rem;font-weight:800;letter-spacing:.5px;padding:2px 7px;line-height:1.5;border-radius:0 9px 0 8px;pointer-events:none;z-index:2}
 .admin-mode .liga-tag{display:none}
@@ -1912,6 +1915,23 @@ function norm(s){
   return (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
 }
 
+// Výrez popisu okolo hľadaného slova (pre sekciu „Spomenuté v popise“)
+function srchSnip(text, nq, wordRe){
+  if(!text) return '';
+  // normalizovaný text + mapa: pozícia v normalizovanom → pozícia v pôvodnom
+  let nt='', map=[];
+  for(let i=0;i<text.length;i++){ const c=norm(text[i]); for(let k=0;k<c.length;k++){ nt+=c[k]; map.push(i); } }
+  const m = wordRe.exec(nt); if(!m) return '';
+  const pos = m.index + m[1].length;
+  let a = map[pos], b = map[pos+nq.length-1]+1;
+  const isW = (ch)=>{ try{ return /[\p{L}\p{N}]/u.test(ch); }catch(e){ return /[a-z0-9]/i.test(ch); } };
+  while(b<text.length && isW(text[b])) b++;           // zvýrazni celé slovo („Slovanu“)
+  let s0 = Math.max(0, a-22), s1 = Math.min(text.length, b+70);
+  if(s0>0){ const sp=text.indexOf(' ', s0); if(sp>-1 && sp<a) s0=sp+1; }
+  if(s1<text.length){ const sp=text.lastIndexOf(' ', s1); if(sp>b) s1=sp; }
+  return `<div class="sr-snip">${s0>0?'…':''}${attrEsc(text.slice(s0,a))}<mark>${attrEsc(text.slice(a,b))}</mark>${attrEsc(text.slice(b,s1))}${s1<text.length?'…':''}</div>`;
+}
+
 function renderSearch(q){
   const nq = norm(q);
   let pool = DB.nodes;
@@ -1964,35 +1984,36 @@ function renderSearch(q){
   const mentions = scored.filter(x=>x.sc===3).map(x=>x.n); // len zmienka v popise
   const more = (all)=> all.length > SRCH_MAX
     ? `<p class="sr-path" style="margin:8px 0 0">${IS_EN?`Showing first ${SRCH_MAX} of ${all.length} — refine your search`:`Zobrazených prvých ${SRCH_MAX} z ${all.length} — spresni hľadanie`}</p>` : '';
-  const folderCard = (n)=>{
+  const folderCard = (n, snip)=>{
     const path = pathOf(n.id).map(p=>nName(p)).join(' › ');
-    return `<a class="card-folder" href="${attrEsc(urlForId(n.id))}" onclick="return navClick(event,'${n.id}')">
+    const d = nDesc(n);
+    return `<a class="card-folder" href="${attrEsc(urlForId(n.id))}" onclick="return navClick(event,'${n.id}')"${d?` title="${attrEsc(d)}"`:''}>
         <div class="cf-icon">${renderIcon(nodeIcon(n),'24x18')||''}</div>
-        <div class="cf-info"><div class="cf-name">${nName(n)}</div><div class="cf-count sr-path">${path}</div></div>
+        <div class="cf-info"><div class="cf-name">${nName(n)}</div><div class="cf-count sr-path">${path}</div>${snip?srchSnip(d,nq,wordRe):''}</div>
         <div class="cf-arrow">›</div></a>`;
   };
-  const linkCard = (n)=>{
+  const linkCard = (n, snip)=>{
     const host = (() => { try { return new URL(n.url).hostname; } catch(e){ return ''; }})();
     const path = pathOf(n.parentId).map(p=>nName(p)).join(' › ');
     const socs = socHtml(n, host);
     return `<div class="card-link${socs?' has-soc':''}">${(n.tag||n.order===-1)?`<span class="liga-tag">${n.tag?String(n.tag).toUpperCase():(IS_EN?'LEAGUE':'LIGA')}</span>`:''}
-        <a href="${n.url}" target="_blank" rel="noopener">
+        <a href="${n.url}" target="_blank" rel="noopener" title="${attrEsc(nDesc(n))}">
           ${favHtml(n, host)}
-          <div><div class="cl-name">${nName(n)}</div><div class="cl-desc sr-path">${path}</div></div>
+          <div style="min-width:0"><div class="cl-name">${nName(n)}</div><div class="cl-desc sr-path">${path}</div>${snip?srchSnip(nDesc(n),nq,wordRe):''}</div>
         </a>${socs}</div>`;
   };
-  const card = (n)=> n.type==='folder' ? folderCard(n) : linkCard(n);
-  const section = (label, arr, first)=>{
+  const card = (n, snip)=> n.type==='folder' ? folderCard(n, snip) : linkCard(n, snip);
+  const section = (label, arr, first, snip)=>{
     if(!arr.length) return '';
     return `<div class="section-label"${first?'':' style="margin-top:20px"'}>${label} (${arr.length})</div><div class="grid-deep">`
-      + arr.slice(0,SRCH_MAX).map(card).join('') + `</div>` + more(arr);
+      + arr.slice(0,SRCH_MAX).map(n=>card(n, snip)).join('') + `</div>` + more(arr);
   };
   const foldersAll = hits.filter(n=>n.type==='folder');
   const linksAll   = hits.filter(n=>n.type==='link');
   let html = '';
   html += section(IS_EN?'Categories':'Kategórie', foldersAll, true);
   html += section(IS_EN?'Links':'Linky', linksAll, !foldersAll.length);
-  html += section(IS_EN?'Mentioned in descriptions':'Spomenuté v popise', mentions, !hits.length);
+  html += section(IS_EN?'Mentioned in descriptions':'Spomenuté v popise', mentions, !hits.length, true);
   main.innerHTML = html;
 }
 
