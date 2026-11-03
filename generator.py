@@ -786,7 +786,7 @@ PAGE = """<!DOCTYPE html>
 <title>{title}</title>
 <meta name="description" content="{meta_desc}">
 {favicons}
-{preconnect}{canonical}
+{canonical}
 {og_tags}
 {jsonld}
 <style>{css}</style>
@@ -1023,7 +1023,8 @@ FLAG_RE = re.compile(r"^[a-z]{2}(-[a-z]{2,4})?$")
 
 
 def icon_html(icon: str, size: str = "24x18") -> str:
-    """Ikona ako HTML: kód krajiny → obrázok vlajky (flagcdn.com, ako v appke),
+    """Ikona ako HTML: kód krajiny → obrázok vlajky z vlastného webu /vlajky/
+    (sťahuje vlajky.py pri builde; srcset 2× pre ostré displeje — ako v appke),
     emoji → escapovaný text, prázdna → "". Výsledok sa už NEescapuje znova.
     (Dedenie vlajky od rodiča ako nodeIcon v appke sa tu zámerne nerobí.)"""
     icon = (icon or "").strip()
@@ -1031,10 +1032,46 @@ def icon_html(icon: str, size: str = "24x18") -> str:
         return ""
     if FLAG_RE.match(icon):
         w, h = size.split("x")
-        return (f'<img src="https://flagcdn.com/{size}/{icon}.png" width="{w}" height="{h}" '
+        s2 = f"{int(w) * 2}x{int(h) * 2}"
+        v = SITE_ABS_ROOT + "vlajky/"
+        return (f'<img src="{v}{size}/{icon}.png" srcset="{v}{s2}/{icon}.png 2x" width="{w}" height="{h}" '
                 f'alt="" loading="lazy" style="border-radius:2px;vertical-align:middle">')
     # bod 25: emoji je len ozdoba — čítačka ho nečíta (rovnako renderIcon v index.html)
     return f'<span aria-hidden="true">{escape(icon)}</span>'
+
+
+def kopiruj_vlajky(data, out: str) -> None:
+    """Skopíruje vlajky/ do <out>/vlajky/ a chýbajúce nahradí priehľadným 1×1 px.
+    Kódy a veľkosti berie z vlajky.py (rovnaké, aké sťahuje). Build nikdy nezastaví."""
+    try:
+        sys.dont_write_bytecode = True   # bez priečinka __pycache__ v repozitári
+        import vlajky as vl
+        kody, velkosti = vl.kody_vlajok(data), vl.velkosti()
+    except Exception as e:
+        print(f"UPOZORNENIE: vlajky.py sa nepodarilo použiť ({e}) — vlajky sa len skopírujú.")
+        kody, velkosti = [], []
+    skopirovane, nahradnikov, chyba = 0, 0, []
+    if os.path.isdir("vlajky"):
+        for vel in sorted(os.listdir("vlajky")):
+            if not os.path.isdir(os.path.join("vlajky", vel)):
+                continue
+            os.makedirs(os.path.join(out, "vlajky", vel), exist_ok=True)
+            for fname in os.listdir(os.path.join("vlajky", vel)):
+                if fname.endswith(".png"):
+                    shutil.copy(os.path.join("vlajky", vel, fname), os.path.join(out, "vlajky", vel, fname))
+                    skopirovane += 1
+    for vel in velkosti:
+        for kod in kody:
+            ciel = os.path.join(out, "vlajky", vel, kod + ".png")
+            if not os.path.exists(ciel):
+                os.makedirs(os.path.dirname(ciel), exist_ok=True)
+                with open(ciel, "wb") as f:
+                    f.write(vl.PNG_NAHRADNIK)
+                nahradnikov += 1
+                chyba.append(f"{vel}/{kod}")
+    print(f"Vlajky: {skopirovane} súborov -> {out}/vlajky/"
+          + (f", NÁHRADNÍK (priehľadný) za {nahradnikov} chýbajúcich: {', '.join(chyba[:15])}"
+             + (" …" if len(chyba) > 15 else "") if nahradnikov else ""))
 
 
 def count_links(children: dict, paths: dict) -> int:
@@ -1289,9 +1326,6 @@ def render_page(node, path, children, by_id, paths, site_title, alt_url=None, pa
     body = fold_cards + link_cards + icon
     return PAGE.format(
         lang=LANG,
-        # bod 22: vlajky sú z flagcdn.com — spojenie sa nadviaže vopred (len ak tu vlajky sú)
-        preconnect=('<link rel="preconnect" href="https://flagcdn.com" crossorigin>\n'
-                    if "https://flagcdn.com/" in body else ""),
         title=page_title,
         meta_desc=escape(meta, quote=True),
         favicons=FAVICON_LINKS,
@@ -1597,6 +1631,11 @@ def main():
             print(f"Ikonky webov: {n_ikon} súborov -> {out}/ikony/")
         else:
             print("UPOZORNENIE: priečinok ikony/ chýba — ikonky webov na webe nebudú (build pokračuje).")
+        # VLAJKY KRAJÍN (3.11.2026): vlajky/<veľkosť>/<kód>.png (sťahuje vlajky.py
+        # pri builde) → _site/vlajky/. Vlajku, ktorá chýba (nestiahla sa), nahradí
+        # priehľadný obrázok 1×1 px — návštevník neuvidí rozbitý obrázok ani 404,
+        # len prázdne miesto. Ďalší build ju skúsi stiahnuť znova.
+        kopiruj_vlajky(data, out)
 
     print(f"Hotovo: {count} stránok priečinkov -> {out}/ (preskočených prázdnych: {len(skipped)})")
     if not BASE_URL:

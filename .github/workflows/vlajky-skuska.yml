@@ -1,0 +1,55 @@
+# SKÚŠKA VLAJOK — spustí sa pri pull requeste, ktorý mení vlajky.py (alebo ručne:
+# Actions → „Skúška vlajok" → Run workflow). NIČ nenasadzuje ani necommituje:
+# stiahne VŠETKY vlajky z flagcdn.com do dočasného priečinka a vypíše, koľko
+# kódov × veľkostí sa podarilo a ktoré chýbajú. Overí tak, že sťahovanie zo
+# serverov GitHubu funguje ešte pred Merge.
+# Výsledok je v logu, na stránke behu (Summary) a v prílohe „vlajky-skuska".
+name: Skúška vlajok
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths: [vlajky.py, .github/workflows/vlajky-skuska.yml]
+
+permissions:
+  contents: read
+
+jobs:
+  skuska:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Stiahni všetky vlajky do dočasného priečinka
+        run: python vlajky.py --dir _vlajky_skuska --vystup vlajky-skuska.json
+      - name: Súhrn
+        run: |
+          python - <<'PY'
+          import json, os
+          d = json.load(open('vlajky-skuska.json'))
+          ok = d['stiahnute']
+          r = ['## Skúška vlajok (flagcdn.com zo serverov GitHubu)', '',
+               f"- Kódov: **{d['kody']}**, veľkostí: **{len(d['velkosti'])}** ({', '.join(d['velkosti'])})",
+               f"- Stiahnuté: **{ok} z {d['spolu']}** ({d['kb']} KB, {d['trvanie_s']} s)",
+               f"- Nepodarilo sa: **{len(d['zlyhalo'])}**, nestihnuté (časový limit): **{len(d['nestihnute'])}**"]
+          r += [f"  - {k}: {c}" for k, c in sorted(d['zlyhalo'].items())]
+          r.append('')
+          r.append('✅ Sťahovanie funguje' if ok == d['spolu'] else
+                   ('⚠️ Väčšina vlajok sa stiahla, niektoré chýbajú (na webe budú priehľadné)' if ok > d['spolu'] * 0.9
+                    else '❌ Sťahovanie zo serverov GitHubu nefunguje'))
+          text = '\n'.join(r) + '\n'
+          print(text)
+          open(os.environ['GITHUB_STEP_SUMMARY'], 'a').write(text)
+          if ok <= d['spolu'] * 0.9:
+              raise SystemExit(1)
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: vlajky-skuska
+          path: |
+            vlajky-skuska.json
+            _vlajky_skuska/
