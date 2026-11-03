@@ -99,6 +99,7 @@ class Test:
         self.lang = "sk"
         self.nazov_webu = ""
         self.ligy = []          # adresy z kontroly c) (pre mobil)
+        self.adresy = []        # všetky adresy zo sitemap.xml (náhrada pre kontrolu i)
         self.snimky = 0
 
     # ------------------------------------------------ prehliadač
@@ -298,6 +299,7 @@ class Test:
         if kod != 200:
             raise Zlyhanie(f"sitemap.xml vrátil HTTP {kod}")
         adresy = re.findall(r"<loc>([^<]+)</loc>", text)
+        self.adresy = adresy
         root_path = urllib.parse.urlsplit(self.base).path
 
         def hlbka(u):
@@ -477,6 +479,85 @@ class Test:
             ctx.close()
         return "ok", "/#admin otvorí prihlasovacie okno (heslo sa nezadáva)"
 
+    # ------------------------------------------------ i) vlajky z vlastného webu
+    # priečinok s vlajkou v statickom HTML (karta priečinka: href="slug/", v názve <img> vlajky)
+    VLAJKA_PRIECINKA_RE = re.compile(r'<a class="card" href="[^"]+/"><div class="nm"><img src="[^"]*(/vlajky/|flagcdn\.com/)')
+
+    def stranka_s_vlajkami(self):
+        """Stránka so zoznamom krajín (priečinky s vlajkami): stránky z kontroly c)
+        a ich nadradené stránky (napr. liga → krajina → kontinent), inak náhodné
+        stránky zo sitemap.xml. Vráti (adresa, statické HTML) alebo (None, None)."""
+        root_path = urllib.parse.urlsplit(self.base).path
+        kandidati = []
+        for u in reversed(self.ligy):
+            casti = urllib.parse.urlsplit(u).path[len(root_path):].strip("/").split("/")
+            for n in range(len(casti), 0, -1):
+                a = urllib.parse.urljoin(self.base, root_path + "/".join(casti[:n]) + "/")
+                if a not in kandidati:
+                    kandidati.append(a)
+        kandidati += random.sample(self.adresy, min(10, len(self.adresy)))
+        for url in kandidati[:25]:
+            kod, _, text = stiahni(url)
+            if kod == 200 and self.VLAJKA_PRIECINKA_RE.search(text):
+                return url, text
+        return None, None
+
+    VLAJKY_JS = """() => [...document.querySelectorAll('img[src*="/vlajky/"]')].map(i => ({
+        src: i.getAttribute('src'), cur: i.currentSrc, w: +i.getAttribute('width'),
+        ok: i.complete, nw: i.naturalWidth}))"""
+
+    def vlajky(self, pokus):
+        url, text = self.stranka_s_vlajkami()
+        if not url:
+            return "warn", "nenašla sa stránka s vlajkami (kontrola sa preskočila)"
+        cesta = urllib.parse.urlsplit(url).path
+        if "/vlajky/" not in text:
+            # web je ešte po starom (napr. sportlinking pred prevzatím zmeny) — nie je to chyba webu
+            return "warn", (f"{cesta}: web ešte načítava vlajky z flagcdn.com "
+                            "(vlajky z vlastného webu /vlajky/ ešte nie sú nasadené)")
+        cudzie = []    # požiadavky na flagcdn.com — nesmú byť žiadne
+        vysledok = {}
+        for mobil in (False, True):
+            ctx = self.kontext(mobil=mobil)
+            try:
+                page = self.stranka(ctx)
+                page.on("request", lambda rq: cudzie.append(rq.url) if "flagcdn.com" in rq.url else None)
+                page.goto(url, wait_until="load")
+                self.cakaj_na_appku(page)
+                try:   # počkaj, kým sa načíta aspoň jedna skutočná vlajka (nie náhradník 1×1)
+                    page.wait_for_function("""() => [...document.querySelectorAll('img[src*="/vlajky/"]')]
+                        .some(i => i.complete && i.naturalWidth > 1)""", timeout=10_000)
+                except Exception:
+                    pass
+                page.wait_for_timeout(1000)
+                vlajky = page.evaluate(self.VLAJKY_JS)
+                self.snimka(page, "8-vlajky-" + ("mobil" if mobil else "pc"))
+                self.over_chyby(page, cesta + (" (mobil)" if mobil else ""))
+            finally:
+                ctx.close()
+            vysledok[mobil] = vlajky
+        if cudzie:
+            raise Zlyhanie(f"{cesta}: prehliadač sťahuje vlajky z flagcdn.com ({len(cudzie)}×, napr. {cudzie[0]})")
+        pc = vysledok[False]
+        nacitane = [v for v in pc if v["ok"]]
+        skutocne = [v for v in nacitane if v["nw"] > 1]
+        if not pc:
+            raise Zlyhanie(f"{cesta}: v statickom HTML sú vlajky, ale po prevzatí appkou na stránke nie sú")
+        if not skutocne:
+            raise Zlyhanie(f"{cesta}: žiadna vlajka sa nenačítala ako obrázok — všetkých {len(nacitane)} "
+                           f"načítaných je priehľadný náhradník 1×1 (vlajky sa pri builde nestiahli?)")
+        detail = (f"{cesta}: vlajok {len(pc)}, načítaných {len(nacitane)}, skutočných {len(skutocne)}"
+                  + (f", náhradníkov {len(nacitane) - len(skutocne)}" if len(nacitane) > len(skutocne) else "")
+                  + ", flagcdn.com 0×")
+        # mobil (2× displej): má sa načítať dvojnásobná vlajka zo srcset
+        mob = [v for v in vysledok[True] if v["ok"] and v["nw"] > 1]
+        # pozor: naturalWidth pri 2× obrázku zo srcset prehliadač hlási už vydelený dvomi,
+        # preto sa 2× verzia spozná podľa adresy, ktorú naozaj načítal (currentSrc)
+        dvojite = [v for v in mob if f"/vlajky/{2 * v['w']}x" in v["cur"]]
+        if mob and not dvojite:
+            return "warn", detail + f"; mobil 2×: načítala sa len obyčajná vlajka (napr. {mob[0]['cur']})"
+        return "ok", detail + (f"; mobil 2×: {len(dvojite)} ostrých vlajok" if mob else "")
+
     # ------------------------------------------------ h) 404
     def chyba_404(self, pokus):
         cesta = urllib.parse.urlsplit(self.base).path + f"neexistuje-test-{random.randint(1000, 9999)}/"
@@ -532,6 +613,7 @@ class Test:
                 self.kontrola("f) Banner", self.banner, pri_chybe="warn")
                 self.kontrola("g) Admin (/#admin)", self.admin)
                 self.kontrola("h) Stránka 404", self.chyba_404)
+                self.kontrola("i) Vlajky z vlastného webu", self.vlajky)
             finally:
                 self.browser.close()
 

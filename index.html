@@ -12,8 +12,6 @@
 <meta property="og:site_name" content="Športové Linky"/>
 <meta property="og:locale" content="sk_SK"/>
 <!--OG_DYNAMIC--><!-- generátor sem pri builde doplní og:url a og:image s absolútnou adresou webu -->
-<!-- vlajky krajín sú z flagcdn.com — spojenie sa nadviaže hneď (bod 22 previerky) -->
-<link rel="preconnect" href="https://flagcdn.com" crossorigin>
 <!-- Posledná úprava kostry: 2026-07-15 — soc. linky ukazujú vlajku/emoji; ochrana pred starým oknom (save guard) + odznak verzie v admin lište -->
 
 
@@ -1418,7 +1416,7 @@ function updateLinkCount(){
 }
 
 // ============================================================
-// ICON HELPER — flagcdn.com pre kódy krajín
+// ICON HELPER — vlajky krajín z vlastného webu /vlajky/ (sťahuje vlajky.py pri builde)
 // ============================================================
 function renderIcon(icon, flagSize){
   if(!icon) return '';
@@ -1427,7 +1425,10 @@ function renderIcon(icon, flagSize){
     const [w, h] = s.split('x');
     // width/height (bod 22): miesto pre vlajku je vyhradené ešte pred načítaním — text neposkočí.
     // Značkovanie je ZHODNÉ s icon_html() v generator.py (domov sa pri štarte porovnáva).
-    return `<img src="https://flagcdn.com/${s}/${icon}.png" width="${w}" height="${h}" alt="" loading="lazy" style="border-radius:2px;vertical-align:middle">`;
+    // srcset 2x: na iPhone a retina displejoch sa načíta dvojnásobná vlajka (ostrejšia).
+    // Chýbajúcu vlajku nahradí generator.py priehľadným obrázkom — rozbitý obrázok nebude.
+    const s2 = (w*2) + 'x' + (h*2), v = BASE_PATH + 'vlajky/';
+    return `<img src="${v}${s}/${icon}.png" srcset="${v}${s2}/${icon}.png 2x" width="${w}" height="${h}" alt="" loading="lazy" style="border-radius:2px;vertical-align:middle">`;
   }
   return `<span aria-hidden="true">${attrEsc(icon)}</span>`; // bod 25: emoji je ozdoba, čítačka ho nečíta
 }

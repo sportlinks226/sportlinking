@@ -27,7 +27,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     permissions:
-      contents: write   # commit sitemap-lastmod.json (dátumy zmien pre sitemap) a ikony/
+      contents: write   # commit sitemap-lastmod.json (dátumy zmien pre sitemap), ikony/ a vlajky/
       pages: read       # configure-pages zisťuje adresu webu (BASE_URL)
     steps:
       - uses: actions/checkout@v4
@@ -51,6 +51,23 @@ jobs:
             || curl -fsSL --retry 3 "https://www.sportlinky.sk/data.json?build=$GITHUB_RUN_ID" -o data.json
           # Poistka: odľahčené dáta (_lite) by zmazali anglické texty — build radšej zastav.
           python -c "import json,sys; d=json.load(open('data.json', encoding='utf-8')); sys.exit('CHYBA: stiahnuté dáta sú odľahčené (_lite), chýba data-full.json') if d.get('_lite') else print('data.json OK, verzia', d.get('version'), ',', len(d.get('nodes',[])), 'uzlov')"
+
+      # VLAJKY KRAJÍN (3.11.2026): vlajky sa sťahujú z flagcdn.com LEN tu, na serveri —
+      # návštevník ich načíta z vlastného webu (/vlajky/). vlajky.py stiahne iba
+      # CHÝBAJÚCE vlajky (všetky kódy z data.json × veľkosti z appky + 2× pre ostré
+      # displeje) do vlajky/ a commitne ich „[skip ci]". Po prvom builde sa už nič
+      # nesťahuje, len pri novej krajine. Build kvôli vlajkám NIKDY nespadne
+      # (continue-on-error, timeout-minutes, skript vždy končí exit 0); chýbajúcu
+      # vlajku generátor nahradí priehľadným obrázkom.
+      # EN web: krok je ZA stiahnutím dát — kódy vlajok berie z práve stiahnutého
+      # data.json (zo SK webu). Commituje sa LEN vlajky/, stiahnutý data.json NIE.
+      - name: Stiahni vlajky krajín
+        continue-on-error: true
+        timeout-minutes: 10
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          python vlajky.py --git
 
       # IKONKY WEBOV (bod 15, 2.11.2026): ikonky sa sťahujú LEN tu, na serveri —
       # návštevník už nič neposiela Googlu ani Yandexu. Krok je ZA stiahnutím dát:
