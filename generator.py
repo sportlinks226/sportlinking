@@ -117,12 +117,32 @@ CONTINENTS = {"Európa", "Ázia", "Afrika", "Južná Amerika", "Severná Amerika
 # MUSÍ zostať zhodné s NO_EN_ALPHA v sport-strom.html.
 NO_EN_ALPHA = {"f_bas_sut_eu", "f_bas_sut_oc", "f_bas_sut_na", "f_bas_sut_ja", "f_bas_sut_af", "f_bas_sut_az"}
 
-# "Live This Week" — priečinok, ktorý existuje LEN na anglickom webe (enOnly:true)
-# a nemá vlastné linky: napĺňa sa naživo z Aktuálnych (aktualne.json, v prechode
-# pole "aktualne" z data.json — tie isté linky, aké sú v lište na domovskej
-# stránke). Vypnuté, naplánované a skončené udalosti sa pri builde vynechajú.
-# MUSÍ zostať zhodné s LIVE_ID v sport-strom.html.
+# Stránka Aktuálne / "Live This Week" (priečinok f_ltw) — nemá vlastné linky:
+# napĺňa sa naživo z Aktuálnych (aktualne.json, v prechode pole "aktualne"
+# z data.json — tie isté linky, aké sú v lište na domovskej stránke). Vypnuté,
+# naplánované a skončené udalosti sa pri builde vynechajú.
+# Od Zadania 17 (3.11.2026) môže existovať na OBOCH weboch (SK /aktualne/,
+# EN /live-this-week/): na SK webe, keď v dátach nemá enOnly:true. Linky sú
+# na stránke zoskupené podľa športu (live_groups), titulok a meta popis sa
+# skladajú z aktívnych športov (live_title, live_meta_desc).
+# MUSÍ zostať zhodné s LIVE_ID v index.html.
 LIVE_ID = "f_ltw"
+
+# Športy Aktuálnych (kód → SK, EN, emoji) — MUSÍ byť zhodné s AKT_SPORTS
+# v index.html (poradie = poradie skupín na stránke Aktuálne).
+AKT_SPORTS = [
+    ("tenis", "tenis", "tennis", "🎾"), ("badminton", "badminton", "badminton", "🏸"),
+    ("squash", "squash", "squash", "🟡"), ("stolny-tenis", "stolný tenis", "table tennis", "🏓"),
+    ("padel", "padel", "padel", "🥎"), ("sipky", "šípky", "darts", "🎯"),
+    ("snooker", "snooker", "snooker", "🎱"), ("atletika", "atletika", "athletics", "🏃"),
+    ("cyklistika", "cyklistika", "cycling", "🚴"), ("plavanie", "plávanie", "swimming", "🏊"),
+    ("motosport", "motošport", "motorsport", "🏎️"), ("futbal", "futbal", "football", "⚽"),
+    ("hokej", "hokej", "ice hockey", "🏒"), ("basketbal", "basketbal", "basketball", "🏀"),
+    ("hadzana", "hádzaná", "handball", "🤾"), ("volejbal", "volejbal", "volleyball", "🏐"),
+    ("zimne", "zimné športy", "winter sports", "⛷️"), ("bojove", "bojové športy", "combat sports", "🥊"),
+    ("golf", "golf", "golf", "⛳"), ("sach", "šach", "chess", "♟️"),
+    ("multisport", "multišportové podujatie", "multi-sport event", "🏅"), ("ine", "iné", "other", "📌"),
+]
 
 # og:locale (bod 23 previerky) — jazyk webu pre Facebook a pod.
 OG_LOCALE = "en_US" if LANG == "en" else "sk_SK"
@@ -160,6 +180,13 @@ def node_name(node: dict, lang: str = None) -> str:
         if v:
             return v
     return (node.get("name") or "").strip()
+
+
+def no_tile(node: dict, lang: str = None) -> bool:
+    """noTileSk:true (Zadanie 17) — na SK webe priečinok NIE JE dlaždicou na domove,
+    ikonkou v hlavičke ani v SEO pätičke sekcií; inak normálne existuje (stránka,
+    drobčeky, sitemap). Na EN webe nič nemení. ROVNAKO ako noTile() v index.html."""
+    return (lang or LANG) == "sk" and node.get("noTileSk") is True
 
 
 def visible(node: dict, lang: str = None) -> bool:
@@ -268,6 +295,10 @@ def akt_shown_ms(a: dict) -> int:
     return max(added, start)
 
 
+# Polia priečinkov v balíku BOOT a mini-balíku (noTileSk — Zadanie 17)
+BOOT_KEEP = ("id", "parentId", "type", "name", "name_en", "slug", "slug_en",
+             "icon", "order", "order_en", "en", "enOnly", "noTileSk")
+
 # položky Aktuálnych pre tento build — naplní main() cez load_aktualne()
 AKT_ITEMS = []
 
@@ -290,10 +321,11 @@ def akt_for_web(items: list, today: str = None) -> list:
 
 
 def live_week_links(aktualne: list) -> list:
-    """Z Aktuálnych vyrobí linky pre priečinok Live This Week.
+    """Z Aktuálnych vyrobí linky pre priečinok Aktuálne / Live This Week.
     Sú to bežné uzly typu link, len nie sú uložené v data.json — vznikajú
     pri každom builde nanovo, takže sekcia je vždy taká čerstvá ako lišta.
-    Rovnaké pravidlá zobrazenia ako lišta (akt_visible)."""
+    Rovnaké pravidlá zobrazenia ako lišta (akt_visible). ROVNAKO ako
+    liveWeekLinks() v index.html (popis a šport — Zadanie 17)."""
     out = []
     for i, a in enumerate(akt_public(akt_norm(aktualne))):
         out.append({
@@ -304,9 +336,121 @@ def live_week_links(aktualne: list) -> list:
             "name_en": a.get("name_en") or a.get("name", ""),
             "url": a.get("url", ""),
             "icon": a.get("icon", "") or "",
+            "desc": str(a.get("desc") or "").strip(),
+            "desc_en": str(a.get("desc_en") or "").strip(),
+            "sport": a.get("sport") or "",
             "order": i,
         })
     return out
+
+
+# ------------------------------------------------------------
+# STRÁNKA AKTUÁLNE (Zadanie 17) — skupiny podľa športu, titulok, popis
+# ------------------------------------------------------------
+# VŠETKO ROVNAKO ako liveGroups(), liveTitle(), liveMetaDesc() v index.html,
+# aby titulok a obsah po prevzatí appkou ostali zhodné so statickou stránkou.
+LIVE_TITLE_MAX = 65
+LIVE_DESC_MAX = 155
+LIVE_DESC_BASE = 100   # na toľko sa skráti dlhá prvá veta, aby sa do popisu zmestili športy
+LIVE_SITE = "Sportlinking" if LANG == "en" else "sportlinky.sk"
+LIVE_TXT = {
+    "sk": {"base": "Aktuálne live výsledky", "lead": " Práve teraz: ",
+           "fallback": "Live výsledky a výsledkové servisy športov, ktoré sa práve hrajú.",
+           "none": "Práve teraz nie je nič aktívne, pozrite sa neskôr.",
+           "footer": "Aktuálne – live výsledky", "head": "Aktuálne"},
+    "en": {"base": "Live scores this week", "lead": " Live now: ",
+           "fallback": "Live scores and results for the sports being played right now.",
+           "none": "Nothing is live right now — check back later.",
+           "footer": "Live This Week", "head": "Live This Week"},
+}[LANG]
+
+
+def live_groups(items: list) -> list:
+    """[(šport z AKT_SPORTS, [položky])] — skupiny v poradí AKT_SPORTS, položky
+    bez športu alebo s neznámym kódom do poslednej skupiny „Iné“ (kód ine).
+    Vnútri skupiny ostáva ručné poradie (items sú už zoradené podľa order)."""
+    idx = {sp[0]: i for i, sp in enumerate(AKT_SPORTS)}
+    ine = idx["ine"]
+    groups = {}
+    for a in items:
+        groups.setdefault(idx.get(a.get("sport") or "", ine), []).append(a)
+    keys = sorted(groups, key=lambda i: 10 ** 9 if i == ine else i)
+    return [(AKT_SPORTS[i], groups[i]) for i in keys]
+
+
+def live_sp_name(sp) -> str:
+    return sp[2] if LANG == "en" else sp[1]
+
+
+def live_sport_list() -> list:
+    return [live_sp_name(sp) for sp, _ in live_groups(live_week_links(AKT_ITEMS)) if sp[0] != "ine"]
+
+
+def live_fit(head: str, lst: list, tail: str, mx: int) -> list:
+    """Športy v poradí skupín, kým sa zmestia do limitu (zvyšok sa vynechá)."""
+    used = []
+    for s in lst:
+        if len(head + ", ".join(used + [s]) + tail) <= mx:
+            used.append(s)
+        else:
+            break
+    return used
+
+
+def live_title() -> str:
+    """„Aktuálne live výsledky: badminton, squash — sportlinky.sk“ (max ~65 znakov).
+    Denný cron rebuild ho drží čerstvý (skončené udalosti vypadnú)."""
+    base, suf = LIVE_TXT["base"], " — " + LIVE_SITE
+    used = live_fit(base + ": ", live_sport_list(), suf, LIVE_TITLE_MAX)
+    return f"{base}: {', '.join(used)}{suf}" if used else base + suf
+
+
+def live_first_sentence(t: str) -> str:
+    t = re.sub(r"\s+", " ", str(t or "")).strip()
+    m = re.match(r"^(.+?[.!?])(\s|$)", t)
+    return m.group(1) if m else t
+
+
+def live_cut(s: str, mx: int) -> str:
+    if len(s) <= mx:
+        return s
+    a = s[:mx - 1]
+    i = a.rfind(" ")
+    return re.sub(r"[\s,.;:–—-]+$", "", a[:i] if i > mx * 0.6 else a) + "…"
+
+
+def live_meta_desc(node: dict) -> str:
+    """Meta popis: úvodná veta z desc + „Práve teraz: šport, šport.“ (max ~155 znakov)."""
+    base = live_first_sentence(node_desc(node)) or LIVE_TXT["fallback"]
+    lst = live_sport_list()
+    lead = base + LIVE_TXT["lead"]
+    used = live_fit(lead, lst, ".", LIVE_DESC_MAX)
+    if not used and lst:   # dlhá prvá veta — skráti sa, aby sa zmestili športy
+        lead = live_cut(base, LIVE_DESC_BASE) + LIVE_TXT["lead"]
+        used = live_fit(lead, lst, ".", LIVE_DESC_MAX)
+    return lead + ", ".join(used) + "." if used else live_cut(base, LIVE_DESC_MAX)
+
+
+def live_static_html(items: list) -> str:
+    """Skupiny podľa športu pre statickú stránku (to isté, čo appka v livePageHtml)."""
+    if not items:
+        return f'<p class="desc">{escape(LIVE_TXT["none"])}</p>'
+    out = []
+    for sp, arr in live_groups(items):
+        nm = live_sp_name(sp)
+        cards = []
+        for l in arr:
+            d = escape(node_desc(l))
+            ds = f'<div class="ds">{d}</div>' if d else ""
+            url = escape(safe_url(l.get("url", "")), quote=True)
+            host = re.sub(r"^https?://(www\.)?", "", l.get("url", "")).split("/")[0]
+            cards.append(
+                f'<a class="card" href="{url}" target="_blank" rel="noopener">'
+                f'<div class="nm">{escape(node_name(l))}</div>{ds}'
+                f'<div class="ur">{escape(host)}</div></a>')
+        out.append(f'<h2>{escape(sp[3])} {escape(nm[:1].upper() + nm[1:])}</h2>'
+                   f'<div class="grid">' + "".join(cards) + "</div>")
+    return "".join(out)
 
 
 def load_data(path: str) -> dict:
@@ -433,14 +577,16 @@ def build_boot(data: dict, children: dict) -> dict:
         if top.get("type") == "folder":
             cnt(top["id"])
 
-    keep = ("id", "parentId", "type", "name", "name_en", "slug", "slug_en",
-            "icon", "order", "order_en", "en", "enOnly")
+    keep = BOOT_KEEP
     nodes = []
 
     def take(n, depth):
         if n.get("type") != "folder":
             return
         m = {k: n[k] for k in keep if k in n}
+        if n["id"] == LIVE_ID:
+            # stránka Aktuálne: úvodný text (popis) hneď z balíka (Zadanie 17)
+            m.update({k: n[k] for k in ("desc", "desc_en") if n.get(k)})
         m["_cnt"] = link_count.get(n["id"], 0)
         m["_sub"] = sum(1 for k in children.get(n["id"], []) if k.get("type") == "folder")
         nodes.append(m)
@@ -491,8 +637,6 @@ def _lite_node(n: dict) -> dict:
     return {k: v for k, v in n.items() if k not in EN_NODE_KEYS}
 
 
-BOOT_KEEP = ("id", "parentId", "type", "name", "name_en", "slug", "slug_en",
-             "icon", "order", "order_en", "en", "enOnly")
 
 
 def build_page_boot(node, children, by_id, boot_ids, lcnt) -> str:
@@ -624,7 +768,9 @@ def page_fingerprint(node: dict, children: dict) -> str:
     """Odtlačok stránky priečinka: vlastný názov/popis/ikona + PRIAME deti v poradí
     zobrazenia. Zmena hlbšie (vnútri podpriečinka) patrí stránke toho podpriečinka,
     takže nová linka v NHL zmení len /hokej/kluby/usa/nhl/, nie celú cestu nad ňou."""
-    rows = [_row(node)] + [_row(k) for k in children.get(node["id"], [])]
+    live = node["id"] == LIVE_ID   # Aktuálne: aj šport (zoskupenie) — Zadanie 17
+    rows = [_row(node)] + [_row(k) + ([k.get("sport") or ""] if live else [])
+                           for k in children.get(node["id"], [])]
     return _fp(rows)
 
 
@@ -740,7 +886,7 @@ def home_static_html(children: dict, paths: dict):
     def href(fid):
         return escape(SITE_ABS_ROOT + "/".join(paths.get(fid, [])) + "/", quote=True)
 
-    top = children.get(None, [])
+    top = [n for n in children.get(None, []) if not no_tile(n)]   # SK: bez noTileSk
     folders = [n for n in top if n.get("type") == "folder"]
     has_links = any(n.get("type") == "link" for n in top)
     main = ""
@@ -813,6 +959,34 @@ def inject_home(html: str, children: dict, paths: dict) -> str:
     return html
 
 
+def live_on(by_id: dict, lang: str) -> bool:
+    """Existuje stránka Aktuálne v danom jazyku? (koreňový priečinok f_ltw
+    viditeľný v tom jazyku — SK: bez enOnly, EN: bez en:false). Ako liveNode()."""
+    n = by_id.get(LIVE_ID)
+    return bool(n) and n.get("parentId") is None and n.get("type") == "folder" and visible(n, lang)
+
+
+def inject_live_links(html: str, href: str) -> str:
+    """Nápis lišty „Aktuálne ›“ a odkaz v pätičke (#aktHead, #fLive) ako odkazy na
+    stránku Aktuálne — rovnako ako renderLiveLinks() v index.html. href=None
+    (priečinok v tomto jazyku nie je) → nápis bez odkazu, pätička bez odkazu."""
+    if not href:
+        return html
+    click = f"return navClick(event,'{LIVE_ID}')"
+    attrs = f' href="{escape(href, quote=True)}" onclick="{click}"'
+    n1 = html.count('<a id="aktHead" class="akt-head"')
+    n2 = html.count('<a class="f-live" id="fLive" hidden>')
+    if n1 != 1 or n2 != 1:
+        print("UPOZORNENIE: v index.html nie je #aktHead / #fLive — odkazy na stránku Aktuálne "
+              "dorobí až appka.")
+        return html
+    html = html.replace('<a id="aktHead" class="akt-head"', '<a id="aktHead" class="akt-head"' + attrs, 1)
+    html = html.replace('<span id="aktHeadTxt">' + LIVE_TXT["head"] + '</span>',
+                        '<span id="aktHeadTxt">' + escape(LIVE_TXT["head"]) + ' ›</span>', 1)
+    html = html.replace('<a class="f-live" id="fLive" hidden>', '<a class="f-live" id="fLive"' + attrs + '>', 1)
+    return html
+
+
 def compute_has_link(children: dict) -> dict:
     """Pre každý priečinok zistí, či má v podstrome aspoň 1 linku.
     Priečinky bez liniek nedostanú statickú stránku („tenký obsah")."""
@@ -882,6 +1056,7 @@ h2{font-size:1.05rem;color:__ACCENT_TEXT__;margin:26px 0 10px;text-transform:upp
 .secnav a{color:#8fa3b3}
 .secnav a:hover{color:#e84242}
 footer{display:block;margin-top:14px;color:#8396a8;font-size:.78rem}
+footer .flive{color:__ACCENT_TEXT__}
 """
 CSS = CSS.replace("#e84242", ACCENT).replace("#c73535", ACCENT_HOVER)
 # nové odtiene sú v CSS ako značky, aby ich náhrada #e84242 vyššie nepokazila
@@ -971,7 +1146,7 @@ PAGE = """<!DOCTYPE html>
 <a class="appbtn" id="appbtn" style="display:none" href="{app_href}">{open_app} →</a>
 <noscript><style>#appbtn{{display:inline-block!important}}</style></noscript>
 {secnav}
-<footer>{site_title} — {footer}</footer>
+<footer>{site_title} — {footer}{footer_live}</footer>
 </div>
 {page_boot}{dyn_js}
 {takeover}
@@ -1302,21 +1477,6 @@ TITLES = {}             # id priečinka -> titulok (bez HTML escapovania)
 TITLE_NOSPORT = set()   # id priečinkov, ktorým sa šport z titulku vynechal
 
 
-def live_title(name: str, site_title: str) -> str:
-    """Titulok Live This Week s rozsahom aktuálneho týždňa (pondelok–nedeľa).
-    Vďaka dennému cron rebuildu je dátum vždy čerstvý — vo výsledkoch Googlu to
-    signalizuje živú stránku. Mení sa LEN <title>, názov priečinka ostáva."""
-    _mon = date.today() - timedelta(days=date.today().weekday())
-    _sun = _mon + timedelta(days=6)
-    _m = ["January", "February", "March", "April", "May", "June", "July",
-          "August", "September", "October", "November", "December"]
-    if _mon.month == _sun.month:
-        _rng = f"{_mon.day}–{_sun.day} {_m[_sun.month-1]}"
-    else:
-        _rng = f"{_mon.day} {_m[_mon.month-1]} – {_sun.day} {_m[_sun.month-1]}"
-    return f"{name} ({_rng}) — {site_title}"
-
-
 def compute_titles(folder_ids, by_id, site_title: str, home: str):
     """Vypočíta titulky všetkých priečinkov (folder_ids = všetky priečinky, na
     ktoré sa dá v appke prekliknúť, aj tie bez statickej stránky) a rozhodne,
@@ -1336,7 +1496,7 @@ def compute_titles(folder_ids, by_id, site_title: str, home: str):
             a = by_id.get(a.get("parentId"))
         name = node_name(n)
         if fid == LIVE_ID:
-            full[fid] = live_title(name, site_title)
+            full[fid] = live_title()     # zo športov aktívnych položiek (Zadanie 17)
             continue
         ctx = []
         if len(chain) >= 2:
@@ -1420,11 +1580,17 @@ def render_page(node, path, children, by_id, paths, site_title, alt_url=None, pa
                 f'<div class="ur">{escape(host)}</div></a>'
             )
         link_cards = f'<h2>{T["links"]}</h2><div class="grid">' + "".join(cards) + "</div>"
+    if node["id"] == LIVE_ID:
+        # STRÁNKA AKTUÁLNE (Zadanie 17): linky zoskupené podľa športu, popis pod
+        # názvom; bez aktívnych položiek veta „Práve teraz nie je nič aktívne…“
+        link_cards = live_static_html(links)
 
     # meta popis z NEescapovaného textu (escapuje sa až pri vložení do šablóny,
     # inak by apostrofy skončili dvojito escapované, napr. Europe&amp;#x27;s)
     meta = node_desc(node) or T["meta_folder"].format(
         name=node_name(node), nfold=len(folders), nlink=len(links))
+    if node["id"] == LIVE_ID:
+        meta = live_meta_desc(node)   # úvodná veta + aktívne športy (Zadanie 17)
     url_path = "/".join(path) + "/"
     canonical = f'<link rel="canonical" href="{BASE_URL}/{url_path}">' if BASE_URL else ""
 
@@ -1462,7 +1628,7 @@ def render_page(node, path, children, by_id, paths, site_title, alt_url=None, pa
     # interných odkazov. Prázdne sekcie (bez stránky) sa vynechajú automaticky.
     sec_links = [f'<a href="{root}">{T["home"]}</a>']
     for t in children.get(None, []):
-        if t.get("type") == "folder" and t["id"] in paths:
+        if t.get("type") == "folder" and t["id"] in paths and not no_tile(t):
             sec_links.append(
                 f'<a href="{root}{paths[t["id"]][0]}/">{escape(node_name(t))}</a>')
     secnav = ('<nav class="secnav">' + "".join(sec_links) + "</nav>") if len(sec_links) > 1 else ""
@@ -1535,6 +1701,8 @@ def render_page(node, path, children, by_id, paths, site_title, alt_url=None, pa
         open_app=T["open_app"],
         secnav=secnav,
         footer=T["footer"],
+        footer_live=(f' · <a class="flive" href="{root}{"/".join(paths[LIVE_ID])}/">{escape(LIVE_TXT["footer"])}</a>'
+                     if LIVE_ID in paths else ""),
         site_title=escape(site_title),
         dyn_js=dyn_js,
         takeover=takeover,
@@ -1572,10 +1740,12 @@ def main():
     nodes = data.get("nodes", [])
     children, by_id = build_tree(nodes)
 
-    # Live This Week (len EN): priečinok je v dátach prázdny, obsah mu dodá
-    # pole "aktualne". Musí sa to stať TU — pred kontrolou prázdnych priečinkov
-    # aj pred sitemapou, aby stránka vôbec vznikla.
-    if LANG == "en" and LIVE_ID in by_id:
+    # Aktuálne / Live This Week: priečinok je v dátach prázdny, obsah mu dodajú
+    # Aktuálne. Musí sa to stať TU — pred kontrolou prázdnych priečinkov aj pred
+    # sitemapou, aby stránka vôbec vznikla. Od Zadania 17 v KAŽDOM jazyku, kde
+    # je priečinok viditeľný (SK: bez enOnly) — live_on().
+    live_here = live_on(by_id, LANG)
+    if live_here:
         children[LIVE_ID] = live_week_links(AKT_ITEMS)
 
     paths = folder_paths(children)
@@ -1585,6 +1755,8 @@ def main():
     # návštevníkov ani Google („tenký obsah"). Po doplnení liniek sa stránka
     # vyrobí automaticky pri najbližšom builde.
     has_link = compute_has_link(children)
+    if live_here:
+        has_link[LIVE_ID] = True   # stránka Aktuálne vzniká aj bez aktívnych položiek (úvodný text)
     skipped = [fid for fid in paths if not has_link.get(fid)]
     all_paths = paths   # aj priečinky bez liniek — appka na ne tiež odkazuje (dlaždice domova)
     paths = {fid: p for fid, p in paths.items() if has_link.get(fid)}
@@ -1604,10 +1776,13 @@ def main():
           f"(statických stránok s titulkom nad {TITLE_MAX} znakov ostáva: {n_long})")
 
     # hreflang: strom a cesty DRUHÉHO jazyka — aby sme vedeli, či tá istá
-    # stránka existuje aj na druhom webe a na akej adrese. Live This Week sa
-    # do alt stromu nedopĺňa (nemá slovenský náprotivok, hreflang nedostane).
+    # stránka existuje aj na druhom webe a na akej adrese. Aktuálne / Live This
+    # Week dostane hreflang len vtedy, keď je priečinok viditeľný aj v druhom
+    # jazyku (SK bez enOnly) — potom SK /aktualne/ ↔ EN /live-this-week/.
     children_alt, _ = build_tree(nodes, ALT_LANG)
     has_link_alt = compute_has_link(children_alt)
+    if live_on(by_id, ALT_LANG):
+        has_link_alt[LIVE_ID] = True
     paths_alt = {fid: p for fid, p in folder_paths(children_alt, ALT_LANG).items()
                  if has_link_alt.get(fid)}
 
@@ -1705,8 +1880,9 @@ def main():
                     ('aria-label="Hľadaj v strome"', 'aria-label="Search the tree"'),
                     ('aria-label="Heslo"', 'aria-label="Password"'),
                     ('aria-label="Zobraziť ďalšie linky"', 'aria-label="Show more links"'),
-                    ('animation:pulse 1.5s infinite"></span>\n      Aktuálne',
-                     'animation:pulse 1.5s infinite"></span>\n      Live this week'),
+                    ('<span id="aktHeadTxt">Aktuálne</span>', '<span id="aktHeadTxt">Live This Week</span>'),
+                    ('<a class="f-live" id="fLive" hidden>Aktuálne – live výsledky</a>',
+                     '<a class="f-live" id="fLive" hidden>Live This Week</a>'),
                     ('© 2026 · Všetky športové weby sveta na jednom mieste<br>\n  Databáza liniek je chránená právom na ochranu databáz (smernica 96/9/ES). Jej kopírovanie alebo systematické vyťažovanie bez súhlasu prevádzkovateľa je zakázané.',
                      '© 2026 · All the world\'s sports websites in one place<br>\n  The link database is protected by database rights (Directive 96/9/EC). Copying or systematic extraction without the operator\'s consent is prohibited.'),
                     ('https://sportlinky.goatcounter.com/count',
@@ -1777,6 +1953,9 @@ def main():
             html = inject_aktualne(html, AKT_ITEMS)
             # DLAŽDICE DOMOVA + IKONKY ŠPORTOV PRIAMO V HTML (od 2.11.2026) — viď inject_home().
             html = inject_home(html, children, all_paths)
+            # NÁPIS LIŠTY + PÄTIČKA → odkaz na stránku Aktuálne (Zadanie 17)
+            html = inject_live_links(html, (SITE_ABS_ROOT + "/".join(all_paths[LIVE_ID]) + "/")
+                                     if (live_here and LIVE_ID in all_paths) else None)
             # (preload data.json ZRUŠENÝ 2.10.2026 večer: na pomalej sieti súperil
             # o pásmo s bannerom, ktorý je na mobile najväčším prvkom — LCP 9,4 s.
             # Appka si dáta sťahuje až po udalosti load, s nízkou prioritou.)

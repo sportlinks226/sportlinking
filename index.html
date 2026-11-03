@@ -231,6 +231,19 @@ footer{
 .f-wordmark .wm-w{color:#fff}
 .f-wordmark .wm-r{color:var(--accent)}
 .f-note{font-size:0.75rem;color:var(--muted)}
+/* Stránka Aktuálne (Zadanie 17): odkaz v pätičke a nápis lišty ako odkaz */
+.f-live{font-size:0.78rem;color:var(--accent-text);white-space:nowrap}
+.f-live:hover{text-decoration:underline}
+a.akt-head[href]{cursor:pointer;text-decoration:none}
+a.akt-head[href]:hover #aktHeadTxt{text-decoration:underline}
+/* Stránka Aktuálne: úvodný text, nadpisy skupín podľa športu, prázdny stav */
+.live-intro{color:var(--muted);font-size:0.9rem;line-height:1.55;margin:4px 2px 6px;max-width:820px}
+.live-none{color:var(--muted);font-size:0.9rem;margin:18px 2px}
+h2.live-h{font-size:0.8rem}
+.live-admin{margin:14px 0}
+/* Admin: priečinok bez dlaždice na SK domove (noTileSk) — vidno ho len sivý */
+.card-root.no-tile{opacity:.45}
+.no-tile-tag{position:absolute;bottom:6px;right:8px;font-size:0.6rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
 .admin-mode footer{margin-bottom:64px} /* nech ju neprekrýva admin lišta */
 
 /* Efekty pri prejdení myšou (nadvihnutie kariet a pod.) sú v @media(hover:hover):
@@ -595,10 +608,10 @@ button#aktMoreBadge{-webkit-appearance:none;appearance:none;margin:0;border:0;fo
 <!-- AKTUALNE -->
 <div id="aktualneWrap" style="padding:12px 24px 16px">
   <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
-    <span style="display:flex;align-items:center;gap:6px;font-size:0.78rem;font-weight:700;color:var(--accent-text);text-transform:uppercase;letter-spacing:1px">
+    <a id="aktHead" class="akt-head" style="display:flex;align-items:center;gap:6px;font-size:0.78rem;font-weight:700;color:var(--accent-text);text-transform:uppercase;letter-spacing:1px">
       <span class="akt-dot" style="width:8px;height:8px;border-radius:50%;background:#e84242;display:inline-block;animation:pulse 1.5s infinite"></span>
-      Aktuálne
-    </span>
+      <span id="aktHeadTxt">Aktuálne</span>
+    </a>
     <span id="aktualneCount" style="font-size:0.75rem;color:var(--muted)"></span>
   </div>
   <div id="aktualneScroll" style="display:flex;gap:8px;overflow-x:auto;padding:8px 0 6px;scrollbar-width:none">
@@ -630,6 +643,7 @@ button#aktMoreBadge{-webkit-appearance:none;appearance:none;margin:0;border:0;fo
   <a class="f-wordmark" id="homeLink2" href="./" onclick="return navClick(event,null)" title="Domov"><span class="wm-w">ŠPORTOVÉ</span><span class="wm-r">LINKY</span><span class="wm-r">.</span></a>
   <span class="f-note">© 2026 · Všetky športové weby sveta na jednom mieste<br>
   Databáza liniek je chránená právom na ochranu databáz (smernica 96/9/ES). Jej kopírovanie alebo systematické vyťažovanie bez súhlasu prevádzkovateľa je zakázané.</span>
+  <a class="f-live" id="fLive" hidden>Aktuálne – live výsledky</a>
 
 </footer>
 
@@ -1196,10 +1210,29 @@ const PINNED_EN = new Set([
 // ale ich obsah NIE SÚ krajiny (napr. Súťaže › Európa: poradie = úroveň súťaže).
 // Uvádza sa ID priečinka, takže pravidlo platí aj pre linky pridané neskôr.
 const NO_EN_ALPHA = new Set(["f_bas_sut_eu", "f_bas_sut_oc", "f_bas_sut_na", "f_bas_sut_ja", "f_bas_sut_af", "f_bas_sut_az"]);
-// "Live This Week" — priečinok len pre anglický web (enOnly:true v dátach).
-// Nemá vlastné linky: obsah mu naživo dodávajú Aktuálne (aktualne.json), čiže tie isté
-// linky, ktoré sú v lište na domovskej stránke. MUSÍ sedieť s LIVE_ID v generator.py.
+// Stránka Aktuálne / "Live This Week" (priečinok f_ltw). Nemá vlastné linky: obsah
+// mu naživo dodávajú Aktuálne (aktualne.json), čiže tie isté linky, ktoré sú v lište
+// na domovskej stránke. MUSÍ sedieť s LIVE_ID v generator.py.
+// Od Zadania 17 (3.11.2026) môže existovať na OBOCH weboch: na SK webe, keď v dátach
+// nemá enOnly:true (dovtedy je len na EN webe). Na SK webe má noTileSk:true.
 const LIVE_ID = "f_ltw";
+// noTileSk:true (Zadanie 17) — na SK webe sa priečinok NEUKÁŽE ako dlaždica na domove,
+// ikonka v hlavičke ani koreňový stĺpec; inak normálne existuje (adresa, drobčeky,
+// vyhľadávanie). Na EN webe príznak nič nemení. ROVNAKO ako no_tile() v generator.py.
+function noTile(n){ return !IS_EN && !!n && n.noTileSk === true; }
+// deti priečinka tak, ako sa ukazujú ako DLAŽDICE (na domove bez noTileSk; admin vidí všetko)
+function tileKids(parentId){
+  const a = getChildren(parentId);
+  return (parentId === null && !adminMode) ? a.filter(n=>!noTile(n)) : a;
+}
+// priečinok Aktuálne, ak na tomto webe existuje (SK: bez enOnly, EN: bez en:false), inak null
+function liveNode(){
+  if(typeof DB === 'undefined' || !DB || !DB.nodes) return null;
+  const n = DB.nodes.find(x=>x.id===LIVE_ID);
+  if(!n || n.parentId !== null) return null;
+  if(IS_EN ? n.en === false : n.enOnly === true) return null;
+  return n;
+}
 
 // ============================================================
 // NAVIGATION
@@ -1378,10 +1411,17 @@ function liveWeekLinks(){
   // Aktuálne linky ako bežné uzly typu link. Nikde sa neukladajú — vznikajú
   // pri každom prekreslení, takže priečinok je vždy zhodný s lištou
   // (rovnaký zdroj aj pravidlá: aktPublic — aktualne.json, v prechode data.json).
+  // sport/_spName/_spIcon/_new — pre zoskupenie podľa športu a vyhľadávanie (Zadanie 17)
+  const now = Date.now();
   return aktPublic()
-    .map((a,i)=>({id:'akt_'+i, type:'link', parentId:LIVE_ID, url:a.url,
-                  name:a.name, name_en:a.name_en||a.name,
-                  icon:a.icon||'', desc:'', desc_en:'', order:i}));
+    .map((a,i)=>{
+      const sp = aktSport(a.sport);
+      return {id:'akt_'+i, type:'link', parentId:LIVE_ID, url:a.url,
+              name:a.name, name_en:a.name_en||a.name,
+              icon:a.icon||'', desc:String(a.desc||'').trim(), desc_en:String(a.desc_en||'').trim(), order:i,
+              sport:a.sport||'', _live:1, _new:aktIsNew(a, now),
+              _spName: sp ? (IS_EN ? sp[2] : sp[1]) : '', _spIcon: a.icon || (sp ? sp[3] : '') || '📌'};
+    });
 }
 // INDEX DETÍ (od 2.10.2026, rýchlosť): getChildren sa volá pri každom počítadle
 // na karte (countAll rekurzívne) — predtým vždy prešiel všetkých 16 000 uzlov,
@@ -1406,9 +1446,9 @@ function childrenOf(parentId){
   return _cIdx.get(parentId) || [];
 }
 function getChildren(parentId){
-  // Live This Week sa napĺňa z Aktuálnych; v admine ostáva prázdny, aby sa
-  // doň omylom nedali pridávať vlastné linky.
-  if(IS_EN && parentId===LIVE_ID && !adminMode) return liveWeekLinks();
+  // Aktuálne / Live This Week sa napĺňa z Aktuálnych; v admine ostáva prázdny,
+  // aby sa doň omylom nedali pridávať vlastné linky.
+  if(parentId===LIVE_ID && !adminMode) return liveWeekLinks();
   let arr = childrenOf(parentId).slice();
   if(IS_EN) arr = arr.filter(n=>n.en!==false);      // en:false — skryté na EN webe
   else if(!adminMode) arr = arr.filter(n=>!n.enOnly); // enOnly:true — len EN web (v admine vidno)
@@ -1544,11 +1584,12 @@ function updateHead(){
   // zoznam TITLE_NOSPORT, takže titulok je zhodný so statickou stránkou.
   const ctxT = (n && TITLE_NOSPORT.has(n.id)) ? ctx.slice(0, 1) : ctx;
   const ctxStr = ctxT.length ? ' — ' + ctxT.join(' · ') : '';
-  document.title = n ? (nName(n) + ctxStr + (site ? ' — ' + site : '')) : (HOME_TITLE || site || document.title);
+  document.title = (n && n.id===LIVE_ID) ? liveTitle()   // stránka Aktuálne: titulok zo športov (Zadanie 17)
+    : n ? (nName(n) + ctxStr + (site ? ' — ' + site : '')) : (HOME_TITLE || site || document.title);
   const m = document.querySelector('meta[name="description"]');
   if(m){
     if(ORIG_DESC === null) ORIG_DESC = m.content;
-    let d = n ? nDesc(n) : '';
+    let d = (n && n.id===LIVE_ID) ? liveMetaDesc(n) : n ? nDesc(n) : '';
     if(n && !d){ // sekcia bez popisu — náhrada ako v generator.py, doplnená o kontext
       const kids = getChildren(n.id);
       const nf = kids.filter(k=>k.type==='folder').length;
@@ -1579,9 +1620,10 @@ function render(){
   updateHead();
   renderBreadcrumb();
   renderSportsNav();
-  // V priečinku Live This Week netreba lištu — sú v nej tie isté linky
+  renderLiveLinks();
+  // Na stránke Aktuálne netreba lištu — sú v nej tie isté linky
   const aktWrap = document.getElementById('aktualneWrap');
-  if(aktWrap) aktWrap.style.display = (IS_EN && curId===LIVE_ID && !adminMode) ? 'none' : '';
+  if(aktWrap) aktWrap.style.display = (curId===LIVE_ID && !adminMode) ? 'none' : '';
   const q = document.getElementById('srch').value.trim().toLowerCase();
   if(q){
     if(DB._partial){ document.getElementById('main').innerHTML = loadingHtml(); return; }
@@ -1591,14 +1633,14 @@ function render(){
 }
 
 // Ikonky hlavných sekcií v hlavičke (29.10.2026). Berie koreňové priečinky cez
-// getChildren(null) — rovnaké radenie a skrývanie (en:false / enOnly) ako dlaždice.
+// getChildren(null) — rovnaké radenie a skrývanie (en:false / enOnly / noTileSk) ako dlaždice.
 // Aktívna = koreňový predok práve otvoreného priečinka (prvý prvok getPath).
 function renderSportsNav(){
   const nav = document.getElementById('hSports');
   if(!nav) return;
   const rootId = curId === null ? null : (getPath(curId)[0]?.id ?? null);
   nav.setAttribute('aria-label', IS_EN ? 'Sports' : 'Športy');
-  nav.innerHTML = getChildren(null).filter(n=>n.type==='folder').map(n=>{
+  nav.innerHTML = getChildren(null).filter(n=>n.type==='folder' && !noTile(n)).map(n=>{
     const nm = attrEsc(nName(n));
     return `<a href="${attrEsc(urlForId(n.id))}" onclick="return navClick(event,'${n.id}')" class="${n.id===rootId?'on':''}" aria-label="${nm}">${renderIcon(n.icon,'24x18')}<span>${nm}</span></a>`;
   }).join('');
@@ -1657,7 +1699,16 @@ function renderLevel(){
   main.classList.toggle('cols-mode', colsOn);
   if(colsOn){ renderColumns(main, renderPromoBlock()); return; }
 
-  const children = getChildren(curId);
+  // STRÁNKA AKTUÁLNE (Zadanie 17): úvodný text + linky zoskupené podľa športu
+  if(curId === LIVE_ID && !adminMode){
+    const ph = renderPromoBlock();
+    const lh = (ph||'') + livePageHtml() + (ph ? promoWarnHtml() : '');
+    if(_lvlSkipSame && lh === _lvlHtml && main.firstChild){ _lvlSkipSame = false; return; }
+    _lvlSkipSame = false; _lvlHtml = lh; main.innerHTML = lh;
+    return;
+  }
+
+  const children = tileKids(curId); // domov: bez priečinkov s noTileSk (SK web)
   const isRoot = curId === null;
 
   if(children.length === 0 && !adminMode && !renderPromoBlock()){
@@ -1680,7 +1731,7 @@ function renderLevel(){
 
   if(folders.length > 0){
     if(links.length > 0) html += `<div class="section-label">${IS_EN?'Categories':'Kategórie'}</div>`;
-    if(folders.length <= 10){
+    if(folders.filter(n=>!noTile(n)).length <= 10){ // veľké dlaždice — admin s noTileSk priečinkom vyzerá ako návštevník
       html += `<div class="grid-root anim">`;
       folders.forEach((n,i) => {
         const total = (n._cnt !== undefined) ? n._cnt : countAll(n.id); // _cnt = z balíka BOOT
@@ -1692,7 +1743,7 @@ function renderLevel(){
                     : sub>0            ? sekTxt
                                        : linTxt;
         html += `
-          <a class="card-root" href="${attrEsc(urlForId(n.id))}" onclick="return navClick(event,'${n.id}')">
+          <a class="card-root${noTile(n)?' no-tile':''}" href="${attrEsc(urlForId(n.id))}" onclick="return navClick(event,'${n.id}')"${noTile(n)?' title="Na SK webe bez dlaždice (noTileSk) — návštevník ju nevidí"':''}>
             <div class="card-admin-bar">
               <button class="ibtn" title="Hore" onclick="event.stopPropagation();event.preventDefault();moveNode('${n.id}',-1)">▲</button>
               <button class="ibtn" title="Dole" onclick="event.stopPropagation();event.preventDefault();moveNode('${n.id}',1)">▼</button>
@@ -1702,7 +1753,7 @@ function renderLevel(){
             <div class="c-icon">${renderIcon(nodeIcon(n),'40x30')||''}</div>
             <div class="c-name">${attrEsc(nName(n))}</div>
             <div class="c-count">${cnt}</div>
-            <div class="c-arrow">→</div>
+            <div class="c-arrow">→</div>${noTile(n)?'<span class="no-tile-tag">bez dlaždice</span>':''}
           </a>`;
       });
       html += `</div>`;
@@ -1740,7 +1791,7 @@ function renderLevel(){
     links.forEach(n => {
       const host = (() => { try { return new URL(n.url).hostname; } catch(e){ return ''; }})();
       // Live This Week: len ručne zadaná ikona športu, žiadny favicon webu
-      const liveIcon = IS_EN && curId===LIVE_ID;
+      const liveIcon = curId===LIVE_ID;
       const ligaTag = (n.tag||n.order===-1) ? `<span class="liga-tag">${n.tag?String(n.tag).toUpperCase():(IS_EN?'LEAGUE':'LIGA')}</span>` : ''; // tag:'scores' → SCORES (rýchle linky live výsledkov, 1.11.2026)
       const socs = socHtml(n, host);
       html += `
@@ -1765,6 +1816,10 @@ function renderLevel(){
 
   if(adminMode && children.length === 0){
     html = (promoHtml||'') + `<div class="empty"><div class="e-icon">📂</div><p>Sekcia je prázdna. Pridaj priečinok alebo linku.</p></div>`;
+  }
+  // Aktuálne v admine: vlastné linky sa sem nepridávajú — obsah je z Aktuálnych
+  if(adminMode && curId === LIVE_ID){
+    html = `<div class="live-admin"><button class="btn btn-p" onclick="openAktualne()">📌 Upraviť Aktuálne</button> <span style="font-size:0.8rem;color:var(--muted)">Obsah tejto stránky sa skladá z Aktuálnych (zoskupené podľa športu). Vlastné linky sem nepridávaj.</span></div>` + html;
   }
   if(promoHtml) html += promoWarnHtml();
 
@@ -1838,7 +1893,7 @@ function renderColumns(main, promoHtml, fromHover){
     }
     html += `<div class="col" data-lv="${lv}"><div class="col-title">${attrEsc(title)}</div>`;
     if(DB._partial && pn && pn.parentId !== null && !pn._k){ html += loadingHtml() + '</div>'; return; } // štartovací balík: hlbšie deti ešte nie sú (_k = mini-balík podstránky)
-    getChildren(pid).forEach(n => {
+    (pid===null ? tileKids(null) : getChildren(pid)).forEach(n => { // koreň bez noTileSk
       if(n.type==='folder'){
         // zvýrazní sa len to, kade práve ide myš; červený rámik (pripnuté = adresa
         // stránky) iba ak pripnutý priečinok leží na tejto ceste (Miro 29.10.2026)
@@ -1846,7 +1901,7 @@ function renderColumns(main, promoHtml, fromHover){
         html += `<a class="cit${cls}" data-id="${n.id}" data-lv="${lv}" data-t="f" href="${attrEsc(urlForId(n.id))}" onclick="return colClick(event,'${n.id}')"><span class="ic">${renderIcon(nodeIcon(n),'20x15')||''}</span><span class="nm">${attrEsc(nName(n))}</span><span class="cnt">${colCnt(n)}</span><span class="arr">›</span></a>`;
       } else {
         const host = colHost(n);
-        const liveIcon = IS_EN && pid===LIVE_ID;
+        const liveIcon = pid===LIVE_ID;
         const lt = (n.tag||n.order===-1) ? `<span class="lt">${n.tag?String(n.tag).toUpperCase():(IS_EN?'LEAGUE':'LIGA')}</span>` : '';
         const soc = (n.fb?'FB':'') + (n.fb&&n.ig?' ':'') + (n.ig?'IG':'');
         html += `<a class="cit lnk${colHover===n.id?' open':''}" data-id="${n.id}" data-t="l" href="${attrEsc(safeUrl(n.url))}" target="_blank" rel="noopener">${liveIcon ? `<span class="fav-fb" aria-hidden="true">${attrEsc(n.icon||'🔗')}</span>` : favHtml(n, host)}<span class="nm">${lt}${attrEsc(nName(n))}</span>${soc?`<span class="soc">${soc}</span>`:''}</a>`;
@@ -2121,14 +2176,18 @@ function srchSnip(text, nq, words){
 function renderSearch(q){
   const nq = norm(q);
   let pool = DB.nodes;
-  if(IS_EN){
-    // skryté podstromy (en:false) sa nesmú objaviť ani vo vyhľadávaní
+  if(IS_EN || !adminMode){
+    // skryté podstromy (EN: en:false, SK: enOnly:true) sa nesmú objaviť ani vo vyhľadávaní
     const hidden = new Set();
     const markHidden = (id)=>{ hidden.add(id);
       DB.nodes.forEach(k=>{ if(k.parentId===id) markHidden(k.id); }); };
-    DB.nodes.forEach(n=>{ if(n.en===false) markHidden(n.id); });
-    pool = DB.nodes.filter(n=>!hidden.has(n.id));
+    DB.nodes.forEach(n=>{ if(IS_EN ? n.en===false : n.enOnly===true) markHidden(n.id); });
+    if(hidden.size) pool = DB.nodes.filter(n=>!hidden.has(n.id));
   }
+  // Zadanie 17: aj verejné položky Aktuálnych (rovnaké pravidlá ako lišta — aktPublic),
+  // s cestou „Aktuálne" — len keď stránka Aktuálne na tomto webe existuje. Idú PRVÉ:
+  // pri rovnakej zhode sú aktívne udalosti vo výsledkoch vpredu (zoznam sa orezáva).
+  if(liveNode()) pool = liveWeekLinks().concat(pool);
   // Rýchla mapa id → uzol (namiesto DB.nodes.find pri každom kroku cesty)
   const byId = new Map(DB.nodes.map(n=>[n.id,n]));
   const pathOf = (id)=>{ const p=[]; let c=id;
@@ -2140,7 +2199,7 @@ function renderSearch(q){
     const raw = (n.name||'')+'\u0001'+(n.desc||'')+'\u0001'+(n.name_en||'')+'\u0001'+(n.desc_en||'');
     let c = _srchCache.get(n);
     if(!c || c.raw!==raw){
-      c = {raw, name: norm(nName(n)), desc: norm(nDesc(n))};
+      c = {raw, name: norm(nName(n)), desc: norm(nDesc(n) + (n._spName ? ' ' + n._spName : ''))}; // Aktuálne: aj názov športu
       _srchCache.set(n,c);
     }
     return c;
@@ -2253,7 +2312,9 @@ function sportIcon(parentId){
   if(!DB._partial) _sportCache.set(parentId, ic);
   return ic;
 }
-function sportFav(n){ return `<span class="fav-fb fav-sport" aria-hidden="true">${sportIcon(n.parentId)}</span>`; }
+// položky Aktuálnych (_spIcon) majú namiesto ikony sekcie vlastnú ikonu (emoji športu)
+function favSport(n){ return n._spIcon || sportIcon(n.parentId); }
+function sportFav(n){ return `<span class="fav-fb fav-sport" aria-hidden="true">${attrEsc(favSport(n))}</span>`; }
 // IKONKY WEBOV Z VLASTNÉHO WEBU (bod 15, 2.11.2026): ikonky sťahuje ikony.py
 // pri builde na GitHube (Google s2 → pri ≤17 px Yandex — logika, ktorú predtým
 // robil prehliadač) a web ich servíruje sám z /ikony/<host>.png. Návštevník tak
@@ -2270,8 +2331,8 @@ function favHtml(n, host){
     return r ? `<span class="fav-fb">${r}</span>` : sportFav(n);
   }
   if(SOCIAL_FAV.test(host)) return sportFav(n);
-  if(!IKONA_HOST.test(host)) return favFallbackHtml(n.icon||'', sportIcon(n.parentId)); // zlá adresa → bez požiadavky
-  return `<img class="fav fav-wait" src="${IKONY}${host}.png" alt="" loading="lazy" data-fallback="${attrEsc(n.icon||'')}" data-sport="${attrEsc(sportIcon(n.parentId))}" onload="favLoad(this)" onerror="favError(this)"/>`;
+  if(!IKONA_HOST.test(host)) return favFallbackHtml(n.icon||'', favSport(n)); // zlá adresa → bez požiadavky
+  return `<img class="fav fav-wait" src="${IKONY}${host}.png" alt="" loading="lazy" data-fallback="${attrEsc(n.icon||'')}" data-sport="${attrEsc(favSport(n))}" onload="favLoad(this)" onerror="favError(this)"/>`;
 }
 function favLoad(img){
   if(img.naturalWidth <= 1){ favSportSwap(img); return; } // web ikonku nemá
@@ -2990,6 +3051,111 @@ function aktShownAt(a){
 }
 function aktIsNew(a, now){ const t = aktShownAt(a); return t > 0 && now - t >= 0 && now - t < AKT_DAY; }
 
+// ============================================================
+// STRÁNKA AKTUÁLNE (Zadanie 17) — SK /aktualne/, EN /live-this-week/
+// ============================================================
+// Úvodný text (popis priečinka f_ltw) + verejné položky Aktuálnych ZOSKUPENÉ PODĽA
+// ŠPORTU: skupiny v poradí AKT_SPORTS, bez športu / neznámy kód → posledná „Iné".
+// Titulok a meta popis sa skladajú z práve aktívnych športov. VŠETKO ROVNAKO ako
+// live_groups(), live_title(), live_meta_desc() a live_page_html() v generator.py.
+const LIVE_TITLE_MAX = 65, LIVE_DESC_MAX = 155, LIVE_DESC_BASE = 100;
+const LIVE_SITE = IS_EN ? 'Sportlinking' : 'sportlinky.sk';
+function cpLen(s){ return Array.from(String(s)).length; }  // počet znakov ako v Pythone
+// [{sp:[kód,SK,EN,emoji], items:[uzly z liveWeekLinks]}]
+function liveGroups(items){
+  const idx = new Map(AKT_SPORTS.map((sp,i)=>[sp[0], i]));
+  const ine = idx.get('ine');
+  const g = new Map();
+  items.forEach(a=>{
+    const i = idx.has(a.sport) ? idx.get(a.sport) : ine;
+    if(!g.has(i)) g.set(i, []);
+    g.get(i).push(a);
+  });
+  return Array.from(g.keys()).sort((x,y)=>(x===ine?1e9:x)-(y===ine?1e9:y)).map(i=>({sp:AKT_SPORTS[i], items:g.get(i)}));
+}
+function liveSpName(sp){ return IS_EN ? sp[2] : sp[1]; }
+function liveSportList(){ return liveGroups(liveWeekLinks()).filter(g=>g.sp[0]!=='ine').map(g=>liveSpName(g.sp)); }
+// športy sa pridávajú v poradí skupín, kým sa zmestia do limitu (zvyšok sa vynechá)
+function liveFit(head, list, tail, max){
+  const used = [];
+  for(const s of list){
+    if(cpLen(head + used.concat(s).join(', ') + tail) <= max) used.push(s); else break;
+  }
+  return used;
+}
+function liveTitle(){
+  const base = IS_EN ? 'Live scores this week' : 'Aktuálne live výsledky', suf = ' — ' + LIVE_SITE;
+  const used = liveFit(base + ': ', liveSportList(), suf, LIVE_TITLE_MAX);
+  return used.length ? base + ': ' + used.join(', ') + suf : base + suf;
+}
+function liveFirstSentence(t){
+  t = String(t||'').replace(/\s+/g,' ').trim();
+  const m = t.match(/^(.+?[.!?])(\s|$)/);
+  return m ? m[1] : t;
+}
+function liveCut(s, max){
+  if(cpLen(s) <= max) return s;
+  const a = Array.from(s).slice(0, max-1);
+  const i = a.lastIndexOf(' ');
+  return (i > max*0.6 ? a.slice(0, i) : a).join('').replace(/[\s,.;:–—-]+$/,'') + '…';
+}
+function liveMetaDesc(node){
+  const base = liveFirstSentence(node ? nDesc(node) : '') ||
+    (IS_EN ? 'Live scores and results for the sports being played right now.'
+           : 'Live výsledky a výsledkové servisy športov, ktoré sa práve hrajú.');
+  const lst = liveSportList(), lt = IS_EN ? ' Live now: ' : ' Práve teraz: ';
+  let lead = base + lt, used = liveFit(lead, lst, '.', LIVE_DESC_MAX);
+  if(!used.length && lst.length){   // dlhá prvá veta — skráti sa, aby sa zmestili športy
+    lead = liveCut(base, LIVE_DESC_BASE) + lt; used = liveFit(lead, lst, '.', LIVE_DESC_MAX);
+  }
+  return used.length ? lead + used.join(', ') + '.' : liveCut(base, LIVE_DESC_MAX);
+}
+function liveCap(s){ return s ? s.charAt(0).toUpperCase() + s.slice(1) : s; }
+function liveCardHtml(n){
+  const host = (() => { try { return new URL(n.url).hostname; } catch(e){ return ''; }})();
+  const d = nDesc(n);
+  return `<div class="card-link">${n._new?'<span class="liga-tag">NEW</span>':''}
+          <a href="${attrEsc(safeUrl(n.url))}" target="_blank" rel="noopener">
+            ${favHtml(n, host)}
+            <div>
+              <div class="cl-name">${attrEsc(nName(n))}</div>${d?`
+              <div class="cl-desc">${attrEsc(d)}</div>`:''}
+            </div>
+          </a>
+        </div>`;
+}
+function livePageHtml(){
+  const node = liveNode();
+  const intro = node ? nDesc(node) : '';
+  let html = intro ? `<p class="live-intro">${attrEsc(intro)}</p>` : '';
+  const items = liveWeekLinks();
+  if(!items.length){
+    return html + `<p class="live-none">${IS_EN ? 'Nothing is live right now — check back later.' : 'Práve teraz nie je nič aktívne, pozrite sa neskôr.'}</p>`;
+  }
+  liveGroups(items).forEach(g=>{
+    html += `<h2 class="section-label live-h">${attrEsc(g.sp[3])} ${attrEsc(liveCap(liveSpName(g.sp)))}</h2>`
+          + `<div class="grid-deep anim">` + g.items.map(liveCardHtml).join('') + `</div>`;
+  });
+  return html;
+}
+// Nápis lišty „Aktuálne ›" a odkaz v pätičke — odkazy na stránku Aktuálne, keď
+// na tomto webe existuje (inak nápis bez odkazu, pätička bez odkazu). Generátor
+// ich do HTML vkladá rovnako (inject_live_links).
+function renderLiveLinks(){
+  const n = liveNode();
+  const href = n ? urlForId(LIVE_ID) : '';
+  const click = `return navClick(event,'${LIVE_ID}')`;
+  const h = document.getElementById('aktHead'), ht = document.getElementById('aktHeadTxt'), f = document.getElementById('fLive');
+  const label = IS_EN ? 'Live This Week' : 'Aktuálne';
+  [h, f].forEach(el=>{
+    if(!el) return;
+    if(n){ el.setAttribute('href', href); el.setAttribute('onclick', click); }
+    else { el.removeAttribute('href'); el.removeAttribute('onclick'); }
+  });
+  if(ht) ht.textContent = n ? label + ' ›' : label;
+  if(f){ f.hidden = !n; f.textContent = IS_EN ? 'Live This Week' : 'Aktuálne – live výsledky'; }
+}
+
 // stiahne čerstvý aktualne.json → {status:'ok', version, items} | {status:'missing'} | {status:'error'}
 function aktUrls(){ return (IS_EN ? [AKT_MASTER] : []).concat([SITE_ROOT + 'aktualne.json']); }
 async function fetchAktualne(){
@@ -3016,7 +3182,7 @@ async function aktRefresh(){
   AKT = {version:r.version, items:r.items};
   try{
     renderAktualne();
-    if(IS_EN && curId===LIVE_ID && !adminMode && DB && DB.nodes) render();
+    if(curId===LIVE_ID && !adminMode && DB && DB.nodes) render();
   }catch(e){}
 }
 
@@ -3133,7 +3299,7 @@ function aktSave(){
   AKT.rev = Date.now();
   aktDraftPut(true);
   renderAktualne(); renderAktList();
-  if(IS_EN && curId===LIVE_ID) render();
+  if(curId===LIVE_ID) render();
   return true;
 }
 
@@ -3593,7 +3759,8 @@ load().then(()=>{
   // Live This Week sa vynecháva — jeho linky sú z Aktuálnych, tie BOOT obsahuje.
   const maLinky = cur && cur.id !== LIVE_ID && getChildren(cur.id).some(k => k.type === 'link');
   // _lvlSkipSame: obsah zhodný s balíkom sa neprepisuje (karty nepreblikú)
-  if(q || hlboko || maLinky || (curId && !cur)){ _lvlSkipSame = true; render(); _lvlSkipSame = false; }
+  // stránka Aktuálne: úvodný text (popis) mohol v balíku chýbať — prekreslí sa, ak sa líši
+  if(q || hlboko || maLinky || (curId && !cur) || curId === LIVE_ID){ _lvlSkipSame = true; render(); _lvlSkipSame = false; }
   else { updateLinkCount(); updateHead(); }
   checkAdminHash();
   if(_adminPending){ _adminPending = false; toggleAdmin(); }
