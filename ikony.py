@@ -67,8 +67,9 @@ SOCIAL_FAV = re.compile(r'(^|\.)(facebook\.com|fb\.com|instagram\.com|x\.com|twi
 NO_FAVICON_HOSTS = re.compile(r'(^|\.)(vereine\.oefb\.at|vereine\.fussballoesterreich\.at)$')
 # ikonky sietí pre socHtml() (polia fb/ig na dlaždici)
 EXTRA_HOSTS = ("facebook.com", "instagram.com")
-# Pozn.: linky v „Live This Week" (len EN web) appka v sekcii kreslí bez
-# ikonky webu, ale vo VYHĽADÁVANÍ ikonku webu ukazuje → hosty sa NEvynechávajú.
+# Pozn.: položky Aktuálnych (aktualne.json) appka od Zadania 17 kreslí na stránke
+# Aktuálne a vo vyhľadávaní s ikonkou webu → ich hosty sa pridávajú tiež
+# (hosty_z_aktualnych), aj keď v data.json nie sú.
 
 GOOGLE = "https://www.google.com/s2/favicons?domain={host}&sz=64"
 YANDEX = "https://favicon.yandex.net/favicon/{host}"
@@ -103,6 +104,23 @@ def host_z_url(url):
         except UnicodeError:
             return ""
     return h
+
+
+def hosty_z_aktualnych(cesta="aktualne.json"):
+    """Hosty položiek Aktuálnych (aj vypnutých/naplánovaných — ikonka bude pripravená).
+    Súbor chýba alebo je pokazený → prázdna množina (nič sa nestane)."""
+    hosty = set()
+    try:
+        with open(cesta, encoding="utf-8") as f:
+            d = json.load(f)
+        for a in (d.get("items") or []) if isinstance(d, dict) else []:
+            h = host_z_url(a.get("url")) if isinstance(a, dict) else ""
+            if h and not SOCIAL_FAV.search(h) and not NO_FAVICON_HOSTS.search(h) \
+                    and SAFE_HOST.match(h) and len(h) <= 253:
+                hosty.add(h)
+    except (OSError, ValueError, AttributeError):
+        pass
+    return hosty
 
 
 def hosty_z_dat(data):
@@ -370,6 +388,7 @@ def main():
         hosty = hosty_z_dat(data)
         if len(hosty) <= len(EXTRA_HOSTS):
             raise ValueError("v dátach nie sú žiadne linky")
+        hosty |= hosty_z_aktualnych()   # Zadanie 17: ikonky aj pre položky Aktuálnych
     except Exception as e:
         log(f"UPOZORNENIE: dáta ({a.data}) sa nepodarilo načítať: {e} — ikonky sa nesťahujú, nič sa nemaže.")
         return

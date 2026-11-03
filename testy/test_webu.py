@@ -25,6 +25,12 @@ Kontrola k) (3.11.2026, Zadanie 16a): lišta Aktuálne na domove zodpovedá súb
 (title) na karte. Navyše sa appke podstrčí VYMYSLENÝ aktualne.json (len v prehliadači testu,
 web sa nemení) s naplánovanou, skončenou a vypnutou položkou — tie sa nesmú zobraziť.
 
+Kontrola l) (3.11.2026, Zadanie 17): domov má presne toľko dlaždíc (a ikoniek v hlavičke),
+koľko koreňových priečinkov bez noTileSk; stránka Aktuálne (SK /aktualne/, EN /live-this-week/)
+má H1, úvodný text, skupiny podľa športu, popisy pod názvom, skrytú lištu, titulok so športom;
+vyhľadávanie nájde položku Aktuálnych; odkaz v pätičke vedie na stránku. Kým priečinok f_ltw
+na SK webe nie je (enOnly:true v dátach), časť o stránke sa na SK webe preskočí.
+
 Spustenie (lokálne):  python testy/test_webu.py --url https://sportlinky.sk/
 Voliteľne:  --od 2026-11-02T02:30:00Z  (počkaj, kým živý web nemá novšiu verziu)
             --vystup test-vystup        (priečinok na snímky a zoznam chýb)
@@ -849,6 +855,137 @@ class Test:
         popis_info.append("podstrčený súbor: naplánovaná, skončená a vypnutá položka skryté, bublina a NEW OK")
         return stav, "; ".join(popis_info)
 
+    # ------------------------------------------------ l) stránka Aktuálne (Zadanie 17)
+    def stranka_aktualne(self, pokus):
+        """Domov má toľko dlaždíc, koľko koreňových priečinkov bez noTileSk (SK); stránka
+        Aktuálne (SK /aktualne/, EN /live-this-week/): H1, úvodný text, skupiny podľa
+        športu, popis pod názvom, skrytá lišta, titulok so športom, vyhľadávanie,
+        odkaz v pätičke. Kým priečinok f_ltw na SK webe nie je (enOnly:true), časť
+        o stránke sa na SK webe PRESKOČÍ (kontrola dlaždíc a pätičky ostáva)."""
+        if not self.data:
+            raise Zlyhanie("data.json sa nepodarilo načítať (kontrola b)")
+        en = self.lang == "en"
+        uzly = self.data.get("nodes") or []
+        vid = (lambda n: n.get("en") is not False) if en else (lambda n: n.get("enOnly") is not True)
+        koren = [n for n in uzly if n.get("parentId") is None and n.get("type") == "folder" and vid(n)]
+        dlazdice = [n for n in koren if en or n.get("noTileSk") is not True]
+        live = next((n for n in koren if n.get("id") == "f_ltw"), None)
+        nazov = lambda n: ((n.get("name_en") if en and n.get("name_en") else n.get("name")) or "").strip()
+        popis_uzla = lambda n: ((n.get("desc_en") if en and n.get("desc_en") else n.get("desc")) or "").strip()
+        kod, _, domov = stiahni(self.base)
+        m = re.search(r'<a class="f-live" id="fLive"([^>]*)>', domov)
+        odkaz = re.search(r'href="([^"]+)"', m.group(1)).group(1) if (m and "href=" in m.group(1)) else ""
+        stav, info = "ok", []
+        items, zdroj = self.akt_zdroj()
+        # ikonka webu novej položky Aktuálnych sa stiahne až pri ďalšom builde (ikony.py) —
+        # dovtedy appka ukáže emoji; chýbajúca ikonka položky Aktuálnych preto nie je chyba
+        koren_cesta = urllib.parse.urlsplit(self.base).path
+        bez_ikonky = {f"{koren_cesta}ikony/{urllib.parse.urlsplit((a.get('url') or '').strip()).hostname or ''}.png"
+                      for a in items if isinstance(a, dict)}
+        ctx = self.kontext()
+        try:
+            page = self.stranka(ctx, bez_ikonky)
+            page.goto(self.base, wait_until="load")
+            self.cakaj_na_appku(page)
+            page.wait_for_timeout(1500)
+            n_dl = page.locator("#main .card-root, #main .card-folder").count()
+            n_ik = page.locator("#hSports a").count()
+            if n_dl != len(dlazdice) or n_ik != len(dlazdice):
+                raise Zlyhanie(f"domov má {n_dl} dlaždíc a {n_ik} ikoniek v hlavičke, čakám {len(dlazdice)} "
+                               f"(koreňové priečinky bez noTileSk)")
+            info.append(f"domov {n_dl} dlaždíc = priečinky bez noTileSk")
+            if not live:
+                if odkaz or page.locator("#fLive:visible").count():
+                    raise Zlyhanie("priečinok Aktuálne na tomto webe nie je, ale pätička naň odkazuje")
+                info.append("stránka Aktuálne na tomto webe zatiaľ nie je (f_ltw má enOnly:true) — kontrola stránky preskočená")
+                return "ok", "; ".join(info)
+            if not odkaz:
+                raise Zlyhanie("v surovom HTML domova chýba odkaz v pätičke na stránku Aktuálne (#fLive)")
+            hlav = page.eval_on_selector("#aktHead", "e => e.getAttribute('href') || ''")
+            if hlav != odkaz:
+                raise Zlyhanie(f"nápis lišty Aktuálne nie je odkaz na stránku ({hlav!r} ≠ {odkaz!r})")
+            page.click("#fLive")
+            page.wait_for_selector("#main .live-intro, #main .live-none, #main h2.live-h", state="attached")
+            if not page.url.endswith(odkaz):
+                raise Zlyhanie(f"klik na odkaz v pätičke viedol na {page.url}, čakám {odkaz}")
+            self.over_chyby(page, "domov (pätička → Aktuálne)")
+            page.close()
+
+            url = urllib.parse.urljoin(self.base, odkaz)
+            kod, _, raw = stiahni(url)
+            if kod != 200:
+                raise Zlyhanie(f"stránka Aktuálne {odkaz} vrátila HTTP {kod}")
+            vidno = self.akt_viditelne(items, datetime.now().strftime("%Y-%m-%d"))
+            meno = lambda a: ((a.get("name_en") if en and a.get("name_en") else a.get("name")) or "").strip()
+            popis = lambda a: ((a.get("desc_en") if en and a.get("desc_en") else a.get("desc")) or "").strip()
+            # surové HTML (to, čo vidí Google)
+            h1 = re.search(r"<h1>(.*?)</h1>", raw, re.S)
+            if not h1 or nazov(live) not in html.unescape(re.sub(r"<[^>]+>", "", h1.group(1))):
+                raise Zlyhanie(f"statická stránka nemá nadpis H1 „{nazov(live)}“")
+            uvod = popis_uzla(live)
+            if uvod and html.escape(uvod, quote=False) not in raw:
+                raise Zlyhanie("v surovom HTML chýba úvodný text (popis priečinka)")
+            h2_raw = [html.unescape(x) for x in re.findall(r"<h2>([^<]*)</h2>", raw)]
+            nm_raw = [html.unescape(x) for x in re.findall(r'<div class="nm">([^<]*)</div>', raw)]
+            if [meno(a) for a in vidno] and sorted(nm_raw) != sorted(meno(a) for a in vidno):
+                stav = "warn"
+                info.append(f"⚠️ surové HTML má položky {nm_raw[:6]}, súbor dnes {[meno(a) for a in vidno][:6]} (obnoví nočný build)")
+            for a in vidno:
+                if popis(a) and meno(a) in nm_raw and html.escape(popis(a), quote=False) not in raw:
+                    raise Zlyhanie(f"v surovom HTML chýba popis pod názvom „{meno(a)}“")
+            titulok = titulok_z_html(raw)
+            prvy = next((h.split(" ", 1)[-1].lower() for h in h2_raw
+                         if h.split(" ", 1)[-1].lower() not in ("iné", "other")), "")
+            if prvy and prvy not in titulok.lower():
+                raise Zlyhanie(f"titulok „{titulok}“ neobsahuje prvý aktívny šport „{prvy}“")
+            if not vidno and ("nie je nič aktívne" not in raw and "Nothing is live" not in raw):
+                raise Zlyhanie("bez aktívnych položiek chýba veta „Práve teraz nie je nič aktívne…“")
+            # appka (po prevzatí)
+            page = self.stranka(ctx, bez_ikonky)
+            page.goto(url, wait_until="load")
+            page.wait_for_selector("#main .live-intro, #main .live-none, #main h2.live-h", state="attached")
+            page.wait_for_timeout(2500)          # aktualne.json sa sťahuje zvlášť
+            app = page.evaluate("""() => ({
+                h1: (document.querySelector('#breadcrumb h1') || {}).textContent || '',
+                intro: (document.querySelector('#main .live-intro') || {}).textContent || '',
+                h2: [...document.querySelectorAll('#main h2.live-h')].map(e => e.textContent.trim()),
+                names: [...document.querySelectorAll('#main .cl-name')].map(e => e.textContent.trim()),
+                descs: [...document.querySelectorAll('#main .cl-desc')].map(e => e.textContent.trim()),
+                lista: getComputedStyle(document.getElementById('aktualneWrap')).display,
+                title: document.title})""")
+            self.snimka(page, "10-stranka-aktualne")
+            if nazov(live) not in app["h1"]:
+                raise Zlyhanie(f"appka: nadpis H1 „{app['h1']}“ neobsahuje „{nazov(live)}“")
+            if uvod and app["intro"].strip() != uvod:
+                raise Zlyhanie("appka: úvodný text sa líši od popisu priečinka")
+            if sorted(app["names"]) != sorted(meno(a) for a in vidno):
+                raise Zlyhanie(f"appka: položky {app['names'][:6]} ≠ viditeľné položky {[meno(a) for a in vidno][:6]}")
+            for a in vidno:
+                if popis(a) and popis(a) not in app["descs"]:
+                    raise Zlyhanie(f"appka: pod názvom „{meno(a)}“ chýba popis")
+            if app["lista"] != "none":
+                raise Zlyhanie("appka: na stránke Aktuálne je viditeľná lišta Aktuálne")
+            if app["h2"] != h2_raw:
+                stav = "warn"
+                info.append(f"⚠️ skupiny v appke {app['h2']} ≠ statická {h2_raw} (obnoví nočný build)")
+            if app["title"] != titulok:
+                stav = "warn"
+                info.append(f"⚠️ titulok v appke „{app['title']}“ ≠ statická „{titulok}“")
+            self.over_chyby(page, "stránka Aktuálne")
+            # vyhľadávanie nájde položku Aktuálnych
+            if vidno:
+                hladaj = meno(vidno[0])
+                page.fill("#srch", hladaj)
+                page.wait_for_timeout(800)
+                vysl = page.eval_on_selector_all("#main .card-link", """els => els.map(e => (e.querySelector('.cl-name')||{}).textContent + ' | ' + ((e.querySelector('.sr-path')||{}).textContent||''))""")
+                if not any(v.startswith(hladaj) and nazov(live) in v for v in vysl):
+                    raise Zlyhanie(f"vyhľadanie „{hladaj}“ nenašlo položku Aktuálnych ({vysl[:4]})")
+                info.append(f"hľadanie „{hladaj}“ OK")
+        finally:
+            ctx.close()
+        info.insert(1, f"{odkaz}: H1, úvod, skupiny {h2_raw}, {len(vidno)} položiek (zdroj {zdroj}), lišta skrytá, titulok „{titulok}“")
+        return stav, "; ".join(info)
+
     # ------------------------------------------------ hlavný beh
     def spusti(self, od):
         self.cakaj_na_nasadenie(od)
@@ -884,6 +1021,7 @@ class Test:
                 self.kontrola("i) Vlajky z vlastného webu", self.vlajky)
                 self.kontrola("j) Reklama v uzavretom okienku + CSP", self.reklama_okienko)
                 self.kontrola("k) Aktuálne (aktualne.json)", self.aktualne)
+                self.kontrola("l) Stránka Aktuálne (dlaždice, skupiny, pätička)", self.stranka_aktualne)
             finally:
                 self.browser.close()
 

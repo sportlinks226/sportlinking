@@ -52,6 +52,29 @@ jobs:
           # Poistka: odľahčené dáta (_lite) by zmazali anglické texty — build radšej zastav.
           python -c "import json,sys; d=json.load(open('data.json', encoding='utf-8')); sys.exit('CHYBA: stiahnuté dáta sú odľahčené (_lite), chýba data-full.json') if d.get('_lite') else print('data.json OK, verzia', d.get('version'), ',', len(d.get('nodes',[])), 'uzlov')"
 
+      # AKTUÁLNE (Zadanie 16b, 3.11.2026): Aktuálne sú vo vlastnom súbore aktualne.json,
+      # ktorý zadáva Miro cez admin na SK webe. Build si stiahne čerstvú kópiu zo SK
+      # webu — generátor z nej vloží lištu do statického HTML (Google, návštevník bez
+      # JavaScriptu) a priečinok Live This Week; zároveň ide na web ako záloha pre
+      # appku (tá si súbor sťahuje priamo zo sportlinky.sk). Keď sa stiahnutie
+      # nepodarí alebo súbor nie je platný JSON, súbor sa zmaže a generátor použije
+      # pole "aktualne" z data.json alebo nič — build kvôli tomu NIKDY nespadne.
+      # aktualne.json sa v tomto repozitári NEcommituje (je v .gitignore).
+      # Krok je PRED vlajkami a ikonkami (Zadanie 17): ikony.py berie aj weby položiek
+      # Aktuálnych (hosty_z_aktualnych) — bez súboru by ich ikonky na EN webe chýbali.
+      # Priebežné commity vlajok a ikoniek aktualne.json nezachytia (je v .gitignore,
+      # git pull --autostash ignorované súbory nemení).
+      - name: Stiahni Aktuálne zo slovenského webu
+        continue-on-error: true
+        run: |
+          curl -fsSL --retry 3 "https://sportlinky.sk/aktualne.json?build=$GITHUB_RUN_ID" -o aktualne.json || rm -f aktualne.json
+          if [ -f aktualne.json ]; then
+            python -c "import json; d=json.load(open('aktualne.json', encoding='utf-8')); assert isinstance(d.get('items'), list); print('aktualne.json OK, verzia', d.get('version'), ',', len(d['items']), 'položiek')" \
+              || { echo "::warning::aktualne.json nie je platný — použije sa pole z data.json"; rm -f aktualne.json; }
+          else
+            echo "::warning::aktualne.json sa nepodarilo stiahnuť — použije sa pole z data.json (alebo nič)"
+          fi
+
       # VLAJKY KRAJÍN (3.11.2026): vlajky sa sťahujú z flagcdn.com LEN tu, na serveri —
       # návštevník ich načíta z vlastného webu (/vlajky/). vlajky.py stiahne iba
       # CHÝBAJÚCE vlajky (všetky kódy z data.json × veľkosti z appky + 2× pre ostré
@@ -84,26 +107,6 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           python ikony.py --git --limit 720
-
-      # AKTUÁLNE (Zadanie 16b, 3.11.2026): Aktuálne sú vo vlastnom súbore aktualne.json,
-      # ktorý zadáva Miro cez admin na SK webe. Build si stiahne čerstvú kópiu zo SK
-      # webu — generátor z nej vloží lištu do statického HTML (Google, návštevník bez
-      # JavaScriptu) a priečinok Live This Week; zároveň ide na web ako záloha pre
-      # appku (tá si súbor sťahuje priamo zo sportlinky.sk). Keď sa stiahnutie
-      # nepodarí alebo súbor nie je platný JSON, súbor sa zmaže a generátor použije
-      # pole "aktualne" z data.json alebo nič — build kvôli tomu NIKDY nespadne.
-      # aktualne.json sa v tomto repozitári NEcommituje (je v .gitignore).
-      # Krok je až ZA vlajkami a ikonkami (tie commitujú), tesne pred generátorom.
-      - name: Stiahni Aktuálne zo slovenského webu
-        continue-on-error: true
-        run: |
-          curl -fsSL --retry 3 "https://sportlinky.sk/aktualne.json?build=$GITHUB_RUN_ID" -o aktualne.json || rm -f aktualne.json
-          if [ -f aktualne.json ]; then
-            python -c "import json; d=json.load(open('aktualne.json', encoding='utf-8')); assert isinstance(d.get('items'), list); print('aktualne.json OK, verzia', d.get('version'), ',', len(d['items']), 'položiek')" \
-              || { echo "::warning::aktualne.json nie je platný — použije sa pole z data.json"; rm -f aktualne.json; }
-          else
-            echo "::warning::aktualne.json sa nepodarilo stiahnuť — použije sa pole z data.json (alebo nič)"
-          fi
 
       - name: Vygeneruj anglické stránky
         run: python generator.py --out _site
