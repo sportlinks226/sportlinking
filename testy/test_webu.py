@@ -15,6 +15,11 @@ Výsledok:
   ❌ chyba      — web nefunguje, ako má (test skončí červeným krížikom)
 Každá kontrola sa pri neúspechu skúsi ešte raz — chyba je až keď zlyhá aj druhý pokus.
 
+Bod 16 (3.11.2026): každá stránka otvorená v prehliadači sa kontroluje aj na porušenia
+Content-Security-Policy (zoznam povolených domén) — porušenie = ❌. Kontrola j) overí,
+že reklama partnera (banner v slote 1, promo blok v Tipovaní) beží v uzavretom okienku
+(<iframe sandbox>). Reklamy sa ani tu NEnačítavajú — overuje sa len kód okienka.
+
 Spustenie (lokálne):  python testy/test_webu.py --url https://sportlinky.sk/
 Voliteľne:  --od 2026-11-02T02:30:00Z  (počkaj, kým živý web nemá novšiu verziu)
             --vystup test-vystup        (priečinok na snímky a zoznam chýb)
@@ -49,6 +54,15 @@ X_TEST = {"X-Test": "sportlinky-test"}   # podľa tejto hlavičky sa dá test od
 # ani falošné zobrazenia reklám.
 BLOKOVANE = ("goatcounter.com", "zgo.at", "googletagmanager.com",
              "google-analytics.com", "ban.tipsport.sk")
+
+# bod 16: uzavreté okienko pre reklamu — tieto práva NESMIE mať (videl by stránku /
+# presmeroval hlavné okno); a tieto MUSÍ mať (skript beží, klik otvorí novú kartu)
+SANDBOX_ZAKAZANE = ("allow-same-origin", "allow-top-navigation")
+SANDBOX_POTREBNE = ("allow-scripts", "allow-popups", "allow-popups-to-escape-sandbox")
+CSP_META_RE = re.compile(r'<meta\s+http-equiv="Content-Security-Policy"\s+content="([^"]+)"', re.I)
+# zachytí porušenie CSP v každom okne aj okienku (prehliadač ho inak len zapíše do konzoly)
+CSP_SKRIPT = ("document.addEventListener('securitypolicyviolation', function(e){"
+              "console.error('CSP-PORUSENIE: Content Security Policy ' + e.violatedDirective + ' ' + e.blockedURI);});")
 
 NAVIGACIA_MS = 30_000       # max. čas na otvorenie stránky
 CAKANIE_MS = 20_000         # max. čas na zobrazenie prvku (dlaždice, výsledky…)
@@ -124,6 +138,7 @@ class Test:
         ctx.set_default_navigation_timeout(NAVIGACIA_MS)
         ctx.set_default_timeout(CAKANIE_MS)
         ctx.route("**/*", self.smerovanie)
+        ctx.add_init_script(CSP_SKRIPT)
         return ctx
 
     def stranka(self, ctx, povolene_404=()):
@@ -131,6 +146,12 @@ class Test:
         page = ctx.new_page()
         page.chyby_js = []
         page.chyby_suborov = []
+        page.chyby_csp = []     # bod 16: porušenia Content-Security-Policy (aj z okienok)
+
+        def on_console(m):
+            t = m.text
+            if "Content Security Policy" in t and t not in page.chyby_csp:
+                page.chyby_csp.append(t)
 
         def on_resp(r):
             u = urllib.parse.urlsplit(r.url)
@@ -143,6 +164,7 @@ class Test:
                 page.chyby_suborov.append(f"nenačítané ({rq.failure}) {u.path}")
 
         page.on("pageerror", lambda e: page.chyby_js.append(str(e)))
+        page.on("console", on_console)
         page.on("response", on_resp)
         page.on("requestfailed", on_fail)
         return page
@@ -161,6 +183,9 @@ class Test:
             problemy.append("chyby JavaScriptu: " + " | ".join(page.chyby_js[:5]))
         if page.chyby_suborov:
             problemy.append("chybné súbory webu: " + ", ".join(sorted(set(page.chyby_suborov))[:10]))
+        if page.chyby_csp:
+            problemy.append("porušenia Content-Security-Policy (niečo bolo zablokované): "
+                            + " | ".join(c[:200] for c in page.chyby_csp[:5]))
         if problemy:
             raise Zlyhanie(f"{kde} — " + "; ".join(problemy))
 
@@ -250,6 +275,8 @@ class Test:
                                 main.group(1) if main else ""))
         if len(sekcie) < 3:
             raise Zlyhanie(f"v surovom HTML domova je len {len(sekcie)} dlaždíc sekcií (čakám aspoň 3)")
+        if not CSP_META_RE.search(text):
+            raise Zlyhanie("domovská stránka nemá Content-Security-Policy (bod 16)")
 
         ctx = self.kontext()
         try:
@@ -337,6 +364,8 @@ class Test:
                 raise Zlyhanie("statická stránka nemá titulok")
             if not re.search(r'<a class="card"', text) and 'id="pageBoot"' not in text:
                 raise Zlyhanie("statická stránka nemá obsah (karty ani balík stránky)")
+            if not CSP_META_RE.search(text):
+                raise Zlyhanie("statická stránka nemá Content-Security-Policy (bod 16)")
             cesta = urllib.parse.urlsplit(url).path
             ctx = self.kontext()
             try:
@@ -581,6 +610,97 @@ class Test:
             ctx.close()
         return "ok", f"{cesta} → HTTP 404, stránka webu sa zobrazí"
 
+    # ------------------------------------------------ j) reklama v uzavretom okienku (bod 16)
+    @staticmethod
+    def over_okienko(page, sel, kde):
+        """V prvku sel nesmie byť cudzí <script> priamo v stránke; ak je tam okienko,
+        musí mať správny sandbox a v srcdoc skript z ban.tipsport.sk.
+        Vráti True = okienko je, False = v prvku nie je kód partnera."""
+        o = page.evaluate("""sel => {
+            const el = document.querySelector(sel); if(!el) return null;
+            const f = el.querySelector('iframe');
+            return { priame: el.querySelectorAll('script').length,
+                     sandbox: f ? f.getAttribute('sandbox') : null,
+                     srcdoc: f ? (f.getAttribute('srcdoc') || '') : null };
+        }""", sel)
+        if o is None:
+            raise Zlyhanie(f"{kde}: prvok {sel} na stránke nie je")
+        if o["priame"]:
+            raise Zlyhanie(f"{kde}: cudzí <script> beží PRIAMO v stránke (nie v uzavretom okienku)")
+        if o["srcdoc"] is None:
+            return False
+        if o["sandbox"] is None:
+            raise Zlyhanie(f"{kde}: okienko reklamy nemá sandbox")
+        prava = o["sandbox"].split()
+        zle = [x for x in SANDBOX_ZAKAZANE if x in prava]
+        if zle:
+            raise Zlyhanie(f"{kde}: okienko reklamy má zakázané právo {', '.join(zle)}")
+        chyba = [x for x in SANDBOX_POTREBNE if x not in prava]
+        if chyba:
+            raise Zlyhanie(f"{kde}: okienku reklamy chýba právo {', '.join(chyba)} (klik by neotvoril novú kartu)")
+        if not re.search(r"<script[^>]+src=['\"]https://ban\.tipsport\.sk/", o["srcdoc"], re.I):
+            raise Zlyhanie(f"{kde}: v okienku chýba skript z ban.tipsport.sk")
+        return True
+
+    def reklama_okienko(self, pokus):
+        lang = self.lang
+        dnes = datetime.now().strftime("%Y-%m-%d")
+        # bannery partnera pre slot 1 na domove podľa data.json (rovnaké pravidlá ako appka)
+        bannery = [b for b in (self.data or {}).get("banners", [])
+                   if (b.get("lang") or "sk") == lang and b.get("active") is not False
+                   and str(b.get("slot") or 1) != "2" and not b.get("sectionId")
+                   and not (b.get("startsAt") and dnes < b["startsAt"])
+                   and not (b.get("endsAt") and dnes > b["endsAt"])]
+        partner = [b for b in bannery if re.search(r"<(script|iframe)\b", b.get("html") or "", re.I)]
+        len_partner = bool(bannery) and len(partner) == len(bannery)
+        popis = []
+        ctx = self.kontext()
+        try:
+            page = self.stranka(ctx)
+            page.goto(self.base, wait_until="load")
+            self.cakaj_na_appku(page)
+            page.wait_for_timeout(1500)
+            ok = self.over_okienko(page, "#bannerSlot", "slot 1")
+            if len_partner and not ok:
+                raise Zlyhanie("slot 1: banner partnera nie je v uzavretom okienku (iframe sandbox)")
+            popis.append("slot 1: " + ("okienko so sandboxom, skript ban.tipsport.sk" if ok else "bez kódu partnera"))
+            self.over_chyby(page, "domov (reklama)")
+            page.close()
+
+            pb = (self.data or {}).get("promoBanner") or {}
+            if lang == "sk" and pb.get("active") is not False and re.search(r"<script\b", pb.get("html") or "", re.I):
+                uzly = {n["id"]: n for n in (self.data or {}).get("nodes", [])}
+                n, cesta = uzly.get(pb.get("sectionId") or "f_tip"), []
+                while n:
+                    cesta.insert(0, n.get("slug") or "")
+                    n = uzly.get(n.get("parentId"))
+                url = self.base + "/".join(cesta) + "/"
+                kod, _, text = stiahni(url)
+                if kod != 200:
+                    raise Zlyhanie(f"Tipovanie {url} vrátilo HTTP {kod}")
+                if not CSP_META_RE.search(text):
+                    raise Zlyhanie("statická stránka Tipovania nemá Content-Security-Policy")
+                m = re.search(r'<div class="promo-ban">(.*?)</div>', text, re.S)
+                if m and re.search(r"<script\b", m.group(1), re.I):
+                    raise Zlyhanie("statická stránka Tipovania má skript partnera PRIAMO v stránke")
+                page = self.stranka(ctx)
+                page.goto(url, wait_until="load")
+                self.cakaj_na_appku(page)          # prevzatie appkou
+                page.wait_for_selector(".promo-ban", state="attached")
+                page.wait_for_timeout(1500)
+                self.snimka(page, "8-tipovanie-promo")
+                if not self.over_okienko(page, ".promo-ban", "promo blok"):
+                    raise Zlyhanie("promo blok: rotátor partnera nie je v uzavretom okienku")
+                if not page.locator(".promo-txt").count():
+                    self.log.append("promo blok: bez reklamného textu (žiadny aktívny text)")
+                self.over_chyby(page, "Tipovanie (promo blok)")
+                popis.append("promo blok: okienko so sandboxom, skript ban.tipsport.sk")
+            else:
+                popis.append("promo blok: na tomto webe nie je")
+        finally:
+            ctx.close()
+        return "ok", "; ".join(popis) + "; 0 porušení CSP (reklamy v teste blokované)"
+
     # ------------------------------------------------ hlavný beh
     def spusti(self, od):
         self.cakaj_na_nasadenie(od)
@@ -614,6 +734,7 @@ class Test:
                 self.kontrola("g) Admin (/#admin)", self.admin)
                 self.kontrola("h) Stránka 404", self.chyba_404)
                 self.kontrola("i) Vlajky z vlastného webu", self.vlajky)
+                self.kontrola("j) Reklama v uzavretom okienku + CSP", self.reklama_okienko)
             finally:
                 self.browser.close()
 

@@ -3,6 +3,14 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<!-- BOD 16 (3.11.2026): ZOZNAM POVOLENÝCH DOMÉN (Content-Security-Policy). Prehliadač
+     načíta skripty, dáta a ďalšie súbory LEN z týchto adries — všetko ostatné zablokuje.
+     GitHub Pages hlavičky nastaviť nevie, preto je to <meta>. Ten istý riadok MUSÍ byť
+     aj v generator.py (CSP) — generátor to pri builde kontroluje.
+     'unsafe-inline' = vložené skripty a onclick v appke; ban.tipsport.sk = reklama
+     (beží v uzavretom okienku, ktoré tento zoznam dedí); gc.zgo.at + *.goatcounter.com
+     = štatistika (SK aj EN); img-src https: = admin môže zadať obrázok z hocijakej adresy. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://ban.tipsport.sk https://gc.zgo.at; connect-src 'self' https://ban.tipsport.sk https://sportlinky.goatcounter.com https://sportlinking.goatcounter.com; img-src 'self' data: https:; style-src 'self' 'unsafe-inline'; font-src 'self' data:; frame-src 'self' https://ban.tipsport.sk; object-src 'none'; base-uri 'self'; form-action 'self'"/>
 <title>Športové Linky</title>
 <meta name="description" content="Všetky športové weby sveta na jednom mieste — prehľadný rozcestník overených liniek pre každý šport a krajinu."/>
 <!--FAVICONS--><!-- generátor sem pri builde doplní favicon.ico, favicon.svg a apple-touch-icon.png s cestou od koreňa webu -->
@@ -149,6 +157,10 @@ a.card-root,a.card-folder,a.bc-item,a.h-left,a.f-wordmark{color:inherit;text-dec
 }
 .banner-slot a{display:block;width:100%;height:100%}
 .banner-slot img{width:100%;height:100%;object-fit:cover;display:block}
+/* bod 16: uzavreté okienko pre cudzí reklamný kód — bez rámika a posuvníka */
+.adframe{display:block;border:0;width:100%;overflow:hidden;background:transparent;color-scheme:dark}
+.adframe-slot{height:100%}
+.adframe-auto{height:250px}
 .banner-placeholder{font-size:0.75rem;color:var(--muted);text-align:center;pointer-events:none}
 .banner-edit-btn{
   display:none;background:var(--surface);border:1.5px solid var(--border);
@@ -1717,7 +1729,6 @@ function renderLevel(){
   if(skip && html === _lvlHtml && main.firstChild) return;
   _lvlHtml = html;
   main.innerHTML = html;
-  activatePromoScripts(main);
 }
 
 // ============================================================
@@ -1794,7 +1805,6 @@ function renderColumns(main, promoHtml, fromHover){
   html += `<div class="cdetail" id="colDetail">${colDetailHtml()}</div></div>`;
   if(_colPromo) html += promoWarnHtml();
   main.innerHTML = html;
-  activatePromoScripts(main);
   const wrap = document.getElementById('colsWrap');
   if(wrap) wrap.scrollLeft = wrap.scrollWidth;
   colEdgeStop();
@@ -1920,7 +1930,8 @@ function renderPromoBlock(){
   const p = list.length ? pickPromo(list) : null;
   const label = attrEsc(pb.label || 'REKLAMA');
   let html = `<div class="promo">`;
-  if(banOn) html += `<div class="promo-ban">${pb.html}</div>`;
+  // bod 16: rotátor partnera v uzavretom okienku (výška podľa obsahu)
+  if(banOn) html += `<div class="promo-ban">${adNeedsFrame(pb.html) ? adFrame(pb.html, true) : pb.html}</div>`;
   if(p){
     html += `<div class="promo-txt"><div class="promo-tag">${label}</div><h3>${attrEsc(p.title||'')}</h3>${promoParas(p.text)}`;
     if(p.btnUrl) html += `<a class="promo-btn" href="${attrEsc(safeUrl(p.btnUrl))}" target="_blank" rel="noopener sponsored">${attrEsc(p.btnText||'Viac')} ›</a>`;
@@ -1930,15 +1941,7 @@ function renderPromoBlock(){
   if(adminMode) html += `<button class="promo-edit-btn" onclick="openPromoList()">💰 Promo blok</button>`;
   return html;
 }
-// <script> vložený cez innerHTML sa sám nespustí — vytvoríme ho nanovo (ako pri banneroch)
-function activatePromoScripts(root){
-  root.querySelectorAll('.promo-ban script').forEach(old=>{
-    const sc = document.createElement('script');
-    for(const a of old.attributes) sc.setAttribute(a.name, a.value);
-    sc.text = old.text || '';
-    old.parentNode.replaceChild(sc, old);
-  });
-}
+// (activatePromoScripts zrušené v bode 16 — skript partnera beží v okienku adFrame)
 
 // ---- ADMIN: promo blok ----
 let editingPromoId = null;
@@ -2593,6 +2596,44 @@ function eligibleBanners(slotNum){
 }
 function bannerWeight(b){ return Math.max(1, Math.min(10, parseInt(b.weight)||1)); }
 
+// ============================================================
+// BOD 16 (3.11.2026): CUDZÍ REKLAMNÝ KÓD V UZAVRETOM OKIENKU
+// HTML banner alebo promo blok s <script> či <iframe> (kód partnera — ban.tipsport.sk)
+// sa vykreslí do <iframe sandbox> cez srcdoc. BEZ allow-same-origin a BEZ
+// allow-top-navigation: skript partnera nevidí túto stránku, cookies ani localStorage
+// a nemôže presmerovať hlavné okno. allow-popups + allow-popups-to-escape-sandbox:
+// klik otvorí tipsport.sk v novej karte ako bežnú stránku (s pid=5261 v odkaze).
+// <base target="_blank"> = každý odkaz v okienku ide do novej karty, aj bez target.
+// Okienko dedí Content-Security-Policy stránky (preto ban.tipsport.sk v script-src).
+// Vlastné bannery bez skriptu (obrázok, SVG s navClick) ostávajú po starom.
+// ROVNAKÝ obsah okienka vyrába aj generator.py (ad_frame) — meň oba naraz.
+// ============================================================
+const AD_SANDBOX = 'allow-scripts allow-popups allow-popups-to-escape-sandbox';
+function adNeedsFrame(h){ return /<(script|iframe)\b/i.test(String(h||'')); }
+// auto=false: pevná veľkosť slotu (468×60, na mobile podľa šírky);
+// auto=true: výška podľa obsahu — okienko ju pošle cez postMessage (promo blok)
+function adFrame(h, auto){
+  const css = '<style>:root{color-scheme:dark}html,body{margin:0;padding:0;border:0;overflow:hidden;background:transparent}'
+    + (auto ? '' : 'html,body{height:100%}')
+    + 'body{color:#e8eaf0;font:14px/1.4 "Segoe UI",Arial,sans-serif;text-align:center}'
+    + 'a{color:inherit;text-decoration:none}img{max-width:100%;height:auto;display:block;margin:0 auto;border:0}</style>';
+  const vyska = auto ? '<script>(function(){var p=0;function s(){var h=Math.ceil(document.body.getBoundingClientRect().height);'
+    + 'if(h&&h!==p){p=h;parent.postMessage({sportlinkyAdH:h},"*")}}'
+    + 'if(window.ResizeObserver)new ResizeObserver(s).observe(document.body);addEventListener("load",s);setTimeout(s,0);setTimeout(s,2000)})()<\/script>' : '';
+  const doc = '<!DOCTYPE html><html><head><meta charset="utf-8"><base target="_blank">' + css + '</head><body>' + h + vyska + '</body></html>';
+  return `<iframe class="adframe adframe-${auto ? 'auto' : 'slot'}" sandbox="${AD_SANDBOX}" srcdoc="${attrEsc(doc)}" title="Reklama" scrolling="no"></iframe>`;
+}
+// výška z okienka: len od NAŠEHO okienka (event.source) a len rozumné číslo
+window.addEventListener('message', e=>{
+  const d = e.data;
+  if(!d || typeof d !== 'object' || typeof d.sportlinkyAdH !== 'number') return;
+  const h = d.sportlinkyAdH;
+  if(!isFinite(h) || h < 10 || h > 1000) return;
+  for(const f of document.querySelectorAll('iframe.adframe-auto')){
+    if(f.contentWindow === e.source){ f.style.height = Math.round(h) + 'px'; return; }
+  }
+});
+
 // Vykreslí jeden slot — každý slot rotuje len svoje vlastné bannery
 function renderOneSlot(el, slotNum){
   const banners = eligibleBanners(slotNum);
@@ -2624,14 +2665,9 @@ function renderOneSlot(el, slotNum){
       h = h.replace(/\{\{live\}\}/g, String(live)).replace(/\{\{links\}\}/g, fmt(total))
            .replace(/\{\{links:([\w-]+)\}\}/g, (m,id)=>{ const n=(DB.nodes||[]).find(x=>x.id===id); return fmt(n && n._cnt!==undefined ? n._cnt : countAll(id)); });
     }
-    el.innerHTML = h;
-    // <script> vložený cez innerHTML sa sám nespustí — vytvoríme ho nanovo, tým sa aktivuje
-    el.querySelectorAll('script').forEach(old=>{
-      const s = document.createElement('script');
-      for(const a of old.attributes) s.setAttribute(a.name, a.value);
-      s.text = old.text || '';
-      old.parentNode.replaceChild(s, old);
-    });
+    // bod 16: kód partnera (<script>/<iframe>) → uzavreté okienko; vlastný banner
+    // bez skriptu (napr. SVG s navClick) ostáva priamo v stránke ako doteraz
+    el.innerHTML = adNeedsFrame(h) ? adFrame(h, false) : h;
   } else {
     el.innerHTML = `<a href="${attrEsc(safeUrl(banner.linkUrl))}" target="_blank" rel="noopener sponsored">
       <img src="${attrEsc(safeUrl(banner.imageUrl))}" alt="${attrEsc(banner.alt||'Reklama')}" style="width:100%;height:100%;object-fit:cover;display:block"/>
@@ -3059,6 +3095,6 @@ load().then(()=>{
 });
 </script>
 <!-- GoatCounter — anonymná návštevnosť (bez cookies), štatistiky: sportlinky.goatcounter.com -->
-<script data-goatcounter="https://sportlinky.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
+<script data-goatcounter="https://sportlinky.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
 </body>
 </html>

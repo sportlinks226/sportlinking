@@ -748,6 +748,9 @@ h2{font-size:1.05rem;color:__ACCENT_TEXT__;margin:26px 0 10px;text-transform:upp
 .bslot a{display:block;width:100%;height:100%}
 .bslot img{width:100%;height:100%;object-fit:cover;display:block}
 @media(max-width:560px){#bslot2{display:none!important}.bslot{aspect-ratio:468/60;height:auto}.bslot img{object-fit:contain}}
+.adframe{display:block;border:0;width:100%;overflow:hidden;background:transparent;color-scheme:dark}
+.adframe-slot{height:100%}
+.adframe-auto{height:250px}
 .akt{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 20px;align-items:center}
 .akt .lbl{color:__ACCENT_TEXT__;font-weight:600;font-size:.78rem;text-transform:uppercase;letter-spacing:.05em}
 .akt a{background:#182635;border:1px solid #24364a;border-radius:20px;padding:6px 12px;font-size:.85rem}
@@ -778,11 +781,51 @@ FAVICON_LINKS = (f'<link rel="icon" href="{SITE_ABS_ROOT}favicon.ico" sizes="48x
                  f'<link rel="icon" href="{SITE_ABS_ROOT}favicon.svg" type="image/svg+xml">\n'
                  f'<link rel="apple-touch-icon" href="{SITE_ABS_ROOT}apple-touch-icon.png">')
 
+# BOD 16 (3.11.2026): ZOZNAM POVOLENÝCH DOMÉN (Content-Security-Policy) — rovnaký
+# ako <meta http-equiv="Content-Security-Policy"> v index.html (main() to pri builde
+# kontroluje, build pri rozdiele spadne). Vysvetlenie jednotlivých častí je v index.html.
+CSP = ("default-src 'self'; script-src 'self' 'unsafe-inline' https://ban.tipsport.sk https://gc.zgo.at; "
+       "connect-src 'self' https://ban.tipsport.sk https://sportlinky.goatcounter.com https://sportlinking.goatcounter.com; "
+       "img-src 'self' data: https:; style-src 'self' 'unsafe-inline'; font-src 'self' data:; "
+       "frame-src 'self' https://ban.tipsport.sk; object-src 'none'; base-uri 'self'; form-action 'self'")
+CSP_META = f'<meta http-equiv="Content-Security-Policy" content="{CSP}"/>'
+
+# BOD 16: CUDZÍ REKLAMNÝ KÓD V UZAVRETOM OKIENKU — rovnako ako adFrame() v index.html
+# (obsah okienka musí byť ZHODNÝ; meň oba naraz). HTML s <script>/<iframe> (kód
+# partnera) sa vloží do <iframe sandbox> cez srcdoc: bez allow-same-origin a bez
+# allow-top-navigation skript nevidí stránku, cookies ani nepresmeruje hlavné okno.
+AD_SANDBOX = "allow-scripts allow-popups allow-popups-to-escape-sandbox"
+AD_NEEDS_FRAME_RE = re.compile(r"<(script|iframe)\b", re.I)
+
+
+def ad_frame_doc(h: str, auto: bool) -> str:
+    """Obsah okienka (srcdoc) — znak po znaku ako v adFrame() v index.html."""
+    css = ('<style>:root{color-scheme:dark}html,body{margin:0;padding:0;border:0;overflow:hidden;background:transparent}'
+           + ('' if auto else 'html,body{height:100%}')
+           + 'body{color:#e8eaf0;font:14px/1.4 "Segoe UI",Arial,sans-serif;text-align:center}'
+           + 'a{color:inherit;text-decoration:none}img{max-width:100%;height:auto;display:block;margin:0 auto;border:0}</style>')
+    vyska = ('<script>(function(){var p=0;function s(){var h=Math.ceil(document.body.getBoundingClientRect().height);'
+             'if(h&&h!==p){p=h;parent.postMessage({sportlinkyAdH:h},"*")}}'
+             'if(window.ResizeObserver)new ResizeObserver(s).observe(document.body);addEventListener("load",s);setTimeout(s,0);setTimeout(s,2000)})()</script>'
+             if auto else '')
+    return ('<!DOCTYPE html><html><head><meta charset="utf-8"><base target="_blank">' + css
+            + '</head><body>' + h + vyska + '</body></html>')
+
+
+def ad_frame(h: str, auto: bool) -> str:
+    """<iframe sandbox srcdoc=…> pre kód partnera; ostatné HTML vráti bez zmeny."""
+    if not AD_NEEDS_FRAME_RE.search(h or ""):
+        return h
+    return (f'<iframe class="adframe adframe-{"auto" if auto else "slot"}" sandbox="{AD_SANDBOX}" '
+            f'srcdoc="{escape(ad_frame_doc(h, auto), quote=True)}" title="Reklama" scrolling="no"></iframe>')
+
+
 PAGE = """<!DOCTYPE html>
 <html lang="{lang}">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!--CSP-->
 <title>{title}</title>
 <meta name="description" content="{meta_desc}">
 {favicons}
@@ -812,6 +855,11 @@ PAGE = """<!DOCTYPE html>
 </body>
 </html>
 """
+PAGE = PAGE.replace("<!--CSP-->", CSP_META, 1)
+# začiatok a koniec okienka slotu + sandbox pre __dyn (JS pole; "</" → "<\\/", aby
+# text nezavrel <script>)
+_af = ad_frame_doc("\x00", False).split("\x00")
+ADFRAME_JS = json.dumps([_af[0], _af[1], AD_SANDBOX]).replace("</", "<\\/")
 
 # Dynamický JS: banner + Aktuálne z data.json.
 # __ANC__ = id priečinkov od koreňa po túto stránku (cielenie bannerov),
@@ -819,7 +867,16 @@ PAGE = """<!DOCTYPE html>
 # POZOR: spúšťa sa LEN ako záloha, ak sa nepodarí prevziať appku (viď TAKEOVER).
 # Pri úspešnom prevzatí si bannery aj Aktuálne vykreslí appka sama.
 DYN_JS = """<script>
+// bod 16: výška okienka s reklamou (promo blok) — len od nášho okienka, len rozumné číslo
+window.addEventListener("message",function(e){
+  var d=e.data;if(!d||typeof d!=="object"||typeof d.sportlinkyAdH!=="number")return;
+  var h=d.sportlinkyAdH;if(!isFinite(h)||h<10||h>1000)return;
+  var fs=document.querySelectorAll("iframe.adframe-auto");
+  for(var i=0;i<fs.length;i++){if(fs[i].contentWindow===e.source){fs[i].style.height=Math.round(h)+"px";return}}
+});
 function __dyn(){
+  // bod 16: kód partnera (<script>/<iframe>) v banneri → uzavreté okienko (ako adFrame v index.html)
+  var AF=__ADFRAME__;
   var ANC=__ANC__;
   // bod 14: text z dát → HTML entity; adresa len http(s) alebo relatívna od koreňa
   // webu („/obrazok.png", nie „//cudzi-web"), inak "#" — ROVNAKO ako safeUrl v index.html
@@ -852,16 +909,9 @@ function __dyn(){
       if(!b)return;
       var el=document.getElementById(elId);
       el.hidden=false;
-      el.innerHTML=b.html?b.html:'<a href="'+esc(safeUrl(b.linkUrl))+'" target="_blank" rel="noopener sponsored"><img src="'+esc(safeUrl(b.imageUrl))+'" alt="'+esc(b.alt||"Reklama")+'"></a>';
-      if(b.html){
-        var scr=el.querySelectorAll("script");
-        for(var i=0;i<scr.length;i++){
-          var old=scr[i],s=document.createElement("script");
-          for(var j=0;j<old.attributes.length;j++)s.setAttribute(old.attributes[j].name,old.attributes[j].value);
-          s.text=old.text||"";
-          old.parentNode.replaceChild(s,old);
-        }
-      }
+      el.innerHTML=!b.html?'<a href="'+esc(safeUrl(b.linkUrl))+'" target="_blank" rel="noopener sponsored"><img src="'+esc(safeUrl(b.imageUrl))+'" alt="'+esc(b.alt||"Reklama")+'"></a>'
+        :/<(script|iframe)\\b/i.test(b.html)?'<iframe class="adframe adframe-slot" sandbox="'+AF[2]+'" srcdoc="'+esc(AF[0]+b.html+AF[1])+'" title="Reklama" scrolling="no"></iframe>'
+        :b.html;
     }
     showSlot("bslot",1);
     showSlot("bslot2",2);
@@ -936,7 +986,7 @@ TAKEOVER = """<script>
     if(btn) btn.style.display="inline-block";
     try{ __dyn(); }catch(e){}
     var s=document.createElement("script");
-    s.async=true; s.src="//gc.zgo.at/count.js";
+    s.async=true; s.src="https://gc.zgo.at/count.js";
     s.setAttribute("data-goatcounter","https://__GOAT__.goatcounter.com/count");
     document.body.appendChild(s);
   }
@@ -1004,7 +1054,7 @@ def promo_block(anc_ids: list):
         return "", ""
     out = ['<div class="promo">']
     if ban_on:
-        out.append(f'<div class="promo-ban">{pb["html"]}</div>')
+        out.append(f'<div class="promo-ban">{ad_frame(pb["html"], True)}</div>')   # bod 16: okienko
     if texts:
         p = max(texts, key=lambda x: int(x.get("weight") or 1))
         paras = "".join(f"<p>{escape(t.strip())}</p>" for t in str(p.get("text") or "").split("\n") if t.strip())
@@ -1312,6 +1362,7 @@ def render_page(node, path, children, by_id, paths, site_title, alt_url=None, pa
     data_url = f"{root}data.json" + (f"?v={DATA_VER}" if DATA_VER else "")
 
     dyn_js = (DYN_JS
+              .replace("__ADFRAME__", ADFRAME_JS)
               .replace("__ANC__", json.dumps(anc_ids))
               .replace("__DATAURL__", data_url)
               .replace("__ROOT__", root)
@@ -1545,6 +1596,13 @@ def main():
                     "CHYBA: v index.html chýba riadok 'let SITE_ROOT = \"\";' — "
                     "appka nevie, kde je koreň webu. Skontroluj index.html.")
             html = html.replace(marker, f'let SITE_ROOT = "{SITE_ABS_ROOT}";')
+
+            # bod 16: index.html musí mať TÚ ISTÚ CSP ako statické stránky (CSP vyššie)
+            if CSP_META not in html:
+                raise SystemExit(
+                    "CHYBA: index.html nemá rovnakú Content-Security-Policy ako generator.py "
+                    "(CSP). Oprav riadok <meta http-equiv=\"Content-Security-Policy\"> tak, "
+                    "aby boli zhodné.")
 
             # Favicon ako súbory s cestou od koreňa webu (bod 7 previerky).
             fav_marker = "<!--FAVICONS-->"
