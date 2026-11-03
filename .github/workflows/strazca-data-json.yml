@@ -1,4 +1,6 @@
-# Strážca: ak pull request mení data.json alebo sitemap-lastmod.json, kontrola zlyhá (červený krížik).
+# Strážca: ak pull request mení data.json, aktualne.json alebo sitemap-lastmod.json, kontrola zlyhá
+# (červený krížik). aktualne.json (od 3.11.2026) zadáva LEN Miro cez admin na webe — pull request
+# by mohol prepísať, čo medzitým zadal.
 name: Strazca data.json
 
 on:
@@ -15,8 +17,8 @@ jobs:
         run: |
           ZMENENE=$(git diff --name-only HEAD^1 HEAD)
           echo "Zmenené súbory:"; echo "$ZMENENE"
-          if echo "$ZMENENE" | grep -qxE 'data\.json|sitemap-lastmod\.json'; then
-            echo "::error::Tento návrh mení data.json alebo sitemap-lastmod.json — NESPÁJAŤ (neklikať Merge)!"
+          if echo "$ZMENENE" | grep -qxE 'data\.json|aktualne\.json|sitemap-lastmod\.json'; then
+            echo "::error::Tento návrh mení data.json, aktualne.json alebo sitemap-lastmod.json — NESPÁJAŤ (neklikať Merge)!"
             exit 1
           fi
-          echo "OK — data.json sa nemení."
+          echo "OK — data.json ani aktualne.json sa nemení."
