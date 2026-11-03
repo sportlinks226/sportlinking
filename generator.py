@@ -40,6 +40,7 @@ SEO (od 2.10.2026):
     každé ráno hlásil Googlu ako zmenené — signál, ktorému Google neverí.
   - Aktuálne sa vkladajú do index.html už pri builde (inject_aktualne), aby
     ich Google videl v surovom HTML; appka ich po štarte prekreslí na to isté.
+    Od 3.11.2026 sú vo vlastnom súbore aktualne.json (viď load_aktualne).
 """
 
 import hashlib
@@ -117,8 +118,9 @@ CONTINENTS = {"Európa", "Ázia", "Afrika", "Južná Amerika", "Severná Amerika
 NO_EN_ALPHA = {"f_bas_sut_eu", "f_bas_sut_oc", "f_bas_sut_na", "f_bas_sut_ja", "f_bas_sut_af", "f_bas_sut_az"}
 
 # "Live This Week" — priečinok, ktorý existuje LEN na anglickom webe (enOnly:true)
-# a nemá vlastné linky: napĺňa sa naživo z poľa "aktualne" (tie isté linky, aké
-# sú v lište na domovskej stránke). Skončené udalosti sa pri builde vynechajú.
+# a nemá vlastné linky: napĺňa sa naživo z Aktuálnych (aktualne.json, v prechode
+# pole "aktualne" z data.json — tie isté linky, aké sú v lište na domovskej
+# stránke). Vypnuté, naplánované a skončené udalosti sa pri builde vynechajú.
 # MUSÍ zostať zhodné s LIVE_ID v sport-strom.html.
 LIVE_ID = "f_ltw"
 
@@ -169,15 +171,131 @@ def visible(node: dict, lang: str = None) -> bool:
     return node.get("en") is not False
 
 
-def live_week_links(aktualne: list) -> list:
-    """Z poľa "aktualne" vyrobí linky pre priečinok Live This Week.
-    Sú to bežné uzly typu link, len nie sú uložené v data.json — vznikajú
-    pri každom builde nanovo, takže sekcia je vždy taká čerstvá ako lišta."""
-    today = date.today().isoformat()
+# ------------------------------------------------------------
+# AKTUÁLNE VO VLASTNOM SÚBORE aktualne.json (od 3.11.2026, Zadanie 16a)
+# ------------------------------------------------------------
+# Aktuálne zadáva Miro LEN ručne cez admin na webe (🚀 Publikovať Aktuálne
+# stiahne aktualne.json, nahrá sa do koreňa sport-linky). data.json sa ich už
+# netýka — nikto si tak navzájom nič neprepíše. Tvar súboru:
+#   {"version": 7, "items": [{"id", "order", "sport", "icon", "name", "name_en",
+#     "url", "desc", "desc_en", "startsAt", "endsAt", "disabled", "addedAt"}]}
+# startsAt/endsAt = "YYYY-MM-DD" alebo "" (bez obmedzenia), disabled = true/false.
+# PRAVIDLÁ ZOBRAZENIA (rovnaké v appke = aktVisible() v index.html a v DYN_JS):
+#   verejnosť vidí položku, len ak NIE je disabled, startsAt je prázdne alebo
+#   <= dnes a endsAt je prázdne alebo >= dnes; poradie ručné podľa "order".
+# PRECHOD: kým aktualne.json neexistuje, berie sa staré pole "aktualne" z data.json.
+# EN web (sportlinking): build si pred generátorom stiahne aktualne.json zo SK
+# webu (AKT_MASTER_URL); keď sa to nepodarí, súbor nevznikne a použije sa pole
+# z data.json (alebo nič). Cestu k súboru možno zmeniť premennou AKTUALNE_FILE.
+AKTUALNE_FILE = os.environ.get("AKTUALNE_FILE", "aktualne.json")
+# Hlavná kópia na webe (EN appka si ju sťahuje priamo odtiaľto). MUSÍ sedieť
+# s AKT_MASTER v index.html. Bez www — web beží na sportlinky.sk bez www.
+AKT_MASTER_URL = "https://sportlinky.sk/aktualne.json"
+
+
+def safe_url(u) -> str:
+    """Adresa len http(s) alebo relatívna od koreňa webu, inak "#" (ROVNAKO ako safeUrl v index.html)."""
+    s = str(u or "").strip()
+    return s if re.match(r"^(https?://|/(?!/))", s, re.I) else "#"
+
+
+def akt_norm(items) -> list:
+    """Zoznam položiek Aktuálnych zoradený podľa "order" (chýba → poradie v poli).
+    Zlé položky (nie slovník, bez url) sa vynechajú — build nesmie spadnúť."""
     out = []
-    for i, a in enumerate(aktualne):
-        if a.get("endsAt") and today > a["endsAt"]:
-            continue          # skončená udalosť sa na stránku nedostane
+    for i, a in enumerate(items or []):
+        if not isinstance(a, dict) or not a.get("url"):
+            continue
+        a = dict(a)
+        try:
+            o = float(a.get("order")) if a.get("order") not in (None, "") else float(i)
+        except (TypeError, ValueError):
+            o = float(i)
+        if o != o or o in (float("inf"), float("-inf")):
+            o = float(i)          # NaN / nekonečno zo zlých dát
+        a["order"] = int(o) if o == int(o) else o
+        out.append((a["order"], i, a))
+    out.sort(key=lambda t: (t[0], t[1]))
+    return [a for _, _, a in out]
+
+
+def load_aktualne(data: dict):
+    """Vráti (položky, zdroj). Zdroj: aktualne.json, ak existuje a je platný;
+    inak staré pole "aktualne" z data.json (prechodné obdobie)."""
+    if os.path.exists(AKTUALNE_FILE):
+        try:
+            with open(AKTUALNE_FILE, encoding="utf-8") as f:
+                d = json.load(f)
+            if isinstance(d, dict) and isinstance(d.get("items"), list):
+                return akt_norm(d["items"]), AKTUALNE_FILE
+            print(f"UPOZORNENIE: {AKTUALNE_FILE} nemá pole \"items\" — beriem Aktuálne z data.json.")
+        except (OSError, ValueError) as e:
+            print(f"UPOZORNENIE: {AKTUALNE_FILE} sa nedá prečítať ({e}) — beriem Aktuálne z data.json.")
+    return akt_norm(data.get("aktualne")), "data.json"
+
+
+def akt_visible(a: dict, today: str = None) -> bool:
+    """Vidí položku verejnosť? (ROVNAKO ako aktVisible() v index.html)"""
+    today = today or date.today().isoformat()
+    if a.get("disabled") is True:
+        return False
+    if a.get("startsAt") and today < str(a["startsAt"]):
+        return False
+    if a.get("endsAt") and today > str(a["endsAt"]):
+        return False
+    return True
+
+
+def akt_public(items: list, today: str = None) -> list:
+    return [a for a in items if akt_visible(a, today)]
+
+
+def akt_shown_ms(a: dict) -> int:
+    """Kedy sa položka OBJAVILA verejnosti (ms): max(addedAt, startsAt 00:00).
+    Od toho sa ráta 24 h pre štítok NEW (ROVNAKO ako aktShownAt() v index.html)."""
+    try:   # bod 21 previerky: zlá hodnota addedAt (text, prázdne) nesmie zhodiť build
+        added = int(a.get("addedAt") or 0)
+    except (TypeError, ValueError):
+        added = 0
+    start = 0
+    if a.get("startsAt"):
+        try:
+            y, m, d = (int(x) for x in str(a["startsAt"]).split("-"))
+            date(y, m, d)          # neplatný dátum (13. mesiac…) → ValueError
+            start = int(time.mktime((y, m, d, 0, 0, 0, 0, 0, -1)) * 1000)
+        except (TypeError, ValueError, OverflowError):
+            start = 0
+    return max(added, start)
+
+
+# položky Aktuálnych pre tento build — naplní main() cez load_aktualne()
+AKT_ITEMS = []
+
+AKT_KEYS = ("id", "order", "sport", "icon", "name", "url", "desc",
+            "startsAt", "endsAt", "addedAt")
+
+
+def akt_for_web(items: list, today: str = None) -> list:
+    """Položky do BOOT a odľahčeného data.json: bez vypnutých a skončených
+    (naplánované ostávajú — appka ich ukáže sama v deň začiatku, aj keby mala
+    stránku z pamäte prehliadača). SK bez anglických polí."""
+    today = today or date.today().isoformat()
+    keys = AKT_KEYS + (("name_en", "desc_en") if LANG == "en" else ())
+    out = []
+    for a in items:
+        if a.get("disabled") is True or (a.get("endsAt") and today > str(a["endsAt"])):
+            continue
+        out.append({k: a[k] for k in keys if k in a and a[k] not in (None, "")})
+    return out
+
+
+def live_week_links(aktualne: list) -> list:
+    """Z Aktuálnych vyrobí linky pre priečinok Live This Week.
+    Sú to bežné uzly typu link, len nie sú uložené v data.json — vznikajú
+    pri každom builde nanovo, takže sekcia je vždy taká čerstvá ako lišta.
+    Rovnaké pravidlá zobrazenia ako lišta (akt_visible)."""
+    out = []
+    for i, a in enumerate(akt_public(akt_norm(aktualne))):
         out.append({
             "id": "akt_%d" % i,
             "type": "link",
@@ -335,13 +453,16 @@ def build_boot(data: dict, children: dict) -> dict:
 
     boot = {"version": data.get("version"), "nodes": nodes,
             "_totalLinks": sum(1 for n in data.get("nodes", []) if n.get("type") == "link")}
-    for k in ("title", "subtitle", "title_en", "subtitle_en", "aktualne",
+    for k in ("title", "subtitle", "title_en", "subtitle_en",
               "banners", "bannerSettings", "promos", "promoBanner"):
         if k in data:
             boot[k] = data[k]
     if LANG != "en":
         # SK appka anglické polia nepoužíva (bod 3 previerky)
         boot = strip_en(boot)
+    # Aktuálne z aktualne.json (alebo z data.json v prechodnom období) — viď
+    # load_aktualne(). Appka si aj tak hneď stiahne čerstvý aktualne.json.
+    boot["aktualne"] = akt_for_web(AKT_ITEMS)
     boot.update(gen_meta(n["id"] for n in nodes))   # bod 21 + 23 (viď SLUG_FIX, TITLE_NOSPORT)
     return boot
 
@@ -462,6 +583,9 @@ def lite_data(data: dict) -> dict:
         d = strip_en(data)
     for k in ("passwordHash", "password"):
         d.pop(k, None)
+    # Aktuálne: tie isté ako v BOOT (zdroj aktualne.json alebo data.json) —
+    # záloha pre appku, keby sa aktualne.json nepodarilo stiahnuť
+    d["aktualne"] = akt_for_web(AKT_ITEMS)
     d["_lite"] = True
     # bod 21 + 23: výsledné slugy duplicít a priečinky s titulkom bez športu —
     # appka si ich pri načítaní odloží bokom a z dát ich zmaže (do dát admina
@@ -505,10 +629,10 @@ def page_fingerprint(node: dict, children: dict) -> str:
 
 
 def home_fingerprint(data: dict, children: dict) -> str:
-    """Domov: názov webu, hlavné sekcie a NESKONČENÉ Aktuálne (tie sa menia najčastejšie)."""
-    today = date.today().isoformat()
-    akt = [[a.get("name") or "", a.get("name_en") or "", a.get("url") or "", a.get("icon") or ""]
-           for a in (data.get("aktualne") or []) if not (a.get("endsAt") and today > a["endsAt"])]
+    """Domov: názov webu, hlavné sekcie a VIDITEĽNÉ Aktuálne (tie sa menia najčastejšie)."""
+    akt = [[a.get("name") or "", a.get("name_en") or "", a.get("url") or "", a.get("icon") or "",
+            a.get("desc") or "", a.get("desc_en") or ""]
+           for a in akt_public(AKT_ITEMS)]
     title = [data.get("title") or "", data.get("subtitle") or "",
              data.get("title_en") or "", data.get("subtitle_en") or ""]
     rows = [title] + [_row(k) for k in children.get(None, [])] + akt
@@ -546,25 +670,24 @@ def save_lastmod(new_state: dict) -> None:
 # ------------------------------------------------------------
 def akt_static_html(aktualne: list):
     """Vráti (text počítadla, HTML kariet) PRESNE v značkovaní renderAktualne()
-    v index.html (verejný režim: skončené vynechané, NEW do 24 h od pridania).
-    Appka po štarte pás prekreslí na to isté — DOM je zhodný, nič neblikne."""
-    today = date.today().isoformat()
+    v index.html (verejný režim: len viditeľné podľa akt_visible, NEW do 24 h
+    od chvíle, keď sa položka objavila verejnosti — akt_shown_ms; popis ako
+    bublina title). Appka po štarte pás prekreslí na to isté — DOM je zhodný."""
     now_ms = int(time.time() * 1000)
-    items = [a for a in aktualne if not (a.get("endsAt") and today > a["endsAt"])]
+    items = akt_public(akt_norm(aktualne))
     if not items:
         txt = "No current events" if LANG == "en" else "Žiadne aktuálne udalosti"
         return "", f'<span style="font-size:0.78rem;color:var(--muted);padding:6px 0">{txt}</span>'
     parts = []
     for a in items:
-        try:   # bod 21 previerky: zlá hodnota addedAt (text, prázdne) nesmie zhodiť build
-            added = int(a.get("addedAt") or 0)
-        except (TypeError, ValueError):
-            added = 0
-        is_new = bool(added) and (now_ms - added) < 86400000
+        shown = akt_shown_ms(a)
+        is_new = bool(shown) and 0 <= (now_ms - shown) < 86400000
         name = (a.get("name_en") if (LANG == "en" and a.get("name_en")) else a.get("name")) or ""
+        desc = ((a.get("desc_en") if (LANG == "en" and a.get("desc_en")) else a.get("desc")) or "").strip()
         parts.append(
-            '\n    <a class="akt-card" href="' + escape(a.get("url") or "", quote=True)
-            + '" target="_blank" rel="noopener">'
+            '\n    <a class="akt-card" href="' + escape(safe_url(a.get("url")), quote=True)
+            + '" target="_blank" rel="noopener"'
+            + (' title="' + escape(desc, quote=True) + '"' if desc else '') + '>'
             + '\n      ' + ('<span class="akt-new">NEW</span>' if is_new else '')
             + '\n      <span class="akt-icon" aria-hidden="true">' + escape(a.get("icon") or "📌") + '</span>'
             + '\n      <span>' + escape(name) + '</span>'
@@ -785,7 +908,7 @@ FAVICON_LINKS = (f'<link rel="icon" href="{SITE_ABS_ROOT}favicon.ico" sizes="48x
 # ako <meta http-equiv="Content-Security-Policy"> v index.html (main() to pri builde
 # kontroluje, build pri rozdiele spadne). Vysvetlenie jednotlivých častí je v index.html.
 CSP = ("default-src 'self'; script-src 'self' 'unsafe-inline' https://ban.tipsport.sk https://gc.zgo.at; "
-       "connect-src 'self' https://ban.tipsport.sk https://sportlinky.goatcounter.com https://sportlinking.goatcounter.com; "
+       "connect-src 'self' https://sportlinky.sk https://www.sportlinky.sk https://ban.tipsport.sk https://sportlinky.goatcounter.com https://sportlinking.goatcounter.com; "
        "img-src 'self' data: https:; style-src 'self' 'unsafe-inline'; font-src 'self' data:; "
        "frame-src 'self' https://ban.tipsport.sk; object-src 'none'; base-uri 'self'; form-action 'self'")
 CSP_META = f'<meta http-equiv="Content-Security-Policy" content="{CSP}"/>'
@@ -915,14 +1038,28 @@ function __dyn(){
     }
     showSlot("bslot",1);
     showSlot("bslot2",2);
-    var ak=ANC.indexOf("f_ltw")>=0?[]:(d.aktualne||[]).filter(function(a){return !(a.endsAt&&today>a.endsAt)});
-    if(ak.length){
+    // Aktuálne: čerstvý aktualne.json (EN: najprv SK web, potom kópia z buildu);
+    // keď nepríde, pole "aktualne" z data.json. Pravidlá ako akt_visible v generator.py.
+    function showAkt(src){
+      if(ANC.indexOf("f_ltw")>=0)return;
+      var ak=(src||[]).map(function(a,i){return [isFinite(parseFloat(a.order))?parseFloat(a.order):i,i,a]})
+        .sort(function(x,y){return x[0]-y[0]||x[1]-y[1]}).map(function(x){return x[2]})
+        .filter(function(a){return a&&a.url&&a.disabled!==true&&!(a.startsAt&&today<a.startsAt)&&!(a.endsAt&&today>a.endsAt)});
+      if(!ak.length)return;
       var el2=document.getElementById("akt");
       el2.hidden=false;
       el2.innerHTML='<span class="lbl">__AKT_LABEL__</span>'+ak.map(function(a){
-        return '<a href="'+esc(safeUrl(a.url))+'" target="_blank" rel="noopener">'+(a.icon?esc(a.icon)+" ":"")+esc(("__LANG__"==="en"&&a.name_en)?a.name_en:a.name)+'</a>';
+        var ds=("__LANG__"==="en"&&a.desc_en)?a.desc_en:(a.desc||"");
+        return '<a href="'+esc(safeUrl(a.url))+'" target="_blank" rel="noopener"'+(ds?' title="'+esc(ds)+'"':'')+'>'+(a.icon?esc(a.icon)+" ":"")+esc(("__LANG__"==="en"&&a.name_en)?a.name_en:a.name)+'</a>';
       }).join("");
     }
+    var AKU=__AKTURLS__;
+    (function next(i){
+      if(i>=AKU.length){showAkt(d.aktualne);return}
+      fetch(AKU[i]+"?t="+Date.now(),{cache:"no-store"}).then(function(r){if(!r.ok)throw 0;return r.json()})
+        .then(function(j){if(!j||!Array.isArray(j.items))throw 0;showAkt(j.items)})
+        .catch(function(){next(i+1)});
+    })(0);
   }).catch(function(e){});
 }
 </script>
@@ -1365,6 +1502,8 @@ def render_page(node, path, children, by_id, paths, site_title, alt_url=None, pa
               .replace("__ADFRAME__", ADFRAME_JS)
               .replace("__ANC__", json.dumps(anc_ids))
               .replace("__DATAURL__", data_url)
+              .replace("__AKTURLS__", json.dumps(
+                  ([AKT_MASTER_URL] if LANG == "en" else []) + [f"{root}aktualne.json"]))
               .replace("__ROOT__", root)
               .replace("__LANG__", LANG)
               .replace("__AKT_LABEL__", escape(T["aktualne"])))
@@ -1416,6 +1555,11 @@ def main():
         out = os.path.join(out, OUT_PREFIX)
 
     data = load_data("data.json")
+    # Aktuálne z aktualne.json (prechod: z data.json) — viď load_aktualne()
+    global AKT_ITEMS
+    AKT_ITEMS, akt_zdroj = load_aktualne(data)
+    print(f"Aktuálne: {len(AKT_ITEMS)} položiek z {akt_zdroj}, verejnosti viditeľných dnes: "
+          f"{len(akt_public(AKT_ITEMS))}")
     global PROMOS, PROMO_BANNER
     PROMOS = data.get("promos") or []
     PROMO_BANNER = data.get("promoBanner") or {}
@@ -1432,7 +1576,7 @@ def main():
     # pole "aktualne". Musí sa to stať TU — pred kontrolou prázdnych priečinkov
     # aj pred sitemapou, aby stránka vôbec vznikla.
     if LANG == "en" and LIVE_ID in by_id:
-        children[LIVE_ID] = live_week_links(data.get("aktualne", []))
+        children[LIVE_ID] = live_week_links(AKT_ITEMS)
 
     paths = folder_paths(children)
 
@@ -1630,7 +1774,7 @@ def main():
                                      separators=(",", ":")).replace("</", "<\\/")
                 html = html.replace(boot_marker, "let BOOT = " + boot_js + ";", 1)
             # AKTUÁLNE PRIAMO V HTML (od 2.10.2026) — viď inject_aktualne().
-            html = inject_aktualne(html, data.get("aktualne") or [])
+            html = inject_aktualne(html, AKT_ITEMS)
             # DLAŽDICE DOMOVA + IKONKY ŠPORTOV PRIAMO V HTML (od 2.11.2026) — viď inject_home().
             html = inject_home(html, children, all_paths)
             # (preload data.json ZRUŠENÝ 2.10.2026 večer: na pomalej sieti súperil
@@ -1669,6 +1813,11 @@ def main():
         # pre návštevníkov) — viď lite_data(). data.json sa už nekopíruje.
         write_json(os.path.join(out, "data-full.json"), data)
         write_json(os.path.join(out, "data.json"), lite_data(data))
+        # aktualne.json na web BEZ ZMENY (appka si ho sťahuje pri každom otvorení
+        # stránky; admin potrebuje aj vypnuté a naplánované položky a "version").
+        # Na EN webe je to kópia stiahnutá pri builde zo SK webu = záloha pre appku.
+        if akt_zdroj == AKTUALNE_FILE:
+            shutil.copy(AKTUALNE_FILE, os.path.join(out, "aktualne.json"))
         for fname in ("og-image.png",
                       "banner-sportlinking-1.png", "banner-sportlinking-2.png",
                       "favicon.ico", "apple-touch-icon.png"):

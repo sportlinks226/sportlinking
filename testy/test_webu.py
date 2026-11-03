@@ -20,6 +20,11 @@ Content-Security-Policy (zoznam povolených domén) — porušenie = ❌. Kontro
 že reklama partnera (banner v slote 1, promo blok v Tipovaní) beží v uzavretom okienku
 (<iframe sandbox>). Reklamy sa ani tu NEnačítavajú — overuje sa len kód okienka.
 
+Kontrola k) (3.11.2026, Zadanie 16a): lišta Aktuálne na domove zodpovedá súboru aktualne.json
+(EN web ho berie zo SK webu) — vidno len viditeľné položky v ručnom poradí, popis je bublina
+(title) na karte. Navyše sa appke podstrčí VYMYSLENÝ aktualne.json (len v prehliadači testu,
+web sa nemení) s naplánovanou, skončenou a vypnutou položkou — tie sa nesmú zobraziť.
+
 Spustenie (lokálne):  python testy/test_webu.py --url https://sportlinky.sk/
 Voliteľne:  --od 2026-11-02T02:30:00Z  (počkaj, kým živý web nemá novšiu verziu)
             --vystup test-vystup        (priečinok na snímky a zoznam chýb)
@@ -68,6 +73,7 @@ NAVIGACIA_MS = 30_000       # max. čas na otvorenie stránky
 CAKANIE_MS = 20_000         # max. čas na zobrazenie prvku (dlaždice, výsledky…)
 POMALA_S = 15               # stránka pomalšia ako toto = ⚠️ varovanie
 MIN_LINIEK = 10_000         # data.json musí mať aspoň toľko liniek
+AKT_MASTER = "https://sportlinky.sk/aktualne.json"   # hlavná kópia Aktuálnych (EN web ju číta zo SK webu)
 DEPLOY_MAX_S = 300          # čakanie na obnovenie GitHub Pages (max. 5 min)
 DEPLOY_KROK_S = 20          # … skúšať každých 20 s
 
@@ -155,6 +161,9 @@ class Test:
 
         def on_resp(r):
             u = urllib.parse.urlsplit(r.url)
+            # aktualne.json môže v prechodnom období chýbať (appka vtedy berie data.json)
+            if u.path.endswith("/aktualne.json") and r.status == 404:
+                return
             if u.netloc == self.host and r.status >= 400 and u.path not in povolene_404:
                 page.chyby_suborov.append(f"{r.status} {u.path}")
 
@@ -701,6 +710,145 @@ class Test:
             ctx.close()
         return "ok", "; ".join(popis) + "; 0 porušení CSP (reklamy v teste blokované)"
 
+    # ------------------------------------------------ k) Aktuálne (aktualne.json)
+    @staticmethod
+    def akt_viditelne(items, dnes):
+        """ROVNAKÉ pravidlá ako appka (aktVisible) a generator.py (akt_visible)."""
+        def poradie(x):
+            try:
+                return float(x[1].get("order"))
+            except (TypeError, ValueError):
+                return float(x[0])
+        zorad = [a for _, a in sorted(enumerate(i for i in items if isinstance(i, dict)),
+                                      key=lambda x: (poradie(x), x[0]))]
+        return [a for a in zorad if a.get("url") and a.get("disabled") is not True
+                and not (a.get("startsAt") and dnes < a["startsAt"])
+                and not (a.get("endsAt") and dnes > a["endsAt"])]
+
+    def akt_zdroj(self):
+        """Odkiaľ appka berie Aktuálne: (položky, popis zdroja)."""
+        adresy = ([AKT_MASTER] if self.lang == "en" else []) + [self.base + "aktualne.json"]
+        chyba = []
+        for u in adresy:
+            try:
+                kod, _, text = stiahni(u)
+            except Exception as e:      # sieť — appka v takom prípade skúsi ďalšiu adresu, test tiež
+                self.log.append(f"k) {u}: {e}")
+                chyba.append(str(e)[:60])
+                continue
+            if kod == 200:
+                try:
+                    d = json.loads(text)
+                except ValueError as e:
+                    raise Zlyhanie(f"{u} nie je platný JSON ({e})")
+                if not isinstance(d, dict) or not isinstance(d.get("items"), list):
+                    raise Zlyhanie(f"{u} nemá pole \"items\"")
+                return d["items"], f"{u} (verzia {d.get('version')})"
+            chyba.append(kod)
+        if chyba and all(k == 404 for k in chyba):
+            return (self.data or {}).get("aktualne") or [], "data.json (aktualne.json zatiaľ nie je — prechodné obdobie)"
+        raise Zlyhanie(f"aktualne.json sa nepodarilo stiahnuť (HTTP {chyba})")
+
+    @staticmethod
+    def akt_karty(page):
+        return page.eval_on_selector_all("#aktualneScroll .akt-card", """els => els.map(e => ({
+            href: e.getAttribute('href') || '', title: e.getAttribute('title') || '',
+            new: !!e.querySelector('.akt-new'), text: e.innerText.replace(/\\s+/g, ' ').trim()}))""")
+
+    def aktualne(self, pokus):
+        dnes = datetime.now().strftime("%Y-%m-%d")
+        items, zdroj = self.akt_zdroj()
+        vid = self.akt_viditelne(items, dnes)
+        en = self.lang == "en"
+        popis = lambda a: ((a.get("desc_en") if en and a.get("desc_en") else a.get("desc")) or "").strip()
+        cakane = [a["url"].strip() for a in vid]
+        skryte = {(a.get("url") or "").strip() for a in items if isinstance(a, dict)} - set(cakane)
+        popis_info = []
+        # surové HTML (to, čo vidí Google) — po polnoci / pred nočným buildom môže byť o deň staršie
+        kod, _, text = stiahni(self.base)
+        m = re.search(r'<div id="aktualneScroll"[^>]*>(.*?)</div>', text, re.S)
+        v_html = [html.unescape(h) for h in re.findall(r'<a class="akt-card[^"]*" href="([^"]*)"', m.group(1) if m else "")]
+        stav = "ok"
+        if v_html != cakane:
+            stav = "warn"
+            popis_info.append(f"⚠️ surové HTML má {len(v_html)} kariet, súbor dnes {len(cakane)} (HTML sa obnoví nočným buildom)")
+        ctx = self.kontext()
+        try:
+            page = self.stranka(ctx)
+            page.goto(self.base, wait_until="load")
+            self.cakaj_na_appku(page)
+            page.wait_for_timeout(3000)          # aktualne.json sa sťahuje zvlášť od data.json
+            karty = self.akt_karty(page)
+            hrefy = [k["href"] for k in karty]
+            if hrefy != cakane:
+                raise Zlyhanie(f"lišta v appke {hrefy[:6]} ≠ viditeľné položky zo zdroja {cakane[:6]}")
+            zle = [h for h in hrefy if h in skryte]
+            if zle:
+                raise Zlyhanie(f"na lište je skrytá položka (vypnutá/naplánovaná/skončená): {zle}")
+            for a, k in zip(vid, karty):
+                if popis(a) and k["title"] != popis(a):
+                    raise Zlyhanie(f"karta {k['text']}: bublina „{k['title']}“ ≠ popis „{popis(a)}“")
+            if any(re.search(r"\bLIVE\b", k["text"]) for k in karty):
+                raise Zlyhanie("na karte Aktuálnych je štítok LIVE")
+            self.over_chyby(page, "domov (Aktuálne)")
+            page.close()
+
+            # VYMYSLENÝ aktualne.json (len v tomto prehliadači): naplánovaná, skončená a vypnutá sa nesmú ukázať
+            from datetime import timedelta
+            d = lambda n: (datetime.now() + timedelta(days=n)).strftime("%Y-%m-%d")
+            teraz = int(time.time() * 1000)
+            test_items = [
+                {"id": "t1", "order": 1, "icon": "🏸", "name": "TEST viditeľná", "name_en": "TEST visible",
+                 "url": "https://test.invalid/vidno", "desc": "TEST popis", "desc_en": "TEST tip",
+                 "addedAt": teraz - 3600_000},
+                {"id": "t2", "order": 0, "icon": "🎯", "name": "TEST stará", "url": "https://test.invalid/stara",
+                 "addedAt": teraz - 5 * 86400_000, "endsAt": d(2)},
+                {"id": "t3", "order": 2, "icon": "🎱", "name": "TEST naplánovaná", "url": "https://test.invalid/zajtra",
+                 "startsAt": d(1), "addedAt": teraz},
+                {"id": "t4", "order": 3, "icon": "🏓", "name": "TEST skončená", "url": "https://test.invalid/vcera",
+                 "endsAt": d(-1), "addedAt": teraz},
+                {"id": "t5", "order": 4, "icon": "⛳", "name": "TEST vypnutá", "url": "https://test.invalid/vypnuta",
+                 "disabled": True, "addedAt": teraz},
+            ]
+            telo = json.dumps({"version": 1, "items": test_items}, ensure_ascii=False)
+            page = self.stranka(ctx)
+            ziadosti = []
+            def podstrc(r):
+                ziadosti.append(r.request.url)
+                r.fulfill(status=200, content_type="application/json", body=telo,
+                          headers={"Access-Control-Allow-Origin": "*"})
+            page.route("**/aktualne.json*", podstrc)
+            page.goto(self.base, wait_until="load")
+            self.cakaj_na_appku(page)
+            page.wait_for_timeout(3000)
+            if not ziadosti:
+                # stará appka (pred Zadaním 16a) aktualne.json ešte nesťahuje — napr. test
+                # pull requestu proti živému webu pred zlúčením
+                popis_info.insert(0, f"zdroj {zdroj}: {len(items)} položiek, viditeľných {len(cakane)}, na lište {len(cakane)}")
+                popis_info.append("⚠️ appka na webe ešte nesťahuje aktualne.json (stará verzia) — test s podstrčeným súborom preskočený")
+                return "warn", "; ".join(popis_info)
+            page.wait_for_function("() => [...document.querySelectorAll('#aktualneScroll .akt-card')]"
+                                   ".some(e => (e.getAttribute('href')||'').indexOf('test.invalid') >= 0)")
+            page.wait_for_timeout(500)
+            karty = self.akt_karty(page)
+            self.snimka(page, "9-aktualne-test")
+            hrefy = [k["href"] for k in karty]
+            if hrefy != ["https://test.invalid/stara", "https://test.invalid/vidno"]:
+                raise Zlyhanie(f"podstrčený aktualne.json: na lište je {hrefy} (čakám len 2 viditeľné v poradí podľa order)")
+            k = {x["href"]: x for x in karty}
+            if k["https://test.invalid/vidno"]["title"] != ("TEST tip" if en else "TEST popis"):
+                raise Zlyhanie("podstrčený aktualne.json: na karte chýba bublina (title) s popisom")
+            if not k["https://test.invalid/vidno"]["new"] or k["https://test.invalid/stara"]["new"]:
+                raise Zlyhanie("podstrčený aktualne.json: štítok NEW má byť len pri položke pridanej pred < 24 h")
+            if en and "TEST visible" not in k["https://test.invalid/vidno"]["text"]:
+                raise Zlyhanie("podstrčený aktualne.json: EN web neukazuje name_en")
+            self.over_chyby(page, "domov (podstrčený aktualne.json)")
+        finally:
+            ctx.close()
+        popis_info.insert(0, f"zdroj {zdroj}: {len(items)} položiek, viditeľných {len(cakane)}, na lište {len(cakane)}")
+        popis_info.append("podstrčený súbor: naplánovaná, skončená a vypnutá položka skryté, bublina a NEW OK")
+        return stav, "; ".join(popis_info)
+
     # ------------------------------------------------ hlavný beh
     def spusti(self, od):
         self.cakaj_na_nasadenie(od)
@@ -735,6 +883,7 @@ class Test:
                 self.kontrola("h) Stránka 404", self.chyba_404)
                 self.kontrola("i) Vlajky z vlastného webu", self.vlajky)
                 self.kontrola("j) Reklama v uzavretom okienku + CSP", self.reklama_okienko)
+                self.kontrola("k) Aktuálne (aktualne.json)", self.aktualne)
             finally:
                 self.browser.close()
 

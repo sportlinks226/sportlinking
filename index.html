@@ -10,7 +10,7 @@
      'unsafe-inline' = vložené skripty a onclick v appke; ban.tipsport.sk = reklama
      (beží v uzavretom okienku, ktoré tento zoznam dedí); gc.zgo.at + *.goatcounter.com
      = štatistika (SK aj EN); img-src https: = admin môže zadať obrázok z hocijakej adresy. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://ban.tipsport.sk https://gc.zgo.at; connect-src 'self' https://ban.tipsport.sk https://sportlinky.goatcounter.com https://sportlinking.goatcounter.com; img-src 'self' data: https:; style-src 'self' 'unsafe-inline'; font-src 'self' data:; frame-src 'self' https://ban.tipsport.sk; object-src 'none'; base-uri 'self'; form-action 'self'"/>
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://ban.tipsport.sk https://gc.zgo.at; connect-src 'self' https://sportlinky.sk https://www.sportlinky.sk https://ban.tipsport.sk https://sportlinky.goatcounter.com https://sportlinking.goatcounter.com; img-src 'self' data: https:; style-src 'self' 'unsafe-inline'; font-src 'self' data:; frame-src 'self' https://ban.tipsport.sk; object-src 'none'; base-uri 'self'; form-action 'self'"/>
 <title>Športové Linky</title>
 <meta name="description" content="Všetky športové weby sveta na jednom mieste — prehľadný rozcestník overených liniek pre každý šport a krajinu."/>
 <!--FAVICONS--><!-- generátor sem pri builde doplní favicon.ico, favicon.svg a apple-touch-icon.png s cestou od koreňa webu -->
@@ -446,7 +446,26 @@ button#aktMoreBadge{-webkit-appearance:none;appearance:none;margin:0;border:0;fo
 .akt-card .akt-icon{font-size:1.15rem}
 /* Skončená aktuálna linka — vidí ju len admin, vysivená */
 .akt-expired{opacity:.4;filter:grayscale(.6)}
-/* NEW badge — zmizne po 24 h (addedAt timestamp) */
+/* ADMIN ZOZNAM AKTUÁLNYCH (od 3.11.2026): riadok, stav, ťahanie myšou */
+.akt-row{background:var(--surface);border:1.5px solid var(--border);border-radius:8px;padding:8px 10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.akt-row.st-on{border-left:4px solid var(--green)}
+.akt-row.st-ended,.akt-row.st-off,.akt-row.st-wait{opacity:.6;border-left:4px solid var(--muted)}
+.akt-row.drag-over{border-color:var(--accent);box-shadow:0 -3px 0 var(--accent)}
+.akt-row .akt-drag{cursor:grab;color:var(--muted);font-size:1rem;user-select:none;padding:0 2px}
+.akt-row .akt-nm{flex:1;min-width:140px;font-size:0.86rem;font-weight:600}
+.akt-row .akt-nm small{display:block;font-weight:400;color:var(--muted);font-size:0.7rem}
+.akt-st{font-size:0.68rem;white-space:nowrap;padding:2px 7px;border-radius:8px;background:rgba(127,127,127,.15);color:var(--muted)}
+.akt-st.on{background:rgba(46,204,113,.15);color:var(--green)}
+.akt-btns{display:flex;gap:4px}
+#aktInfo{font-size:0.75rem;color:var(--muted);margin-bottom:10px;line-height:1.45}
+#aktInfo .warn{color:var(--red)}
+.akt-prev{font-size:0.75rem;max-height:220px;overflow-y:auto;margin:8px 0;border:1px solid var(--border);border-radius:6px;padding:6px 8px}
+.akt-prev div{padding:2px 0;border-bottom:1px solid var(--border)}
+.akt-prev .ok{color:var(--green)}
+.akt-prev .bad{color:var(--red)}
+.fg-row{display:flex;gap:10px}
+.fg-row .fg{flex:1;min-width:0}
+/* NEW badge — 24 h od chvíle, keď sa položka objavila verejnosti (max(addedAt, startsAt)) */
 .akt-new{
   position:absolute;top:-8px;right:-6px;
   background:var(--accent-strong);color:#fff;font-size:0.55rem;font-weight:800;
@@ -647,12 +666,38 @@ button#aktMoreBadge{-webkit-appearance:none;appearance:none;margin:0;border:0;fo
 
 <!-- MODAL: AKTUÁLNE -->
 <div class="mo" role="dialog" aria-modal="true" id="aktualneListMo">
-  <div class="mo-box" style="max-width:520px">
+  <div class="mo-box" style="max-width:640px">
     <h3>📌 Správa aktuálnych liniek</h3>
-    <div id="aktualneListGrid" style="display:flex;flex-direction:column;gap:8px;max-height:340px;overflow-y:auto;margin-bottom:14px"></div>
-    <button class="btn btn-p" style="width:100%;margin-bottom:8px" onclick="openAddAkt()">➕ Pridať linku</button>
+    <div id="aktInfo"></div>
+    <div id="aktualneListGrid" style="display:flex;flex-direction:column;gap:8px;max-height:400px;overflow-y:auto;margin-bottom:14px"></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
+      <button class="btn btn-p" style="flex:1" onclick="openAddAkt()">➕ Pridať linku</button>
+      <button class="btn btn-s" style="flex:1" onclick="openAktBulk()">📋 Pridať viac naraz</button>
+    </div>
     <div class="mo-acts">
       <button class="btn btn-s" onclick="closeMo('aktualneListMo')">Zavrieť</button>
+      <button class="btn btn-p" onclick="publishAkt()" title="Stiahne LEN aktualne.json na nahratie do sport-linky">🚀 Publikovať Aktuálne</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: AKTUÁLNE – PRIDAŤ VIAC NARAZ -->
+<div class="mo" role="dialog" aria-modal="true" id="aktBulkMo">
+  <div class="mo-box" style="max-width:640px">
+    <h3>📋 Pridať viac aktuálnych liniek naraz</h3>
+    <div style="font-size:0.75rem;color:var(--muted);margin-bottom:8px;line-height:1.5">
+      Jeden riadok = jedna linka, polia oddelené bodkočiarkou:<br>
+      <code>od; do; šport; názov SK; názov EN; URL; popis SK; popis EN</code><br>
+      Dátum <code>2026-11-05</code> alebo <code>5.11.2026</code>; od, do, názov EN a popisy môžu byť prázdne.
+      Šport = názov zo zoznamu (SK alebo EN) alebo emoji. Riadky začínajúce <code>#</code> sa preskočia.<br>
+      Príklad: <code>2026-11-04; 2026-11-09; badminton; Hylo Open; Hylo Open; https://bwfworldtour.bwfbadminton.com/; Živé výsledky; Live scores</code>
+    </div>
+    <div class="fg"><textarea id="aBulk" rows="7" oninput="document.getElementById('aBulkAdd').disabled=true" placeholder="od; do; šport; názov SK; názov EN; URL; popis SK; popis EN"></textarea></div>
+    <div id="aBulkPrev" class="akt-prev" style="display:none"></div>
+    <div class="mo-acts">
+      <button class="btn btn-s" onclick="closeMo('aktBulkMo')">Zrušiť</button>
+      <button class="btn btn-s" onclick="previewAktBulk()">👁 Náhľad</button>
+      <button class="btn btn-p" id="aBulkAdd" onclick="addAktBulk()" disabled>✅ Pridať</button>
     </div>
   </div>
 </div>
@@ -664,8 +709,16 @@ button#aktMoreBadge{-webkit-appearance:none;appearance:none;margin:0;border:0;fo
     <div class="fg"><label>URL *</label><input type="url" id="aUrl" placeholder="https://..."/></div>
     <div class="fg"><label>Názov *</label><input type="text" id="aName" placeholder="napr. MS v hokeji 2025"/></div>
     <div class="fg"><label>Názov (EN)</label><input type="text" id="aNameEn" placeholder="len ak sa líši od slovenského"/></div>
-    <div class="fg"><label>Platné do (nepovinné — po tomto dni sa linka verejnosti sama skryje)</label><input type="date" id="aEnd"/></div>
-    <div class="fg"><label>Emoji ikona</label><input type="text" id="aIcon" placeholder="🏒" maxlength="4"/></div>
+    <div class="fg-row">
+      <div class="fg" style="flex:2"><label>Šport (doplní emoji)</label><select id="aSport" onchange="aktSportChanged()"></select></div>
+      <div class="fg"><label>Emoji (dá sa prepísať)</label><input type="text" id="aIcon" placeholder="🏒" maxlength="8"/></div>
+    </div>
+    <div class="fg-row">
+      <div class="fg"><label>Zobraziť OD (nepovinné)</label><input type="date" id="aStart"/></div>
+      <div class="fg"><label>Zobraziť DO (nepovinné, vrátane)</label><input type="date" id="aEnd"/></div>
+    </div>
+    <div class="fg"><label>Popis SK (nepovinné, 1 veta — bublina na karte)</label><input type="text" id="aDesc" maxlength="200"/></div>
+    <div class="fg"><label>Popis EN (nepovinné)</label><input type="text" id="aDescEn" maxlength="200"/></div>
     <div class="mo-acts">
       <button class="btn btn-s" onclick="closeMo('aktualneEditMo')">Zrušiť</button>
       <button class="btn btn-p" onclick="saveAkt()">Uložiť</button>
@@ -1144,7 +1197,7 @@ const PINNED_EN = new Set([
 // Uvádza sa ID priečinka, takže pravidlo platí aj pre linky pridané neskôr.
 const NO_EN_ALPHA = new Set(["f_bas_sut_eu", "f_bas_sut_oc", "f_bas_sut_na", "f_bas_sut_ja", "f_bas_sut_af", "f_bas_sut_az"]);
 // "Live This Week" — priečinok len pre anglický web (enOnly:true v dátach).
-// Nemá vlastné linky: obsah mu naživo dodáva pole DB.aktualne, čiže tie isté
+// Nemá vlastné linky: obsah mu naživo dodávajú Aktuálne (aktualne.json), čiže tie isté
 // linky, ktoré sú v lište na domovskej stránke. MUSÍ sedieť s LIVE_ID v generator.py.
 const LIVE_ID = "f_ltw";
 
@@ -1323,10 +1376,9 @@ window.addEventListener('popstate', function(e){
 
 function liveWeekLinks(){
   // Aktuálne linky ako bežné uzly typu link. Nikde sa neukladajú — vznikajú
-  // pri každom prekreslení, takže priečinok je vždy zhodný s lištou.
-  const now = Date.now();
-  return (DB.aktualne||[])
-    .filter(a=>!(a.endsAt && now > new Date(a.endsAt+'T23:59:59').getTime()))
+  // pri každom prekreslení, takže priečinok je vždy zhodný s lištou
+  // (rovnaký zdroj aj pravidlá: aktPublic — aktualne.json, v prechode data.json).
+  return aktPublic()
     .map((a,i)=>({id:'akt_'+i, type:'link', parentId:LIVE_ID, url:a.url,
                   name:a.name, name_en:a.name_en||a.name,
                   icon:a.icon||'', desc:'', desc_en:'', order:i}));
@@ -2312,6 +2364,7 @@ function enterAdmin(){
   render();
   renderAktualne();
   updateVerBadge();
+  aktAdminLoad(); // vždy čerstvý aktualne.json zo servera (+ samočinné mazanie starých skončených)
 }
 function logoutAdmin(){
   adminMode = false;
@@ -2319,8 +2372,11 @@ function logoutAdmin(){
   document.getElementById('adminTog').textContent = '⚙️ Admin';
   document.getElementById('adminBar').classList.remove('on');
   document.body.classList.remove('admin-mode');
+  // Aktuálne: zahoď pracovnú kópiu admina z pamäte okna, ukáž verejnú verziu z webu
+  AKT_ADMIN = false; AKT_ADMIN_P = null; AKT = null; AKT_NOTE = '';
   render();
   renderAktualne();
+  aktRefresh();
 }
 
 // ============================================================
@@ -2471,7 +2527,11 @@ async function saveSett(){
 // ============================================================
 function downloadJSON(filename){
   if(isLiteDB()){ alertLite(); return false; } // poistka: neúplné dáta sa nesťahujú
-  const blob = new Blob([JSON.stringify(DB,null,2)],{type:'application/json'});
+  // Aktuálne sú od 3.11.2026 vo vlastnom súbore aktualne.json (🚀 Publikovať
+  // Aktuálne) — do data.json ani do zálohy sa už NEBALIA.
+  const out = Object.assign({}, DB);
+  delete out.aktualne;
+  const blob = new Blob([JSON.stringify(out,null,2)],{type:'application/json'});
   const a=document.createElement('a');
   a.href=URL.createObjectURL(blob);
   a.download=filename;
@@ -2487,6 +2547,11 @@ function publishData(){
   // stiahne data.json — pripravený na nahratie na GitHub
   // zvýši verziu dát, aby web aj ostatné prehliadače nové dáta automaticky prevzali
   if(isLiteDB()){ alertLite(); return; } // odľahčené dáta webu — verziu ani nezvyšuj
+  if(Array.isArray(DB.aktualne) && DB.aktualne.length && !(AKT_ADMIN && AKT && AKT.version > 0)){
+    if(!confirm('POZOR: Aktuálne sa už do data.json NEukladajú (sú vo vlastnom súbore aktualne.json).\n'+
+                'aktualne.json ešte nebol publikovaný — najprv klikni 📌 Aktuálne → 🚀 Publikovať Aktuálne a nahraj ho, inak lišta Aktuálne na webe zmizne.\n\n'+
+                'Publikovať data.json aj tak?')) return;
+  }
   DB.version = (DB.version||0) + 1;
   if(!save()){ DB.version--; return; } // staré okno — nesťahuj staré dáta
   downloadJSON('data.json');
@@ -2504,6 +2569,7 @@ function importData(e){
       ensureSlugs(); // stará záloha nemusí mať slugy — doplň ich hneď
       migratePw();   // stará záloha môže mať heslo v čitateľnej podobe — preveď na pwKdf
       save(true); render(); renderAktualne(); renderBannerSlot(); // force — import nahrádza dáta zámerne
+      if(adminMode && Array.isArray(d.aktualne) && d.aktualne.length) setTimeout(()=>aktOfferImport(d.aktualne), 300); // prechod: staré Aktuálne z importu
       stopRotation(); startRotation(); // rotácia podľa nastavení z importu
       document.getElementById('siteSub').textContent=DB.subtitle;
       document.title=DB.title;
@@ -2660,7 +2726,7 @@ function renderOneSlot(el, slotNum){
     let h = banner.html;
     if(h.indexOf('{{')>=0){
       const fmt = n => n.toLocaleString(IS_EN ? 'en-US' : 'sk-SK');
-      const live = (DB.aktualne||[]).filter(a=>!(a.endsAt && Date.now() > new Date(a.endsAt+'T23:59:59').getTime())).length;
+      const live = aktPublic().length;
       let total = DB._totalLinks; if(total===undefined){ total=0; for(const n of DB.nodes){ if(n.type==='link') total++; } }
       h = h.replace(/\{\{live\}\}/g, String(live)).replace(/\{\{links\}\}/g, fmt(total))
            .replace(/\{\{links:([\w-]+)\}\}/g, (m,id)=>{ const n=(DB.nodes||[]).find(x=>x.id===id); return fmt(n && n._cnt!==undefined ? n._cnt : countAll(id)); });
@@ -2844,105 +2910,537 @@ function saveBannerSettings(){
 }
 
 // ============================================================
-// AKTUÁLNE – ADMIN
+// AKTUÁLNE – ZDROJ: vlastný súbor aktualne.json (od 3.11.2026, Zadanie 16a)
 // ============================================================
-let editingAktId = null;
+// Aktuálne zadáva Miro LEN ručne cez admin; 🚀 Publikovať Aktuálne stiahne
+// aktualne.json, ktorý sa nahrá do koreňa sport-linky. data.json sa ich už
+// netýka (nikto si tak navzájom nič neprepíše). Tvar súboru:
+//   {"version": 7, "updated": "…", "items": [{id, order, sport, icon, name, name_en,
+//     url, desc, desc_en, startsAt, endsAt, disabled, addedAt}]}
+// Appka (SK aj EN) si súbor sťahuje pri KAŽDOM otvorení stránky zvlášť od
+// data.json, vždy čerstvý (no-store + ?t=). EN web ho berie priamo zo SK webu
+// (AKT_MASTER), keď to zlyhá, z kópie, ktorú si stiahol nočný EN build.
+// Kým súbor nepríde, ostáva na lište to, čo do HTML vložil generátor.
+// PRECHOD: keď aktualne.json na webe nie je, použije sa staré pole
+// "aktualne" z data.json (DB.aktualne), resp. z BOOT.
+// PRAVIDLÁ ZOBRAZENIA — ROVNAKÉ ako akt_visible() v generator.py a v DYN_JS.
+const AKT_MASTER = "https://sportlinky.sk/aktualne.json"; // MUSÍ sedieť s AKT_MASTER_URL v generator.py
+const AKT_DAY = 86400000;
+const AKT_PURGE_DAYS = 7;          // skončené (nie vypnuté) sa samy zmažú 7 dní po dátume DO
+let AKT = null;                    // {version, items} z aktualne.json; null = (zatiaľ) nie je → DB.aktualne
+let AKT_ADMIN = false;             // true = AKT je pracovná kópia admina (návštevnícke sťahovanie ju neprepíše)
+let AKT_ADMIN_P = null;            // prebiehajúce načítanie pre admina (Promise)
+let AKT_NOTE = '';                 // správa nad zoznamom v admine (HTML)
+const BOOT_AKT = (BOOT && Array.isArray(BOOT.aktualne)) ? BOOT.aktualne : null;
 
-function openAktualne(){
-  renderAktList();
-  document.getElementById('aktualneListMo').classList.add('open');
+// Športy pre výber v admine (kód → SK, EN, emoji). Kód sa ukladá do "sport".
+const AKT_SPORTS = [
+  ['tenis','tenis','tennis','🎾'], ['badminton','badminton','badminton','🏸'],
+  ['squash','squash','squash','🟡'], ['stolny-tenis','stolný tenis','table tennis','🏓'],
+  ['padel','padel','padel','🥎'], ['sipky','šípky','darts','🎯'],
+  ['snooker','snooker','snooker','🎱'], ['atletika','atletika','athletics','🏃'],
+  ['cyklistika','cyklistika','cycling','🚴'], ['plavanie','plávanie','swimming','🏊'],
+  ['motosport','motošport','motorsport','🏎️'], ['futbal','futbal','football','⚽'],
+  ['hokej','hokej','ice hockey','🏒'], ['basketbal','basketbal','basketball','🏀'],
+  ['hadzana','hádzaná','handball','🤾'], ['volejbal','volejbal','volleyball','🏐'],
+  ['zimne','zimné športy','winter sports','⛷️'], ['bojove','bojové športy','combat sports','🥊'],
+  ['golf','golf','golf','⛳'], ['sach','šach','chess','♟️'],
+  ['multisport','multišportové podujatie','multi-sport event','🏅'], ['ine','iné','other','📌']
+];
+function aktSport(code){ return AKT_SPORTS.find(s=>s[0]===code) || null; }
+
+// dnešok v MIESTNOM čase ako "YYYY-MM-DD" (nie UTC — po polnoci by sa posúval o deň)
+function aktToday(){
+  const d = new Date();
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+function aktDayMs(ymd){ const p = String(ymd||'').split('-').map(Number); return new Date(p[0], p[1]-1, p[2]).getTime(); }
+function aktValidDate(ymd){
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(ymd)) return false;
+  const p = ymd.split('-').map(Number), d = new Date(p[0], p[1]-1, p[2]);
+  return d.getFullYear()===p[0] && d.getMonth()===p[1]-1 && d.getDate()===p[2];
+}
+// zoradenie podľa ručného poradia "order" (chýba → poradie v poli)
+function aktSorted(arr){
+  return (arr||[]).filter(a=>a && typeof a==='object')
+    .map((a,i)=>[isFinite(parseFloat(a.order)) ? parseFloat(a.order) : i, i, a])
+    .sort((x,y)=>x[0]-y[0] || x[1]-y[1]).map(x=>x[2]);
+}
+// všetky položky (aj vypnuté/naplánované) z aktuálneho zdroja
+function aktAll(){
+  if(AKT) return aktSorted(AKT.items);
+  if(DB && Array.isArray(DB.aktualne)) return aktSorted(DB.aktualne); // prechod / odľahčený data.json / BOOT
+  return aktSorted(BOOT_AKT || []);
+}
+// stav položky: on = vidí ju verejnosť, wait = čaká na dátum OD, ended = po dátume DO, off = vypnutá
+function aktState(a, today){
+  today = today || aktToday();
+  if(a.disabled === true) return 'off';
+  if(a.endsAt && today > a.endsAt) return 'ended';
+  if(a.startsAt && today < a.startsAt) return 'wait';
+  return 'on';
+}
+function aktVisible(a, today){ return !!(a && a.url) && aktState(a, today) === 'on'; }
+function aktPublic(){ const t = aktToday(); return aktAll().filter(a=>aktVisible(a, t)); }
+// kedy sa položka OBJAVILA verejnosti — od toho 24 h štítok NEW
+function aktShownAt(a){
+  const added = parseInt(a.addedAt, 10) || 0;
+  const start = (a.startsAt && aktValidDate(a.startsAt)) ? aktDayMs(a.startsAt) : 0;
+  return Math.max(added, start);
+}
+function aktIsNew(a, now){ const t = aktShownAt(a); return t > 0 && now - t >= 0 && now - t < AKT_DAY; }
+
+// stiahne čerstvý aktualne.json → {status:'ok', version, items} | {status:'missing'} | {status:'error'}
+function aktUrls(){ return (IS_EN ? [AKT_MASTER] : []).concat([SITE_ROOT + 'aktualne.json']); }
+async function fetchAktualne(){
+  let missing = 0;
+  const urls = aktUrls();
+  for(const u of urls){
+    try{
+      const ctrl = new AbortController();
+      const stopka = setTimeout(()=>ctrl.abort(), 8000);
+      const r = await fetch(u + '?t=' + Date.now(), {cache:'no-store', signal:ctrl.signal});
+      clearTimeout(stopka);
+      if(r.status === 404){ missing++; continue; }
+      if(!r.ok) continue;
+      const j = await r.json();
+      if(j && Array.isArray(j.items)) return {status:'ok', version:parseInt(j.version,10)||0, items:j.items};
+    }catch(e){ /* sieť / CORS / file:// — skús ďalšiu adresu */ }
+  }
+  return {status: missing === urls.length ? 'missing' : 'error'};
+}
+// návštevník: po stiahnutí prekresli lištu (a Live This Week, ak je otvorený)
+async function aktRefresh(){
+  const r = await fetchAktualne();
+  if(r.status !== 'ok' || AKT_ADMIN) return;
+  AKT = {version:r.version, items:r.items};
+  try{
+    renderAktualne();
+    if(IS_EN && curId===LIVE_ID && !adminMode && DB && DB.nodes) render();
+  }catch(e){}
 }
 
+// ============================================================
+// AKTUÁLNE – ADMIN: pracovná kópia v prehliadači
+// ============================================================
+// localStorage "sportAktDraft" = {version, items, rev, dirty} — version = verzia
+// aktualne.json, z ktorej úpravy vychádzajú (po publikovaní = nová verzia),
+// rev = čas poslednej úpravy (ochrana pred starým oknom), dirty = nezverejnené.
+// "sportAktVer" = najvyššia verzia publikovaná v tomto prehliadači.
+function aktDraftGet(){ try{ const d = JSON.parse(lsGet('sportAktDraft')||'null'); return (d && Array.isArray(d.items)) ? d : null; }catch(e){ return null; } }
+function aktDraftPut(dirty){
+  try{ localStorage.setItem('sportAktDraft', JSON.stringify({version:AKT.version, items:AKT.items, rev:AKT.rev, dirty:!!dirty})); return true; }
+  catch(e){ alert('POZOR: Prehliadač nedokázal uložiť Aktuálne (úložisko je vypnuté alebo plné).\nÚprava je len v tomto okne — hneď klikni na 🚀 Publikovať Aktuálne.'); return false; }
+}
+// staré položky (bez order, sport, …) → nový tvar; poradie podľa poľa
+function aktFromOld(arr){
+  return aktSorted(arr).filter(a=>a.url).map((a,i)=>{
+    const o = {id:a.id||('a'+Date.now()+i), order:i, sport:a.sport||'', icon:a.icon||'', name:a.name||'',
+               name_en:a.name_en||'', url:a.url, desc:a.desc||'', desc_en:a.desc_en||'',
+               startsAt:a.startsAt||'', endsAt:a.endsAt||'', disabled:a.disabled===true,
+               addedAt:parseInt(a.addedAt,10)||Date.now()};
+    return o;
+  });
+}
+// prečísluje "order" podľa POZÍCIE v poli (pole je vždy v poradí zobrazenia —
+// pri načítaní ho zoradí aktFromOld, presuny ho preskladajú)
+function aktRenumber(){ AKT.items.forEach((a,i)=>{ a.order = i; }); }
+// SKONČENÉ položky (nie vypnuté) staršie než 7 dní po dátume DO sa vyhodia. Vráti zmazané.
+function aktDaysAfterEnd(a){ return Math.round((aktDayMs(aktToday()) - aktDayMs(a.endsAt)) / AKT_DAY); }
+function aktPurge(){
+  const gone = [];
+  AKT.items = AKT.items.filter(a=>{
+    const del = a.disabled !== true && a.endsAt && aktValidDate(a.endsAt) && aktDaysAfterEnd(a) > AKT_PURGE_DAYS;
+    if(del) gone.push(a);
+    return !del;
+  });
+  if(gone.length) aktRenumber();
+  return gone;
+}
+function aktDownload(obj, name){
+  const blob = new Blob([JSON.stringify(obj, null, 1)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = name; a.click();
+}
+// Pri prihlásení: VŽDY čerstvý aktualne.json zo servera (nie z pamäte prehliadača),
+// aby sa neprepísalo, čo bolo zadané inde (napr. z mobilu).
+function aktAdminLoad(){
+  AKT_ADMIN_P = (async ()=>{
+    const srv = await fetchAktualne();
+    const draft = aktDraftGet();
+    const notes = [];
+    let take = null;
+    if(srv.status === 'ok'){
+      if(draft && draft.version > srv.version){
+        take = draft;
+        notes.push('Pracuješ s verziou v'+draft.version+' z tohto prehliadača — na webe je zatiaľ v'+srv.version+
+                   ' (súbor ešte nie je nahratý na GitHub alebo sa web ešte neobnovil).');
+      } else if(draft && draft.dirty && draft.version === srv.version){
+        take = draft;
+        notes.push('Máš rozpracované NEzverejnené úpravy (z verzie v'+srv.version+'). Nezabudni na 🚀 Publikovať Aktuálne.');
+      } else {
+        if(draft && draft.dirty && draft.version < srv.version){
+          if(confirm('POZOR: Na webe je novšia verzia Aktuálnych (v'+srv.version+', napr. z mobilu).\n'+
+                     'V tomto prehliadači máš staršie nezverejnené úpravy (z v'+draft.version+'), ktoré sa teraz nahradia.\n\n'+
+                     'Chceš si NAJPRV stiahnuť zálohu svojich úprav?'))
+            aktDownload({version:draft.version, items:draft.items}, 'aktualne-zaloha-stare-upravy.json');
+        }
+        take = {version:srv.version, items:srv.items, rev:Date.now(), dirty:false};
+        notes.push('Načítané čerstvé Aktuálne z webu (verzia v'+srv.version+').');
+      }
+    } else if(draft){
+      take = draft;
+      notes.push(srv.status === 'missing'
+        ? 'aktualne.json na webe zatiaľ nie je — pracuješ s kópiou z tohto prehliadača (v'+draft.version+').'
+        : '<span class="warn">⚠️ aktualne.json sa nepodarilo stiahnuť z webu</span> — pracuješ s kópiou z tohto prehliadača (v'+draft.version+').');
+    } else {
+      // PRECHOD: súbor ešte neexistuje → prevezmi staré pole "aktualne" z data.json
+      const old = (DB && Array.isArray(DB.aktualne)) ? DB.aktualne : (BOOT_AKT || []);
+      take = {version:0, items:aktFromOld(old), rev:Date.now(), dirty:old.length>0};
+      notes.push(srv.status === 'missing'
+        ? '<span class="warn">aktualne.json na webe ešte nie je.</span> Prevzal som '+take.items.length+' položiek zo starého poľa „aktualne“ v data.json. Klikni 🚀 Publikovať Aktuálne a súbor nahraj do sport-linky.'
+        : '<span class="warn">⚠️ aktualne.json sa nepodarilo stiahnuť z webu.</span> Zobrazujem staré položky z data.json — NEPUBLIKUJ, kým sa to nevyrieši (obnov stránku).');
+    }
+    AKT = {version:parseInt(take.version,10)||0, items:aktFromOld(take.items), rev:take.rev||Date.now()};
+    AKT_ADMIN = true;
+    const gone = aktPurge();
+    if(gone.length){
+      notes.push('🧹 Samy sa zmazali skončené položky (viac než '+AKT_PURGE_DAYS+' dní po dátume DO): '+
+                 gone.map(a=>attrEsc(a.name)).join(', ')+'.');
+      take.dirty = true;
+    }
+    aktDraftPut(take.dirty);
+    AKT_NOTE = notes.join('<br>');
+    renderAktualne();
+    if(document.getElementById('aktualneListMo').classList.contains('open')) renderAktList();
+  })();
+  return AKT_ADMIN_P;
+}
+// Ochrana pred starým oknom: iné okno tohto prehliadača medzitým Aktuálne zmenilo.
+// Volá sa PRED každou zmenou (nič sa v okne nezmení) aj pri uložení.
+function aktCanEdit(){
+  if(!AKT_ADMIN) return false;
+  const d = aktDraftGet();
+  if(d && (d.rev||0) > (AKT.rev||0) && d.version >= AKT.version){
+    alert('POZOR: Úprava sa NEULOŽILA!\n\nAktuálne boli medzitým zmenené v inom okne tohto prehliadača.\nToto okno je zastarané — obnov stránku (F5) a sprav úpravu znova.');
+    return false;
+  }
+  return true;
+}
+function aktSave(){
+  if(!aktCanEdit()) return false;
+  aktRenumber();
+  AKT.rev = Date.now();
+  aktDraftPut(true);
+  renderAktualne(); renderAktList();
+  if(IS_EN && curId===LIVE_ID) render();
+  return true;
+}
+
+let editingAktId = null;
+let aktCopyOf = null;   // pri kopírovaní: id pôvodnej položky (nová sa vloží pod ňu)
+
+async function openAktualne(){
+  document.getElementById('aktualneListMo').classList.add('open');
+  if(!AKT_ADMIN){
+    document.getElementById('aktInfo').innerHTML = 'Načítavam čerstvé Aktuálne z webu…';
+    document.getElementById('aktualneListGrid').innerHTML = '';
+    await (AKT_ADMIN_P || aktAdminLoad());
+  }
+  renderAktList();
+}
+
+function aktFmtDate(ymd){ const p = String(ymd).split('-'); return (+p[2])+'. '+(+p[1])+'.'; }
 function renderAktList(){
-  if(!DB.aktualne) DB.aktualne=[];
   const grid = document.getElementById('aktualneListGrid');
-  if(!DB.aktualne.length){
+  const info = document.getElementById('aktInfo');
+  if(!AKT_ADMIN){ return; }
+  const pub = aktPublic().length;
+  info.innerHTML = (AKT_NOTE ? AKT_NOTE+'<br>' : '') +
+    'Verzia v'+AKT.version+' · položiek '+AKT.items.length+' · verejnosť teraz vidí '+pub+
+    '. Poradie zmeníš ťahaním za ⠿ alebo šípkami.';
+  if(!AKT.items.length){
     grid.innerHTML='<div style="font-size:0.82rem;color:var(--muted);padding:8px 0">Žiadne aktuálne linky.</div>';
     return;
   }
-  grid.innerHTML = DB.aktualne.map((a,i)=>{
-    const exp = a.endsAt && Date.now() > new Date(a.endsAt+'T23:59:59').getTime();
+  const today = aktToday();
+  grid.innerHTML = aktSorted(AKT.items).map((a,i)=>{
+    const st = aktState(a, today);
+    let lbl;
+    if(st==='on') lbl = '<span class="akt-st on">● aktívna</span>';
+    else if(st==='off') lbl = '<span class="akt-st">⏸ vypnuté</span>';
+    else if(st==='wait') lbl = '<span class="akt-st">čaká od '+aktFmtDate(a.startsAt)+'</span>';
+    else {
+      const n = AKT_PURGE_DAYS + 1 - aktDaysAfterEnd(a);
+      lbl = '<span class="akt-st">⏱ skončené · zmaže sa '+(n<=1?'zajtra':'o '+n+' dní')+'</span>';
+    }
+    const dt = (a.startsAt||a.endsAt) ? ' · '+(a.startsAt?aktFmtDate(a.startsAt):'…')+' – '+(a.endsAt?aktFmtDate(a.endsAt):'…') : '';
+    const sp = aktSport(a.sport);
+    const sub = [a.name_en && a.name_en!==a.name ? 'EN: '+attrEsc(a.name_en) : '', sp ? attrEsc(sp[1]) : '', dt.slice(3)].filter(Boolean).join(' · ');
     return `
-    <div style="background:var(--surface);border:1.5px solid var(--border);border-radius:8px;padding:10px 14px;display:flex;align-items:center;gap:10px">
+    <div class="akt-row st-${st}" draggable="true" data-i="${i}" title="${attrEsc(a.desc||'')}">
+      <span class="akt-drag" title="Potiahni myšou na iné miesto">⠿</span>
       <span style="font-size:1.2rem">${attrEsc(a.icon||'📌')}</span>
-      <span style="flex:1;font-size:0.88rem;font-weight:600">${attrEsc(a.name)}</span>
-      ${a.endsAt?`<span style="font-size:0.68rem;white-space:nowrap;color:${exp?'var(--red)':'var(--muted)'}">${exp?'⏱ skončené':'do '+attrEsc(a.endsAt.split('-').reverse().join('.'))}</span>`:''}
-      <button class="ibtn" onclick="moveAkt(${i},-1)" title="Hore">▲</button>
-      <button class="ibtn" onclick="moveAkt(${i},1)" title="Dole">▼</button>
-      <button class="ibtn" onclick="openEditAkt('${a.id}')" title="Upraviť">✏️</button>
-      <button class="ibtn d" onclick="delAkt('${a.id}')" title="Zmazať">🗑</button>
+      <span class="akt-nm">${attrEsc(a.name)}${sub?'<small>'+sub+'</small>':''}</span>
+      ${lbl}
+      <span class="akt-btns">
+        <button class="ibtn" onclick="toggleAkt('${attrEsc(a.id)}')" title="${a.disabled?'Zapnúť':'Vypnúť'}">${a.disabled?'▶':'⏸'}</button>
+        <button class="ibtn" onclick="moveAkt(${i},-1)" title="Hore">▲</button>
+        <button class="ibtn" onclick="moveAkt(${i},1)" title="Dole">▼</button>
+        <button class="ibtn" onclick="copyAkt('${attrEsc(a.id)}')" title="Kopírovať (nová položka s rovnakými údajmi, bez dátumov)">⧉</button>
+        <button class="ibtn" onclick="openEditAkt('${attrEsc(a.id)}')" title="Upraviť">✏️</button>
+        <button class="ibtn d" onclick="delAkt('${attrEsc(a.id)}')" title="Zmazať">🗑</button>
+      </span>
     </div>`;}).join('');
+  // ťahanie myšou (drag & drop) — na mobile ostávajú šípky
+  let from = null;
+  grid.querySelectorAll('.akt-row').forEach(row=>{
+    row.addEventListener('dragstart', e=>{ from = +row.dataset.i; try{ e.dataTransfer.setData('text/plain', String(from)); e.dataTransfer.effectAllowed='move'; }catch(x){} });
+    row.addEventListener('dragover', e=>{ e.preventDefault(); row.classList.add('drag-over'); });
+    row.addEventListener('dragleave', ()=>row.classList.remove('drag-over'));
+    row.addEventListener('dragend', ()=>grid.querySelectorAll('.drag-over').forEach(r=>r.classList.remove('drag-over')));
+    row.addEventListener('drop', e=>{
+      e.preventDefault(); row.classList.remove('drag-over');
+      let f = from; if(f===null){ f = parseInt(e.dataTransfer.getData('text/plain'),10); }
+      dropAkt(f, +row.dataset.i); from = null;
+    });
+  });
+}
+// presun položky z miesta "from" na miesto "to" (vloží sa PRED položku, na ktorú sa pustila)
+function dropAkt(from, to){
+  if(!isFinite(from) || !isFinite(to) || from===to || !aktCanEdit()) return;
+  const arr = aktSorted(AKT.items);
+  const [x] = arr.splice(from, 1);
+  arr.splice(to, 0, x);
+  AKT.items = arr; aktSave();
 }
 
-function openAddAkt(){
-  editingAktId = null;
-  document.getElementById('aktEditTitle').textContent = 'Pridať aktuálnu linku';
-  document.getElementById('aIcon').value = '';
-  document.getElementById('aName').value = '';
-  document.getElementById('aNameEn').value = '';
-  document.getElementById('aUrl').value  = '';
-  document.getElementById('aEnd').value  = '';
+function aktFillSports(sel){
+  const el = document.getElementById('aSport');
+  el.innerHTML = '<option value="">— vyber šport —</option>' +
+    AKT_SPORTS.map(s=>`<option value="${s[0]}">${s[3]} ${attrEsc(s[1])} / ${attrEsc(s[2])}</option>`).join('');
+  el.value = sel || '';
+}
+function aktSportChanged(){
+  const sp = aktSport(document.getElementById('aSport').value);
+  if(sp) document.getElementById('aIcon').value = sp[3];
+}
+function aktFillForm(a, title){
+  document.getElementById('aktEditTitle').textContent = title;
+  aktFillSports(a.sport||'');
+  document.getElementById('aIcon').value   = a.icon||'';
+  document.getElementById('aName').value   = a.name||'';
+  document.getElementById('aNameEn').value = a.name_en||'';
+  document.getElementById('aUrl').value    = a.url||'';
+  document.getElementById('aStart').value  = a.startsAt||'';
+  document.getElementById('aEnd').value    = a.endsAt||'';
+  document.getElementById('aDesc').value   = a.desc||'';
+  document.getElementById('aDescEn').value = a.desc_en||'';
   document.getElementById('aktualneEditMo').classList.add('open');
+}
+function openAddAkt(){
+  if(!AKT_ADMIN) return;
+  editingAktId = null; aktCopyOf = null;
+  aktFillForm({}, 'Pridať aktuálnu linku');
   setTimeout(()=>document.getElementById('aUrl').focus(), 50);
 }
-
 function openEditAkt(id){
-  const a = DB.aktualne.find(x=>x.id===id);
+  const a = AKT.items.find(x=>x.id===id);
   if(!a) return;
-  editingAktId = id;
-  document.getElementById('aktEditTitle').textContent = 'Upraviť linku';
-  document.getElementById('aIcon').value = a.icon||'';
-  document.getElementById('aName').value = a.name;
-  document.getElementById('aNameEn').value = a.name_en||'';
-  document.getElementById('aUrl').value  = a.url;
-  document.getElementById('aEnd').value  = a.endsAt||'';
-  document.getElementById('aktualneEditMo').classList.add('open');
+  editingAktId = id; aktCopyOf = null;
+  aktFillForm(a, 'Upraviť linku');
 }
-
+// KOPÍROVAŤ: nová položka s rovnakým športom, emoji, názvami, adresou a popisom; dátumy prázdne
+function copyAkt(id){
+  const a = AKT.items.find(x=>x.id===id);
+  if(!a) return;
+  editingAktId = null; aktCopyOf = id;
+  aktFillForm(Object.assign({}, a, {startsAt:'', endsAt:''}), 'Kópia linky (uloží sa ako nová)');
+}
+function aktNewId(){ return 'a'+Date.now()+Math.random().toString(36).slice(2,5); }
 function saveAkt(){
-  const icon = document.getElementById('aIcon').value.trim();
-  const name = document.getElementById('aName').value.trim();
-  const nameEn = document.getElementById('aNameEn').value.trim();
-  const url  = document.getElementById('aUrl').value.trim();
-  const endsAt = document.getElementById('aEnd').value; // '' = bez obmedzenia
-  if(!name||!url){ alert('Vyplň názov a URL.'); return; }
-  if(!DB.aktualne) DB.aktualne=[];
+  const v = id => document.getElementById(id).value.trim();
+  const f = {sport:v('aSport'), icon:v('aIcon'), name:v('aName'), name_en:v('aNameEn'), url:v('aUrl'),
+             startsAt:v('aStart'), endsAt:v('aEnd'), desc:v('aDesc'), desc_en:v('aDescEn')};
+  if(!aktCanEdit()) return;
+  if(!f.name||!f.url){ alert('Vyplň názov a URL.'); return; }
+  if(!/^https?:\/\//i.test(f.url)){ alert('URL musí začínať https:// (alebo http://).'); return; }
+  if(f.startsAt && f.endsAt && f.startsAt > f.endsAt){ alert('Dátum OD je neskôr ako dátum DO.'); return; }
+  if(!f.icon){ const sp = aktSport(f.sport); f.icon = sp ? sp[3] : ''; }
   if(editingAktId){
-    const a = DB.aktualne.find(x=>x.id===editingAktId);
-    if(a){ a.icon=icon; a.name=name; a.url=url; a.endsAt=endsAt; if(nameEn) a.name_en=nameEn; else delete a.name_en; }
+    const a = AKT.items.find(x=>x.id===editingAktId);
+    if(a) Object.assign(a, f);
   } else {
-    const item = {id:'a'+Date.now(), icon, name, url, endsAt, addedAt: Date.now()};
-    if(nameEn) item.name_en = nameEn;
-    DB.aktualne.push(item);
+    const item = Object.assign({id:aktNewId(), order:AKT.items.length, disabled:false, addedAt:Date.now()}, f);
+    const arr = aktSorted(AKT.items);
+    const k = aktCopyOf ? arr.findIndex(x=>x.id===aktCopyOf) : -1;
+    if(k >= 0) arr.splice(k+1, 0, item); else arr.push(item);
+    AKT.items = arr;
   }
-  save(); renderAktualne(); renderAktList();
-  closeMo('aktualneEditMo');
+  if(aktSave()) closeMo('aktualneEditMo');
 }
-
+function toggleAkt(id){
+  if(!aktCanEdit()) return;
+  const a = AKT.items.find(x=>x.id===id);
+  if(!a) return;
+  a.disabled = !a.disabled;
+  aktSave();
+}
 function delAkt(id){
-  if(!confirm('Zmazať túto linku?')) return;
-  DB.aktualne = DB.aktualne.filter(x=>x.id!==id);
-  save(); renderAktualne(); renderAktList();
+  if(!aktCanEdit() || !confirm('Zmazať túto linku?')) return;
+  AKT.items = AKT.items.filter(x=>x.id!==id);
+  aktSave();
+}
+function moveAkt(i, dir){
+  const arr = aktSorted(AKT.items), ni = i+dir;
+  if(ni<0||ni>=arr.length||!aktCanEdit()) return;
+  const tmp = arr[i]; arr[i] = arr[ni]; arr[ni] = tmp;
+  AKT.items = arr; aktSave();
 }
 
-function moveAkt(i, dir){
-  const ni = i+dir;
-  if(ni<0||ni>=DB.aktualne.length) return;
-  const tmp = DB.aktualne[i];
-  DB.aktualne[i] = DB.aktualne[ni];
-  DB.aktualne[ni] = tmp;
-  save(); renderAktualne(); renderAktList();
+// ---------- PRIDAŤ VIAC NARAZ ----------
+// riadok: od; do; šport; názov SK; názov EN; URL; popis SK; popis EN
+let aktBulkOk = [];
+function openAktBulk(){
+  if(!AKT_ADMIN) return;
+  aktBulkOk = [];
+  document.getElementById('aBulkPrev').style.display = 'none';
+  document.getElementById('aBulkAdd').disabled = true;
+  document.getElementById('aktBulkMo').classList.add('open');
+}
+function aktNorm(s){ return String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/️/g,'').toLowerCase().trim(); }
+function aktParseDate(s){
+  s = String(s||'').trim();
+  if(!s) return '';
+  let m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+  let ymd = m ? m[1]+'-'+m[2].padStart(2,'0')+'-'+m[3].padStart(2,'0') : null;
+  if(!ymd){ m = s.match(/^(\d{1,2})\.\s*(\d{1,2})\.\s*(\d{4})$/); if(m) ymd = m[3]+'-'+m[2].padStart(2,'0')+'-'+m[1].padStart(2,'0'); }
+  return (ymd && aktValidDate(ymd)) ? ymd : null;
+}
+function aktParseSport(s){
+  const n = aktNorm(s);
+  if(!n) return null;
+  const sp = AKT_SPORTS.find(x=>aktNorm(x[0])===n || aktNorm(x[1])===n || aktNorm(x[2])===n || aktNorm(x[3])===n);
+  if(sp) return {sport:sp[0], icon:sp[3]};
+  // emoji, ktoré nie je v zozname → šport „iné“ s týmto emoji
+  if(!/[a-z0-9]/i.test(n) && s.trim().length <= 8) return {sport:'ine', icon:s.trim()};
+  return null;
+}
+function aktParseBulk(text){
+  const out = [];
+  String(text||'').split(/\r?\n/).forEach((line, li)=>{
+    const raw = line.trim();
+    if(!raw || raw.charAt(0)==='#') return;
+    const p = raw.split(';').map(x=>x.trim());
+    const errs = [];
+    if(p.length < 6) errs.push('málo polí ('+p.length+' z 6–8) — chýba bodkočiarka?');
+    if(p.length > 8) errs.push('priveľa polí ('+p.length+', max. 8) — bodkočiarka v texte?');
+    const od = aktParseDate(p[0]), d = aktParseDate(p[1]);
+    if(od === null) errs.push('zlý dátum OD „'+p[0]+'“');
+    if(d === null) errs.push('zlý dátum DO „'+p[1]+'“');
+    if(od && d && od > d) errs.push('OD je neskôr ako DO');
+    const sp = aktParseSport(p[2]);
+    if(!sp) errs.push(p[2] ? 'neznámy šport „'+p[2]+'“' : 'chýba šport');
+    if(!p[3]) errs.push('chýba názov SK');
+    if(!p[5]) errs.push('chýba URL');
+    else if(!/^https?:\/\/\S+$/i.test(p[5])) errs.push('zlá URL „'+p[5]+'“ (musí začínať https://)');
+    const item = errs.length ? null : {sport:sp.sport, icon:sp.icon, name:p[3], name_en:p[4]||'', url:p[5],
+                  desc:p[6]||'', desc_en:p[7]||'', startsAt:od||'', endsAt:d||'', disabled:false};
+    const dup = item && AKT.items.some(a=>a.url===item.url);
+    out.push({line:li+1, raw, item, errs, dup});
+  });
+  return out;
+}
+function previewAktBulk(){
+  const rows = aktParseBulk(document.getElementById('aBulk').value);
+  const prev = document.getElementById('aBulkPrev');
+  aktBulkOk = rows.filter(r=>r.item).map(r=>r.item);
+  const bad = rows.length - aktBulkOk.length;
+  prev.style.display = '';
+  prev.innerHTML = '<div><b>Pridá sa '+aktBulkOk.length+' z '+rows.length+' riadkov'+(bad?' — '+bad+' chybných sa NEpridá':'')+'.</b></div>' +
+    (rows.length ? rows.map(r=> r.item
+      ? `<div class="ok">✅ r. ${r.line}: ${attrEsc(r.item.icon)} ${attrEsc(r.item.name)}${r.item.name_en?' / '+attrEsc(r.item.name_en):''} · ${r.item.startsAt?aktFmtDate(r.item.startsAt):'…'} – ${r.item.endsAt?aktFmtDate(r.item.endsAt):'…'} · ${attrEsc(r.item.url)}${r.dup?' <span class="bad">(⚠️ táto adresa už v zozname je)</span>':''}</div>`
+      : `<div class="bad">❌ r. ${r.line}: ${attrEsc(r.errs.join('; '))}<br><small>${attrEsc(r.raw)}</small></div>`).join('')
+     : '<div>Žiadne riadky.</div>');
+  document.getElementById('aBulkAdd').disabled = !aktBulkOk.length;
+}
+function addAktBulk(){
+  if(!aktBulkOk.length || !aktCanEdit()) return;
+  const arr = aktSorted(AKT.items), now = Date.now();
+  aktBulkOk.forEach((it,i)=>arr.push(Object.assign({id:aktNewId()+i, order:arr.length, addedAt:now}, it)));
+  const n = aktBulkOk.length;
+  AKT.items = arr;
+  if(aktSave()){
+    aktBulkOk = [];
+    document.getElementById('aBulk').value = '';
+    closeMo('aktBulkMo');
+    AKT_NOTE = 'Hromadne pridaných '+n+' položiek (sú na konci zoznamu).';
+    renderAktList();
+  }
+}
+
+// ---------- 🚀 PUBLIKOVAŤ AKTUÁLNE ----------
+// Zvýši version a stiahne LEN aktualne.json. Ochrana: ak je na webe NOVŠIA
+// verzia, než z ktorej vychádzajú úpravy (napr. z mobilu), nič sa nestiahne.
+let _aktPubBusy = false;
+async function publishAkt(){
+  if(!AKT_ADMIN || _aktPubBusy) return;
+  _aktPubBusy = true;
+  try{
+    const d = aktDraftGet();
+    if(d && (d.rev||0) > (AKT.rev||0) && d.version >= AKT.version){
+      alert('POZOR: Aktuálne boli medzitým zmenené v inom okne. Toto okno je zastarané — obnov stránku (F5).');
+      return;
+    }
+    const lv = parseInt(lsGet('sportAktVer')||'0',10) || 0;
+    if(lv > AKT.version){
+      alert('POZOR: V tomto prehliadači už bola publikovaná novšia verzia Aktuálnych (v'+lv+') než v tomto okne (v'+AKT.version+').\nToto okno je zastarané — obnov stránku (F5).');
+      return;
+    }
+    const srv = await fetchAktualne();
+    if(srv.status === 'ok' && srv.version > AKT.version){
+      if(confirm('POZOR: Na webe je NOVŠIA verzia Aktuálnych (v'+srv.version+') než tá, z ktorej vychádzajú tvoje úpravy (v'+AKT.version+') — napr. si medzitým publikoval z mobilu.\n\n'+
+                 'Aby sa novšia verzia neprepísala, NEPUBLIKUJEM. Obnov stránku (F5) a úpravy sprav znova.\n\nChceš si stiahnuť zálohu svojich úprav?'))
+        aktDownload({version:AKT.version, items:AKT.items}, 'aktualne-zaloha-moje-upravy.json');
+      return;
+    }
+    if(srv.status === 'error' && !confirm('Nepodarilo sa overiť, aká verzia Aktuálnych je na webe (sieť?).\nAk si medzitým publikoval inde (mobil), môžeš ju prepísať.\n\nPokračovať aj tak?')) return;
+    const gone = aktPurge();
+    aktRenumber();
+    const ver = Math.max(AKT.version, srv.status==='ok' ? srv.version : 0) + 1;
+    const out = {version:ver, updated:new Date().toISOString(), items:AKT.items.map(a=>({
+      id:a.id, order:a.order, sport:a.sport||'', icon:a.icon||'', name:a.name||'', name_en:a.name_en||'',
+      url:a.url, desc:a.desc||'', desc_en:a.desc_en||'', startsAt:a.startsAt||'', endsAt:a.endsAt||'',
+      disabled:a.disabled===true, addedAt:parseInt(a.addedAt,10)||Date.now()}))};
+    aktDownload(out, 'aktualne.json');
+    AKT.version = ver; AKT.rev = Date.now();
+    lsSet('sportAktVer', String(ver));
+    aktDraftPut(false);
+    AKT_NOTE = '✅ Stiahnutý aktualne.json (verzia v'+ver+', '+out.items.length+' položiek) — nahraj ho do koreňa repozitára sport-linky.'+
+      (gone.length ? '<br>🧹 Pri publikovaní sa samy zmazali skončené položky: '+gone.map(a=>attrEsc(a.name)).join(', ')+'.' : '');
+    renderAktualne(); renderAktList();
+  } finally { _aktPubBusy = false; }
+}
+// Import starého data.json/zálohy s poľom "aktualne" → ponuka prevziať do Aktuálnych
+async function aktOfferImport(arr){
+  if(!Array.isArray(arr) || !arr.length) return;
+  await (AKT_ADMIN_P || aktAdminLoad());
+  const nove = aktFromOld(arr).filter(a=>!AKT.items.some(x=>x.id===a.id || x.url===a.url));
+  if(!nove.length || !aktCanEdit()) return;
+  if(!confirm('Importovaný súbor obsahuje staré pole „aktualne“ — '+nove.length+' položiek, ktoré v Aktuálnych ešte nie sú.\n\nPrevziať ich do Aktuálnych (pridajú sa na koniec)?\nPotom klikni 🚀 Publikovať Aktuálne.')) return;
+  const arr2 = aktSorted(AKT.items);
+  nove.forEach(a=>arr2.push(a));
+  AKT.items = arr2;
+  aktSave();
 }
 
 // ============================================================
 // AKTUÁLNE – RENDER
 // ============================================================
 function renderAktualne(){
-  if(!DB.aktualne) DB.aktualne=[];
-  const now = Date.now();
-  // "Platné do": po tomto dni (vrátane) sa linka verejnosti skryje; admin ju vidí vysivenú. Bez dátumu = visí navždy.
-  const isExpired = a => a.endsAt && now > new Date(a.endsAt+'T23:59:59').getTime();
-  const items = adminMode ? DB.aktualne : DB.aktualne.filter(a=>!isExpired(a));
+  const now = Date.now(), today = aktToday();
+  // verejnosť: len viditeľné (aktVisible); admin vidí všetko, nezverejnené vysivené
+  const items = adminMode ? aktAll() : aktPublic();
   const scroll = document.getElementById('aktualneScroll');
   const count  = document.getElementById('aktualneCount');
   count.textContent = items.length ? `(${items.length})` : '';
@@ -2951,12 +3449,16 @@ function renderAktualne(){
     updateAktFade();
     return;
   }
+  const stTxt = {off:'Vypnuté', wait:'Čaká na dátum OD', ended:'Skončené'};
   scroll.innerHTML = items.map(a=>{
-    const isNew = a.addedAt && (now - a.addedAt) < 86400000; // 24 hodín
-    const exp = isExpired(a);
+    const st = aktState(a, today);
+    const hid = st !== 'on';
+    const isNew = !hid && aktIsNew(a, now);
+    const desc = String((IS_EN && a.desc_en) ? a.desc_en : (a.desc||'')).trim();
+    const tip = hid ? stTxt[st]+' — verejnosť túto linku nevidí'+(desc?' · '+desc:'') : desc;
     return `
-    <a class="akt-card${exp?' akt-expired':''}" href="${attrEsc(safeUrl(a.url))}" target="_blank" rel="noopener"${exp?' title="Skončené — verejnosť túto linku nevidí"':''}>
-      ${isNew&&!exp?'<span class="akt-new">NEW</span>':''}
+    <a class="akt-card${hid?' akt-expired':''}" href="${attrEsc(safeUrl(a.url))}" target="_blank" rel="noopener"${tip?' title="'+attrEsc(tip)+'"':''}>
+      ${isNew?'<span class="akt-new">NEW</span>':''}
       <span class="akt-icon" aria-hidden="true">${attrEsc(a.icon||'📌')}</span>
       <span>${attrEsc((IS_EN && a.name_en) ? a.name_en : a.name)}</span>
     </a>`;
@@ -3072,6 +3574,9 @@ if(BOOT && BOOT.nodes && PATH_ROUTING && !(location.hash && location.hash.indexO
     }
   }catch(e){ bootShown = false; }
 }
+// Aktuálne: čerstvý aktualne.json hneď pri otvorení stránky, ZVLÁŠŤ od data.json
+// (malý súbor, bez cache) — lišta sa prekreslí, len čo príde.
+aktRefresh();
 load().then(()=>{
   if(!bootShown){ initApp(); return; }
   if(DB._partial){ return; } // celé dáta sa nepodarilo stiahnuť — ostáva balík
