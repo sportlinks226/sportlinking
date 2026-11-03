@@ -60,6 +60,7 @@ header{
   width:100%;padding:9px 16px;border-radius:30px;
   border:2px solid rgba(232,66,66,.75);background:var(--surface);
   color:var(--text);font-size:0.88rem;outline:none;transition:.2s;
+  -webkit-appearance:none;appearance:none; /* type="search" (bod 13) — vzhľad ako predtým aj v Safari */
 }
 .h-search input:focus{border-color:#e84242;box-shadow:0 0 0 3px rgba(232,66,66,.2)}
 .btn-admin-tog{
@@ -379,8 +380,9 @@ h2.live-h{font-size:0.8rem}
   position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:200;
   display:flex;align-items:center;justify-content:center;padding:20px;
   opacity:0;pointer-events:none;transition:.2s;
+  visibility:hidden; /* bod 1 (previerka 2): zatvorené okno je skutočne skryté — Tab ani čítačka sa doň nedostanú */
 }
-.mo.open{opacity:1;pointer-events:all}
+.mo.open{opacity:1;pointer-events:all;visibility:visible}
 .mo-box{
   background:#1a2a3a;border:1.5px solid var(--border);border-radius:14px;
   padding:26px;width:100%;max-width:440px;
@@ -416,7 +418,15 @@ h2.live-h{font-size:0.8rem}
   background:var(--surface);border:1.5px solid var(--border);border-radius:14px;
   padding:30px;width:300px;text-align:center;
 }
+.pw-box{position:relative}
+.pw-x{position:absolute;top:8px;right:10px;background:none;border:none;color:var(--muted);font-size:1.3rem;line-height:1;cursor:pointer;padding:4px 8px;border-radius:6px}
+.pw-x:hover,.pw-x:focus-visible{color:var(--text)}
 .pw-box h3{margin-bottom:16px}
+/* bod 13 (previerka 2): text len pre čítačku (oznam výsledkov hľadania) */
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+/* nadpis, na ktorý appka presunie kurzor po zmene sekcie — bez rámika */
+[tabindex="-1"]:focus{outline:none}
+.load-fail .btn{margin-top:14px}
 .pw-box input{
   width:100%;padding:10px 14px;border-radius:8px;border:1.5px solid var(--border);
   background:var(--bg);color:var(--text);font-size:1rem;outline:none;
@@ -567,6 +577,7 @@ button#aktMoreBadge{-webkit-appearance:none;appearance:none;margin:0;border:0;fo
 <!-- PW -->
 <div id="pwScreen" role="dialog" aria-modal="true" aria-label="Admin prístup">
   <div class="pw-box">
+    <button type="button" class="pw-x" id="pwClose" aria-label="Zavrieť" title="Zavrieť" onclick="closePw()">✕</button>
     <div style="font-size:2rem;margin-bottom:10px">🔐</div>
     <h3>Admin prístup</h3>
     <input type="password" id="pwIn" aria-label="Heslo" placeholder="Heslo" onkeydown="if(event.key==='Enter')chkPw()"/>
@@ -585,7 +596,7 @@ button#aktMoreBadge{-webkit-appearance:none;appearance:none;margin:0;border:0;fo
     </div>
   </a>
   <nav class="h-sports" id="hSports" aria-label="Športy"></nav>
-  <div class="h-search"><input type="text" id="srch" aria-label="Hľadaj v strome" placeholder="🔍  Hľadaj kdekoľvek v strome..." oninput="onSearch()"/></div>
+  <div class="h-search"><input type="search" id="srch" aria-label="Hľadaj v strome" placeholder="🔍  Hľadaj kdekoľvek v strome..." oninput="onSearch()"/></div>
   <div class="vswitch" id="vSwitch" role="group" aria-label="Zobrazenie"><button type="button" data-mode="tiles" class="on" title="Dlaždice" onclick="setViewMode('tiles')">▦ Dlaždice</button><button type="button" data-mode="cols" title="Stĺpce — priečinky sa otvárajú myšou" onclick="setViewMode('cols')">▥ Stĺpce</button></div>
   <button class="btn-admin-tog" id="adminTog" onclick="toggleAdmin()">⚙️ Admin</button>
 </header>
@@ -621,6 +632,7 @@ button#aktMoreBadge{-webkit-appearance:none;appearance:none;margin:0;border:0;fo
 
 <!-- MAIN -->
 <main id="main"></main>
+<div id="srLive" class="sr-only" aria-live="polite" aria-atomic="true"></div>
 <script>
 // Bod 6 (2.11.2026): generator vkladá do #main dlaždice DOMOVA (pre roboty bez
 // JavaScriptu). Ten istý HTML však slúži aj ako 404.html a pre podstránky
@@ -1221,9 +1233,19 @@ const LIVE_ID = "f_ltw";
 // vyhľadávanie). Na EN webe príznak nič nemení. ROVNAKO ako no_tile() v generator.py.
 function noTile(n){ return !IS_EN && !!n && n.noTileSk === true; }
 // deti priečinka tak, ako sa ukazujú ako DLAŽDICE (na domove bez noTileSk; admin vidí všetko)
+// Bod 5 (previerka 2): návštevník nevidí priečinky s 0 linkami — nemajú statickú
+// stránku (generator.py ich preskočí), ich adresa by vrátila 404. Admin ich vidí,
+// aby ich mohol plniť. Platí pre dlaždice, stĺpce aj ikonky športov v hlavičke.
 function tileKids(parentId){
   const a = getChildren(parentId);
-  return (parentId === null && !adminMode) ? a.filter(n=>!noTile(n)) : a;
+  if(adminMode) return a;
+  return a.filter(n => !(parentId === null && noTile(n)) && !emptyFolder(n));
+}
+// priečinok bez jedinej linky v podstrome (počet z balíka _cnt, inak spočítaný).
+// Aktuálne / Live This Week je výnimka — jeho linky prichádzajú z Aktuálnych, nie zo stromu.
+function emptyFolder(n){
+  if(!n || n.type !== 'folder' || n.id === LIVE_ID) return false;
+  return ((n._cnt !== undefined) ? n._cnt : countAll(n.id)) === 0;
 }
 // priečinok Aktuálne, ak na tomto webe existuje (SK: bez enOnly, EN: bez en:false), inak null
 function liveNode(){
@@ -1398,6 +1420,25 @@ function navigate(id, fromPopState){
   }
   render();
   renderBannerSlot(); // cielenie bannera na sekciu — prehodnotiť pri každej navigácii
+  // Bod 2 (previerka 2): po bežnom kliknutí začína nová sekcia hore. Pri Späť/Vpred
+  // posun nemeníme (prehliadač si ho pamätá). Stĺpcové zobrazenie sa posúva samo
+  // (colsIntoView) — skok hore by stĺpce odhodil, preto tam nie.
+  if(!fromPopState && !(viewMode==='cols' && colsAllowed())){ try{ window.scrollTo(0,0); }catch(e){} }
+  // Bod 13: kurzor klávesnice na nadpis sekcie (čítačka ohlási, kde je človek)
+  focusHeading();
+  // Bod 12: GoatCounter — každé preklikanie v appke je zobrazenie stránky.
+  // Prvé otvorenie webu nejde cez navigate() — to počíta skript GoatCounter sám.
+  try{ if(window.goatcounter && typeof window.goatcounter.count === 'function') window.goatcounter.count({path: location.pathname}); }catch(e){}
+}
+// Bod 13 (previerka 2): nadpis otvorenej sekcie (H1 v drobčekoch), na domove logo (H1).
+// tabindex="-1" = dá sa naň presunúť kurzor skriptom, ale Tab ho nepreskakuje.
+function focusHeading(){
+  try{
+    const h = (curId === null) ? document.querySelector('#homeLink .h-wordmark') : document.querySelector('#breadcrumb .bc-h');
+    if(!h) return;
+    h.setAttribute('tabindex', '-1');
+    h.focus({preventScroll: true});
+  }catch(e){}
 }
 
 window.addEventListener('popstate', function(e){
@@ -1504,7 +1545,7 @@ function updateLinkCount(){
   let l=0;
   if(DB._totalLinks !== undefined) l = DB._totalLinks; // z balíka BOOT
   else for(const n of DB.nodes){ if(n.type==='link') l++; }
-  const fmt = n => n.toLocaleString('sk-SK');           // 10 456 (medzera po tisícoch)
+  const fmt = n => n.toLocaleString(IS_EN ? 'en-US' : 'sk-SK'); // SK 10 456, EN 10,456 (bod 30)
   const txt = IS_EN ? 'verified links' : 'overených liniek';
   if(!el.querySelector('b')) el.innerHTML = '<b>0</b><span>'+txt+'</span>';
   const b = el.querySelector('b');
@@ -1612,7 +1653,21 @@ function updateHead(){
 
 // text počas doťahovania celých dát (hĺbka 2+ a hľadanie pred príchodom data.json)
 function loadingHtml(){
+  if(DATA_FAIL) return failHtml();
   return `<div class="empty"><div class="e-icon">⏳</div><p>${IS_EN?'Loading…':'Načítavam…'}</p></div>`;
+}
+// Bod 3 (previerka 2): data.json sa nepodarilo stiahnuť (výpadok, slabý signál).
+// Namiesto večného „Načítavam…“ správa a tlačidlo, ktoré sťahovanie zopakuje.
+let DATA_FAIL = false;
+function failHtml(){
+  return `<div class="empty load-fail" role="alert"><div class="e-icon">⚠️</div><p>${IS_EN?'Could not load data':'Nepodarilo sa načítať dáta'}</p>`
+       + `<button type="button" class="btn btn-p" onclick="retryLoad()">${IS_EN?'Try again':'Skúsiť znova'}</button></div>`;
+}
+function retryLoad(){
+  if(!DATA_FAIL) return;
+  DATA_FAIL = false;
+  render();                    // kým sa sťahuje, ukáže sa opäť „Načítavam…“
+  load().then(()=>afterLoad(true));
 }
 function render(){
   rebuildChildIndex();
@@ -1626,9 +1681,10 @@ function render(){
   if(aktWrap) aktWrap.style.display = (curId===LIVE_ID && !adminMode) ? 'none' : '';
   const q = document.getElementById('srch').value.trim().toLowerCase();
   if(q){
-    if(DB._partial){ document.getElementById('main').innerHTML = loadingHtml(); return; }
+    if(DB._partial || (DATA_FAIL && !(DB.nodes||[]).length)){ document.getElementById('main').innerHTML = loadingHtml(); return; }
     renderSearch(q); return;
   }
+  srAnnounce('');
   renderLevel();
 }
 
@@ -1640,7 +1696,7 @@ function renderSportsNav(){
   if(!nav) return;
   const rootId = curId === null ? null : (getPath(curId)[0]?.id ?? null);
   nav.setAttribute('aria-label', IS_EN ? 'Sports' : 'Športy');
-  nav.innerHTML = getChildren(null).filter(n=>n.type==='folder' && !noTile(n)).map(n=>{
+  nav.innerHTML = getChildren(null).filter(n=>n.type==='folder' && !noTile(n) && (adminMode || !emptyFolder(n))).map(n=>{
     const nm = attrEsc(nName(n));
     return `<a href="${attrEsc(urlForId(n.id))}" onclick="return navClick(event,'${n.id}')" class="${n.id===rootId?'on':''}" aria-label="${nm}">${renderIcon(n.icon,'24x18')}<span>${nm}</span></a>`;
   }).join('');
@@ -1688,6 +1744,8 @@ let _lvlHtml = null, _lvlSkipSame = false;
 function renderLevel(){
   const main = document.getElementById('main');
   const prvy = prvyRenderLevel; prvyRenderLevel = false;
+  // bod 3: na webe neprišli žiadne dáta (ani štartovací balík) — správa namiesto „prázdnej sekcie“
+  if(DATA_FAIL && !(DB.nodes||[]).length){ main.innerHTML = failHtml(); _lvlHtml = null; return; }
   if(DB._partial && curId !== null){
     // štartovací balík má len hlavné sekcie a ich podsekcie — hlbšie deti ešte nie sú.
     // _k = deti priečinka sú v balíku kompletné (mini-balík podstránky, bod 2).
@@ -1893,7 +1951,7 @@ function renderColumns(main, promoHtml, fromHover){
     }
     html += `<div class="col" data-lv="${lv}"><div class="col-title">${attrEsc(title)}</div>`;
     if(DB._partial && pn && pn.parentId !== null && !pn._k){ html += loadingHtml() + '</div>'; return; } // štartovací balík: hlbšie deti ešte nie sú (_k = mini-balík podstránky)
-    (pid===null ? tileKids(null) : getChildren(pid)).forEach(n => { // koreň bez noTileSk
+    tileKids(pid).forEach(n => { // koreň bez noTileSk; bez prázdnych priečinkov (bod 5)
       if(n.type==='folder'){
         // zvýrazní sa len to, kade práve ide myš; červený rámik (pripnuté = adresa
         // stránky) iba ak pripnutý priečinok leží na tejto ceste (Miro 29.10.2026)
@@ -2138,8 +2196,13 @@ const SRCH_MAX = 200;
 const _srchCache = new WeakMap(); // max. počet zobrazených kariet v každej skupine
 
 // Normalizácia — odstráni diakritiku, aby "spravy" našlo aj "Správy"
+// Bod 4 (previerka 2): písmená, ktoré NFD nerozloží (ø, ł, ß…), sa nahradia ručne —
+// „brondby“ nájde Brøndby, „lodz“ Łódź, „preussen“ Preußen. LEN pre vyhľadávanie,
+// slugify() (adresy stránok) sa nemení. Veľké písmená rieši toLowerCase() pred tým.
+const NORM_EXTRA = {'ł':'l','ø':'o','ß':'ss','ı':'i','æ':'ae','œ':'oe','đ':'d','ð':'d','þ':'th','ə':'e'};
 function norm(s){
-  return (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+  return (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .replace(/[łøßıæœđðþə]/g, c => NORM_EXTRA[c]);
 }
 
 // Výrez popisu okolo hľadaného slova (pre sekciu „Spomenuté v popise“)
@@ -2173,6 +2236,17 @@ function srchSnip(text, nq, words){
   return `<div class="sr-snip">${s0>0?'…':''}${out}${s1<text.length?'…':''}</div>`;
 }
 
+// Bod 13 (previerka 2): oznam pre čítačku (skrytý prvok #srLive, aria-live="polite").
+// Rovnaký text sa znova nezapisuje — čítačka by ho opakovala pri každom prekreslení.
+function srAnnounce(t){
+  const el = document.getElementById('srLive');
+  if(el && el.textContent !== t) el.textContent = t;
+}
+function searchCountText(n){
+  if(IS_EN) return n === 1 ? '1 result found' : n + ' results found';
+  const f = n.toLocaleString('sk-SK');
+  return n === 1 ? 'Nájdený 1 výsledok' : (n >= 2 && n <= 4) ? 'Nájdené ' + f + ' výsledky' : 'Nájdených ' + f + ' výsledkov';
+}
 function renderSearch(q){
   const nq = norm(q);
   let pool = DB.nodes;
@@ -2230,6 +2304,7 @@ function renderSearch(q){
   pool.forEach(n=>{ const sc = score(n); if(sc>=0) scored.push({n,sc}); });
   scored.sort((x,y)=>x.sc-y.sc); // stabilné triedenie — v rámci skóre ostáva poradie stromu
   const main = document.getElementById('main');
+  srAnnounce(searchCountText(scored.length));
   if(scored.length === 0){
     main.innerHTML = `<div class="empty"><div class="e-icon">🔍</div><p>${IS_EN?'No results for':'Žiadne výsledky pre'} "<strong>${attrEsc(q)}</strong>"</p></div>`;
     return;
@@ -2360,11 +2435,14 @@ function favError(img){
 let _adminPending = false;
 function toggleAdmin(){
   if(adminMode){ logoutAdmin(); return; }
+  // bod 3: celé dáta sa nepodarilo stiahnuť — správa so „Skúsiť znova“; admin sa otvorí po úspechu
+  if(DATA_FAIL){ _adminPending = true; document.getElementById('main').innerHTML = failHtml(); _lvlHtml = null; return; }
   if(DB._partial){ _adminPending = true; return; } // celé dáta ešte nedorazili (BOOT)
   // Súbor otvorený z disku bez dát (prázdna IndexedDB → DEFAULT bez hesla):
   // pusti do admina bez hesla, aby sa dal spraviť Import. Na webe NIKDY.
   if(!hasPw(DB) && location.protocol === 'file:'){ enterAdmin(); return; }
   document.getElementById('pwScreen').classList.add('open');
+  const px = document.getElementById('pwClose'); if(px) px.setAttribute('aria-label', IS_EN ? 'Close' : 'Zavrieť');
   document.getElementById('pwIn').value='';
   document.getElementById('pwErr').textContent='';
   setTimeout(()=>document.getElementById('pwIn').focus(),100);
@@ -2647,7 +2725,19 @@ function closeMo(id){ document.getElementById(id).classList.remove('open'); }
 document.querySelectorAll('.mo').forEach(m=>{
   m.addEventListener('click',e=>{ if(e.target===m) m.classList.remove('open'); });
 });
+// Bod 27 (previerka 2): okno s heslom sa dá zavrieť krížikom aj klávesom Escape.
+// #admin sa z adresy odstráni (ak tam ešte je), aby sa okno po F5 neotvorilo znova.
+function closePw(){
+  const ps = document.getElementById('pwScreen');
+  if(!ps.classList.contains('open')) return;
+  ps.classList.remove('open');
+  document.getElementById('pwIn').value = '';
+  document.getElementById('pwErr').textContent = '';
+  if(location.hash === '#admin'){ try{ history.replaceState(history.state, '', location.pathname + location.search); }catch(e){} }
+  focusHeading();
+}
 document.addEventListener('keydown',e=>{
+  if(e.key==='Escape' && document.getElementById('pwScreen').classList.contains('open')){ closePw(); return; }
   if(e.key==='Escape') document.querySelectorAll('.mo.open').forEach(m=>m.classList.remove('open'));
   if(e.key==='Enter'&&document.getElementById('pwScreen').classList.contains('open')) chkPw();
 });
@@ -3697,6 +3787,7 @@ function initApp(){
   renderAktualne();
   startBanners(); // rotácia bannerov musí bežať hneď od načítania stránky
   checkAdminHash();
+  if(_adminPending && !DATA_FAIL){ _adminPending = false; toggleAdmin(); } // Admin čakal na „Skúsiť znova“ (bod 3)
 }
 
 // RÝCHLY ŠTART (od 2.10.2026): ak generator vložil štartovací balík BOOT, domovská
@@ -3743,9 +3834,21 @@ if(BOOT && BOOT.nodes && PATH_ROUTING && !(location.hash && location.hash.indexO
 // Aktuálne: čerstvý aktualne.json hneď pri otvorení stránky, ZVLÁŠŤ od data.json
 // (malý súbor, bez cache) — lišta sa prekreslí, len čo príde.
 aktRefresh();
-load().then(()=>{
-  if(!bootShown){ initApp(); return; }
-  if(DB._partial){ return; } // celé dáta sa nepodarilo stiahnuť — ostáva balík
+load().then(()=>afterLoad(false));
+// Po stiahnutí dát (aj po „Skúsiť znova“, opakovanie = true).
+function afterLoad(opakovanie){
+  // bod 3: na webe sa data.json nestiahol — ostáva balík (alebo nič). Hlbšie sekcie,
+  // hľadanie aj Admin potom ukážu správu s tlačidlom „Skúsiť znova“ (failHtml).
+  DATA_FAIL = PATH_ROUTING && !!(DB._partial || !(DB.nodes||[]).length);
+  if(!bootShown){
+    if(opakovanie && DATA_FAIL){ render(); if(_adminPending) toggleAdmin(); return; }
+    initApp(); return;
+  }
+  if(DB._partial){ // celé dáta sa nepodarilo stiahnuť — ostáva balík, „Načítavam…“ → správa
+    _lvlSkipSame = true; render(); _lvlSkipSame = false;
+    checkAdminHash(); if(_adminPending) toggleAdmin(); // čakajúci Admin tiež ukáže správu
+    return;
+  }
   // Celé dáta dorazili. Domov a hlavné sekcie už na obrazovke sú (počty z balíka
   // sú zhodné) — tie sa NEPREKRESĽUJÚ, aby karty nepreblikli. Prekreslí sa len
   // hĺbka 2+ („Načítavam…“) a rozpísané hľadanie; hlavička/popis vždy.
@@ -3760,11 +3863,12 @@ load().then(()=>{
   const maLinky = cur && cur.id !== LIVE_ID && getChildren(cur.id).some(k => k.type === 'link');
   // _lvlSkipSame: obsah zhodný s balíkom sa neprepisuje (karty nepreblikú)
   // stránka Aktuálne: úvodný text (popis) mohol v balíku chýbať — prekreslí sa, ak sa líši
-  if(q || hlboko || maLinky || (curId && !cur) || curId === LIVE_ID){ _lvlSkipSame = true; render(); _lvlSkipSame = false; }
+  // po „Skúsiť znova“ sa prekreslí vždy — na obrazovke mohla byť správa o chybe aj na domove (Admin)
+  if(opakovanie || q || hlboko || maLinky || (curId && !cur) || curId === LIVE_ID){ _lvlSkipSame = true; render(); _lvlSkipSame = false; }
   else { updateLinkCount(); updateHead(); }
   checkAdminHash();
   if(_adminPending){ _adminPending = false; toggleAdmin(); }
-});
+}
 </script>
 <!-- GoatCounter — anonymná návštevnosť (bez cookies), štatistiky: sportlinky.goatcounter.com -->
 <script data-goatcounter="https://sportlinky.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
