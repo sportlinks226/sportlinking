@@ -25,7 +25,10 @@ Ukladanie (priečinok ikony/):
 
 Pri každom builde:
   - dotiahne weby, ktoré ešte výsledok nemajú (nové weby, chyby z minula),
-  - obnoví dávku najstarších (aspoň 1/30 všetkých → každá ikonka ~raz za 30 dní),
+  - obnoví LEN ikonky, ktoré majú v stav.json dátum starší ako 30 dní (najstaršie
+    prvé, najviac --obnov = 300 za jeden build; bod 9 previerky 2, 4.11.2026).
+    Keď sa obnovená ikonka nezmenila, súbor .png sa neprepisuje,
+  - keď sa v build nič nestiahlo ani nezmenilo, stav.json sa neprepíše (žiadny commit),
   - web, ktorý chýba v dátach 30+ dní, zmaže (súbor aj záznam). Poistka: ak sa
     dáta nepodarilo načítať alebo je webov podozrivo málo (< 80 % počtu
     v stav.json), NEMAŽE NIČ a len vypíše upozornenie.
@@ -45,7 +48,6 @@ Použitie:
 import argparse
 import datetime as dt
 import json
-import math
 import os
 import random
 import re
@@ -79,6 +81,7 @@ SAFE_HOST = re.compile(r'^[a-z0-9](?:[a-z0-9-]{0,62})(?:\.[a-z0-9-]{1,63})*$')
 MAX_BYTES = 512 * 1024
 YANDEX_MAX_CHYB = 3      # po toľkých buildoch s nedostupným Yandexom → Googlov obrázok
 ZMAZAT_PO_DNOCH = 30
+OBNOV_PO_DNOCH = 30      # ikonka staršia ako toľko dní sa stiahne znova (bod 9)
 POISTKA_PODIEL = 0.80
 
 
@@ -350,7 +353,15 @@ def git_uloz(priecinok, sprava):
         r = g("commit", "-m", sprava + " [skip ci]", "--", priecinok)
         if r.returncode != 0:
             log("  git commit zlyhal:", r.stderr.strip()[:300]); return
-        g("pull", "--rebase", "--autostash", "origin", "main")  # --autostash: EN build má zmenený data.json (stiahnutý zo SK webu) — odloží sa a vráti, NEcommituje sa
+        # --autostash: neuložené zmeny v pracovnom priečinku (napr. sitemap-lastmod.json) sa odložia a vrátia, NEcommitujú sa
+        r = g("pull", "--rebase", "--autostash", "origin", "main")
+        if r.returncode != 0:
+            # bod 8: nepokračovať v polorozbitom stave — rebase zrušiť a NEpushovať;
+            # commit ostane len lokálne, ikonky sa dorovnajú pri ďalšom builde
+            g("rebase", "--abort")
+            log("  UPOZORNENIE: git pull --rebase zlyhal — rebase zrušený, NEpushujem "
+                f"(dorovná sa pri ďalšom builde): {(r.stderr or r.stdout).strip()[:300]}")
+            return
         r = g("push", "origin", "HEAD:main")
         log("  git: uložené do repozitára" if r.returncode == 0
             else f"  git push zlyhal (dorovná sa neskôr): {r.stderr.strip()[:300]}")
@@ -366,7 +377,8 @@ def main():
     ap.add_argument("--limit", type=float, default=12 * 60, help="časový limit v sekundách (12 min)")
     ap.add_argument("--naraz", type=int, default=12, help="max. súbežných požiadaviek")
     ap.add_argument("--timeout", type=float, default=10.0)
-    ap.add_argument("--obnov", type=int, default=0, help="koľko najstarších obnoviť (0 = 1/30 všetkých, min. 50)")
+    ap.add_argument("--obnov", type=int, default=300,
+                    help=f"max. počet ikoniek starších ako {OBNOV_PO_DNOCH} dní, ktoré sa obnovia v jednom builde")
     ap.add_argument("--git", action="store_true", help="priebežne commitovať a pushovať ikony/")
     ap.add_argument("--git-kazdych", type=float, default=180.0, help="sekúnd medzi priebežnými commitmi")
     ap.add_argument("--vzorka", type=int, default=0, help="skúška: len N náhodných hostov (nič nemaže)")
@@ -380,6 +392,8 @@ def main():
     os.makedirs(a.dir, exist_ok=True)
     stav_cesta = os.path.join(a.dir, "stav.json")
     stav = nacitaj_stav(stav_cesta)
+    # bod 9: obsah stav.json pri poslednom uložení — zapisuje sa len pri skutočnej zmene
+    ulozeny_stav = json.dumps(stav, sort_keys=True)
 
     data_ok = True
     try:
@@ -434,9 +448,10 @@ def main():
         # chyby z minula až za úplne novými
         nove.sort(key=lambda h: stav.get(h, {}).get("chyby", 0))
         hotove = [h for h in hosty if stav.get(h, {}).get("vysledok")]
-        obnov = a.obnov or max(50, math.ceil(len(hosty) / 30))
+        # bod 9: obnova LEN ikoniek starších ako OBNOV_PO_DNOCH dní, najstaršie prvé, max. --obnov
+        hranica = (dt.date.fromisoformat(dnes) - dt.timedelta(days=OBNOV_PO_DNOCH)).isoformat()
         hotove.sort(key=lambda h: (stav[h].get("datum", ""), h))
-        stare = [h for h in hotove[:obnov] if stav[h].get("datum", "") < dnes]
+        stare = [h for h in hotove if stav[h].get("datum", "") < hranica][:max(0, a.obnov)]
         na_rad = [(h, "nový") for h in nove] + [(h, "obnova") for h in stare]
         log(f"Webov v dátach: {len(hosty)} | v stav.json s výsledkom: {len(hotove)} | "
             f"na stiahnutie nových: {len(nove)} | na obnovu: {len(stare)}")
@@ -448,11 +463,14 @@ def main():
     zmena_od_ulozenia = False
 
     def priebezne_uloz(final=False):
-        nonlocal posledny_git, zmena_od_ulozenia
+        nonlocal posledny_git, zmena_od_ulozenia, ulozeny_stav
         if skuska:
             return
-        if zmena_od_ulozenia or final:
+        # bod 9: stav.json sa prepíše len pri skutočnej zmene (inak žiadny zbytočný commit)
+        teraz = json.dumps(stav, sort_keys=True)
+        if teraz != ulozeny_stav:
             uloz_stav(stav_cesta, stav)
+            ulozeny_stav = teraz
         if a.git and (zmena_od_ulozenia or final):
             git_uloz(a.dir, f"ikony: {pocty['ok']} ok, {pocty['none']} bez ikonky"
                      + (" (priebežne)" if not final else ""))
@@ -475,7 +493,14 @@ def main():
             zmena_od_ulozenia = True
             return
         pocty[r["vysledok"]] += 1
-        zapis_atomicky(os.path.join(a.dir, host + ".png"), r["data"])
+        subor = os.path.join(a.dir, host + ".png")
+        try:
+            with open(subor, "rb") as f:
+                rovnaky = f.read() == r["data"]
+        except OSError:
+            rovnaky = False
+        if not rovnaky:           # nezmenený obrázok sa neprepisuje
+            zapis_atomicky(subor, r["data"])
         if not skuska:
             stav[host] = {"datum": dnes, "vysledok": r["vysledok"], "zdroj": r["zdroj"]}
             zmena_od_ulozenia = True

@@ -17,14 +17,14 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
       - name: Stiahni aktuálne dáta zo slovenského webu (ako build)
         run: |
-          curl -fsSL --retry 3 "https://www.sportlinky.sk/data-full.json?build=$GITHUB_RUN_ID" -o data.json \
-            || curl -fsSL --retry 3 "https://www.sportlinky.sk/data.json?build=$GITHUB_RUN_ID" -o data.json
+          curl -fsSL --retry 3 "https://sportlinky.sk/data-full.json?build=$GITHUB_RUN_ID" -o data.json \
+            || curl -fsSL --retry 3 "https://sportlinky.sk/data.json?build=$GITHUB_RUN_ID" -o data.json
       - name: Vzorka 200 webov (ikony.py)
         run: |
           python ikony.py --vzorka 200 --dir _vzorka --vystup vzorka.json \
@@ -44,7 +44,7 @@ jobs:
           python ikony.py --vzorka 1000 --dir _odhad --vystup odhad.json
           du -sh _vzorka _odhad; ls _odhad | wc -l
           python -c "import json;d=json.load(open('odhad.json'));print('ODHAD:',d['trvanie_s'],'s na 1000 webov',d['pocty'])"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: ikony-vzorka

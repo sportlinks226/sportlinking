@@ -1,6 +1,11 @@
 # GitHub Actions pre ANGLICKÝ web (sportlinking.com).
-# Pri každej zmene v repozitári + každý deň o 5:00 ráno si stiahne
-# aktuálne úplné dáta (data-full.json) zo slovenského webu a vygeneruje anglické stránky.
+# Stiahne aktuálne úplné dáta (data-full.json) zo slovenského webu a vygeneruje
+# anglické stránky. Kedy beží (od Zadania 21 previerky 2, 4.11.2026):
+#   - HLAVNE po každom builde SK webu — SK build (repozitár sport-linky, úloha
+#     en-build) ho spustí sám cez workflow_dispatch (token EN_BUILD_TOKEN),
+#     ručné spúšťanie už netreba,
+#   - pri každej zmene v tomto repozitári (push do main),
+#   - raz denne ako POISTKA (cron nižšie), keby spustenie zo SK zlyhalo.
 # Sitemap lastmod = skutočná zmena stránky (od 2.10.2026, stav v sitemap-lastmod.json,
 # commitne ho krok „Ulož dátumy zmien pre sitemap"). data.json sa NEcommituje.
 # UMIESTNENIE V REPOZITÁRI: .github/workflows/build.yml
@@ -11,7 +16,10 @@ on:
   push:
     branches: [main]
   schedule:
-    - cron: "0 3 * * *"   # denne 3:00 UTC (5:00 v lete u nás) — prevezme zmeny dát
+    # len POISTKA: denne 4:41 UTC (5:41 v zime, 6:41 v lete u nás), neokrúhla minúta
+    # (o celej hodine je GitHub preťažený). Hlavne EN build spúšťa SK build sám.
+    - cron: "41 4 * * *"
+  # workflow_dispatch MUSÍ ostať — cezeň EN build spúšťa SK build (úloha en-build)
   workflow_dispatch:
 
 # Oprávnenia (bod 27 previerky): na úrovni celého workflow len čítanie;
@@ -19,23 +27,30 @@ on:
 permissions:
   contents: read
 
-concurrency:
-  group: pages
-  cancel-in-progress: true
+# Súbežnosť (bod 18) je nastavená pri ÚLOHÁCH, nie pre celý workflow — rušenie
+# na úrovni workflow by zrušilo celý starší beh aj s rozbehnutým nasadením:
+#   - build:  skupina pages-build, nový build zruší starší, ktorý ešte len stavia,
+#   - deploy: skupina pages-deploy BEZ rušenia — nasadenie sa nikdy nepreruší.
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 45   # bod 18: dáta + vlajky (max 10) + ikonky (max 15) + generátor a rezerva
+    concurrency:
+      group: pages-build
+      cancel-in-progress: true   # nový build zruší starší, ktorý ešte len stavia
     permissions:
       contents: write   # commit sitemap-lastmod.json (dátumy zmien pre sitemap), ikony/ a vlajky/
       pages: read       # configure-pages zisťuje adresu webu (BASE_URL)
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
+        with:
+          ref: main   # bod 8: vždy najnovší main (commity ikoniek/vlajok/sitemap idú do main)
 
-      - uses: actions/configure-pages@v5
+      - uses: actions/configure-pages@v6
         id: pages
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
 
@@ -47,8 +62,9 @@ jobs:
           # Od opravy 6 (body 3+13, 26.10.2026) je na SK webe data.json ODĽAHČENÝ
           # (bez anglických textov) — úplné dáta sú v data-full.json. Kým SK web
           # data-full.json ešte nemá, použije sa po starom data.json.
-          curl -fsSL --retry 3 "https://www.sportlinky.sk/data-full.json?build=$GITHUB_RUN_ID" -o data.json \
-            || curl -fsSL --retry 3 "https://www.sportlinky.sk/data.json?build=$GITHUB_RUN_ID" -o data.json
+          # Adresa BEZ www (bod 30): web beží na sportlinky.sk, www išlo cez presmerovanie.
+          curl -fsSL --retry 3 "https://sportlinky.sk/data-full.json?build=$GITHUB_RUN_ID" -o data.json \
+            || curl -fsSL --retry 3 "https://sportlinky.sk/data.json?build=$GITHUB_RUN_ID" -o data.json
           # Poistka: odľahčené dáta (_lite) by zmazali anglické texty — build radšej zastav.
           python -c "import json,sys; d=json.load(open('data.json', encoding='utf-8')); sys.exit('CHYBA: stiahnuté dáta sú odľahčené (_lite), chýba data-full.json') if d.get('_lite') else print('data.json OK, verzia', d.get('version'), ',', len(d.get('nodes',[])), 'uzlov')"
 
@@ -99,7 +115,8 @@ jobs:
       # nemaže). Vlastné ikonky EN webu sa ukladajú do ikony/ v TOMTO repozitári
       # a PRIEBEŽNE (každé ~3 min) sa commitujú „[skip ci]" — commituje sa LEN
       # ikony/, stiahnutý data.json NIE. Limit 12 min — čo nestihne, dotiahne ďalší
-      # build. Build kvôli ikonkám NIKDY nespadne (continue-on-error, timeout).
+      # build. Obnovujú sa LEN ikonky staršie ako 30 dní (max. 300 za build, bod 9).
+      # Build kvôli ikonkám NIKDY nespadne (continue-on-error, timeout).
       - name: Stiahni ikonky webov
         continue-on-error: true
         timeout-minutes: 15
@@ -119,6 +136,8 @@ jobs:
       # generator zapíše sitemap-lastmod.json; ak sa zmenil, uloží sa do repozitára.
       # „[skip ci]" zabráni, aby tento commit spustil ďalší build. Zlyhanie
       # (napr. súbežný push) deploy NEZASTAVÍ — dátumy sa dorovnajú pri ďalšom builde.
+      # Bod 8: keď „git pull --rebase" zlyhá, rebase sa zruší (žiadny polorozbitý
+      # stav) a NEpushuje sa — len varovanie v logu.
       - name: Ulož dátumy zmien pre sitemap
         continue-on-error: true
         run: |
@@ -127,19 +146,28 @@ jobs:
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
             git add sitemap-lastmod.json
             git commit -m "sitemap: dátumy zmien stránok [skip ci]"
-            git pull --rebase origin main || true
-            git push
+            if git pull --rebase origin main; then
+              git push || echo "::warning::git push sitemap-lastmod.json zlyhal — dorovná sa pri ďalšom builde"
+            else
+              git rebase --abort || true
+              echo "::warning::git pull --rebase zlyhal — rebase zrušený, NEpushujem (dátumy sa dorovnajú pri ďalšom builde)"
+            fi
           else
             echo "sitemap-lastmod.json bez zmeny"
           fi
 
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@v5
         with:
           path: _site
 
   deploy:
     needs: build
     runs-on: ubuntu-latest
+    # bod 18: vlastná skupina BEZ rušenia — rozbehnuté nasadenie sa nikdy neprekuší,
+    # ďalšie počká, kým dobehne.
+    concurrency:
+      group: pages-deploy
+      cancel-in-progress: false
     permissions:
       pages: write      # nasadenie na GitHub Pages
       id-token: write   # overenie nasadenia (OIDC)
@@ -147,5 +175,5 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - uses: actions/deploy-pages@v4
+      - uses: actions/deploy-pages@v5
         id: deployment

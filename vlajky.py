@@ -153,7 +153,13 @@ def git_uloz(priecinok, sprava):
         if r.returncode != 0:
             log("git commit zlyhal:", r.stderr.strip()[:300]); return
         # --autostash: iné neuložené zmeny (napr. ikony/) sa odložia a vrátia, NEcommitujú sa
-        g("pull", "--rebase", "--autostash", "origin", "main")
+        r = g("pull", "--rebase", "--autostash", "origin", "main")
+        if r.returncode != 0:
+            # bod 8: nepokračovať v polorozbitom stave — rebase zrušiť a NEpushovať
+            g("rebase", "--abort")
+            log("UPOZORNENIE: git pull --rebase zlyhal — rebase zrušený, NEpushujem "
+                f"(vlajky sa dorovnajú pri ďalšom builde): {(r.stderr or r.stdout).strip()[:300]}")
+            return
         r = g("push", "origin", "HEAD:main")
         log("git: vlajky uložené do repozitára" if r.returncode == 0
             else f"git push zlyhal (dorovná sa pri ďalšom builde): {r.stderr.strip()[:300]}")
