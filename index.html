@@ -88,16 +88,17 @@ header{
 .vswitch button:hover{color:var(--text)}
 .admin-mode .vswitch{display:none}
 @media(max-width:700px),(hover:none){.vswitch{display:none}}
-/* ===== STĹPCOVÉ ZOBRAZENIE (29.10.2026): priečinky sa otvárajú prechodom myši do
-   ďalšieho stĺpca vpravo, linka ukáže popis v paneli; staršie stĺpce sa zbalia do pásikov ===== */
-main.cols-mode{max-width:1320px;min-height:calc(100vh - 100px)} /* aby sa stránka dala posunúť až po hlavičku */
-.cols{display:flex;gap:8px;align-items:flex-start;overflow-x:auto;padding-bottom:6px}
-.col{flex:0 0 220px;width:220px;max-height:calc(100vh - 130px);min-height:140px;overflow-y:auto;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:6px}
+/* ===== STĹPCOVÉ ZOBRAZENIE (prepis 4.11.2026, Zadanie 26b): priečinky sa otvárajú myšou
+   do ďalšieho stĺpca vpravo, linka ukáže popis v paneli. Pás stĺpcov je prilepený pod
+   hlavičkou (top a výšku nastavuje colsLayout podľa okna; obal .cols-box má výšku prilepeného
+   pásu, aby sa stránka dala posunúť presne po prilepenie), pri hĺbke sa posúva vodorovne
+   (ako Finder) — bez pásikov, bez samoposunu stránky, bez auto-rolovania. ===== */
+main.cols-mode{max-width:1800px;padding-bottom:0} /* pás si necháva miesto na pätičku (colsLayout) — stránka sa nedá posunúť ďalej, než kde sa pás prilepí */
+body.cols-on footer{margin-top:10px}
+.cols{display:flex;gap:8px;align-items:flex-start;overflow-x:auto;overflow-y:hidden;padding-bottom:6px;position:sticky;top:105px;scroll-behavior:smooth;overscroll-behavior:contain}
+@media (prefers-reduced-motion: reduce){.cols{scroll-behavior:auto}}
+.col{flex:0 0 var(--colw,220px);width:var(--colw,220px);max-height:100%;min-height:140px;overflow-y:auto;overscroll-behavior:contain;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:6px}
 .col-title{font-size:.66rem;letter-spacing:1px;text-transform:uppercase;color:var(--muted);padding:6px 10px 4px;position:sticky;top:0;background:var(--surface);z-index:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.col.collapsed{flex:0 0 34px;width:34px;cursor:pointer;padding:10px 0;display:flex;justify-content:center;overflow:hidden;align-self:stretch}
-.col.collapsed .col-vt{writing-mode:vertical-rl;transform:rotate(180deg);font-size:.74rem;color:var(--muted);white-space:nowrap}
-.col.collapsed:hover{border-color:var(--accent)}
-.col.collapsed:hover .col-vt{color:var(--text)}
 .cit{display:flex;align-items:center;gap:7px;padding:7px 8px;border-radius:8px;cursor:pointer;font-size:.85rem;line-height:1.2;border:1px solid transparent;text-decoration:none;color:inherit}
 .cit:hover{background:var(--surface2)}
 .cit.open{background:var(--surface2);border-color:var(--border)}
@@ -111,7 +112,7 @@ main.cols-mode{max-width:1320px;min-height:calc(100vh - 100px)} /* aby sa strán
 .cit .fav-fb{width:18px;height:18px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:14px}
 .cit .lt{font-size:.55rem;font-weight:800;letter-spacing:.5px;background:var(--accent-strong);color:#fff;padding:1px 5px;border-radius:4px;margin-right:5px;vertical-align:middle}
 .cit .soc{font-size:.6rem;color:var(--muted);flex-shrink:0;letter-spacing:.5px}
-.cdetail{flex:0 0 280px;width:280px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;font-size:.85rem;max-height:calc(100vh - 130px);overflow-y:auto}
+.cdetail{flex:0 0 280px;width:280px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;font-size:.85rem;max-height:100%;overflow-y:auto;overscroll-behavior:contain}
 .cdetail h3{margin:0 0 6px;font-size:1.02rem;display:flex;align-items:center;gap:8px;line-height:1.25}
 .cdetail .host{font-size:.75rem;color:var(--accent-text);margin-bottom:10px;word-break:break-all}
 .cdetail p{margin:0 0 12px;color:var(--muted);line-height:1.5}
@@ -597,7 +598,7 @@ button#aktMoreBadge{-webkit-appearance:none;appearance:none;margin:0;border:0;fo
   </a>
   <nav class="h-sports" id="hSports" aria-label="Športy"></nav>
   <div class="h-search"><input type="search" id="srch" aria-label="Hľadaj v strome" placeholder="🔍  Hľadaj kdekoľvek v strome..." oninput="onSearch()"/></div>
-  <div class="vswitch" id="vSwitch" role="group" aria-label="Zobrazenie"><button type="button" data-mode="tiles" class="on" title="Dlaždice" onclick="setViewMode('tiles')">▦ Dlaždice</button><button type="button" data-mode="cols" title="Stĺpce — priečinky sa otvárajú myšou" onclick="setViewMode('cols')">▥ Stĺpce</button></div>
+  <div class="vswitch" id="vSwitch" role="group" aria-label="Zobrazenie"><button type="button" data-mode="tiles" class="on" aria-pressed="true" title="Dlaždice" onclick="setViewMode('tiles')">▦ Dlaždice</button><button type="button" data-mode="cols" aria-pressed="false" title="Stĺpce — priečinky sa otvárajú myšou" onclick="setViewMode('cols')">▥ Stĺpce</button></div>
   <button class="btn-admin-tog" id="adminTog" onclick="toggleAdmin()">⚙️ Admin</button>
 </header>
 
@@ -1423,9 +1424,10 @@ function navigate(id, fromPopState){
   render();
   renderBannerSlot(); // cielenie bannera na sekciu — prehodnotiť pri každej navigácii
   // Bod 2 (previerka 2): po bežnom kliknutí začína nová sekcia hore. Pri Späť/Vpred
-  // posun nemeníme (prehliadač si ho pamätá). Stĺpcové zobrazenie sa posúva samo
-  // (colsIntoView) — skok hore by stĺpce odhodil, preto tam nie.
+  // posun nemeníme (prehliadač si ho pamätá). V stĺpcoch je pás prilepený pod
+  // hlavičkou (Zadanie 26b) — skok hore netreba, colsAfterNav len doladí polohu.
   if(!fromPopState && !(viewMode==='cols' && colsAllowed())){ try{ window.scrollTo(0,0); }catch(e){} }
+  if(viewMode==='cols' && colsAllowed()) colsAfterNav(); // stĺpce: názvy pod hlavičkou viditeľné, pás posunutý na koniec
   // Bod 13: kurzor klávesnice na nadpis sekcie (čítačka ohlási, kde je človek)
   focusHeading();
   // Bod 12: GoatCounter — každé preklikanie v appke je zobrazenie stránky.
@@ -1472,16 +1474,25 @@ function liveWeekLinks(){
 // Index sa prestavia sám, keď sa vymení pole DB.nodes alebo zmení jeho dĺžka,
 // a navyše na začiatku každého render() (admin úpravy menia parentId bez
 // zmeny dĺžky).
-let _cIdx = null, _cSrc = null, _cLen = -1;
+let _cIdx = null, _cSrc = null, _cLen = -1; let _nIdx = new Map();
 function rebuildChildIndex(){
   _slugMemo = null;
-  _cIdx = new Map(); _cSrc = DB.nodes; _cLen = DB.nodes ? DB.nodes.length : 0;
+  _cIdx = new Map(); _nIdx = new Map(); _cSrc = DB.nodes; _cLen = DB.nodes ? DB.nodes.length : 0;
   if(!DB.nodes) return;
   for(const n of DB.nodes){
     let a = _cIdx.get(n.parentId);
     if(!a){ a = []; _cIdx.set(n.parentId, a); }
     a.push(n);
+    _nIdx.set(n.id, n);
   }
+}
+// uzol podľa id z indexu (Zadanie 26c): getChildren na EN webe hľadal rodiča cez DB.nodes.find
+// pri KAŽDOM volaní — countAll ho volá pre každý priečinok v podstrome, takže počty na karte
+// a v stĺpcoch trvali na EN ~30 ms na priečinok (600 ms na koreňový stĺpec, 11 dlhých úloh)
+function nodeById(id){
+  if(!DB.nodes) return undefined;
+  if(_cSrc !== DB.nodes || _cLen !== DB.nodes.length) rebuildChildIndex();
+  return _nIdx.get(id);
 }
 function childrenOf(parentId){
   if(!DB.nodes) return [];
@@ -1499,7 +1510,7 @@ function getChildren(parentId){
   const ord = n => (IS_EN && n.order_en!==undefined && n.order_en!==null) ? n.order_en : n.order;
   arr.sort((a,b)=>ord(a)-ord(b));
   if(IS_EN && parentId !== null && !NO_EN_ALPHA.has(parentId)){
-    const p = DB.nodes.find(n=>n.id===parentId);
+    const p = nodeById(parentId);
     if(p && CONTINENTS_SK.has(p.name)){
       // pripnuté uzly ostávajú vpredu (podľa order), zvyšok abecedne po anglicky
       const pinned = arr.filter(n=>PINNED_EN.has(n.id));
@@ -1682,6 +1693,10 @@ function render(){
   const aktWrap = document.getElementById('aktualneWrap');
   if(aktWrap) aktWrap.style.display = (curId===LIVE_ID && !adminMode) ? 'none' : '';
   const q = document.getElementById('srch').value.trim().toLowerCase();
+  // trieda cols-mode sa prepína tu (nie v renderLevel), aby pri hľadaní nezostala (bod 14 analýzy)
+  const colsOn = !q && viewMode==='cols' && colsAllowed();
+  document.getElementById('main').classList.toggle('cols-mode', colsOn);
+  document.body.classList.toggle('cols-on', colsOn);
   if(q){
     if(DB._partial || (DATA_FAIL && !(DB.nodes||[]).length)){ document.getElementById('main').innerHTML = loadingHtml(); return; }
     renderSearch(q); return;
@@ -1754,10 +1769,8 @@ function renderLevel(){
     const nd = DB.nodes.find(x=>x.id===curId);
     if(!nd || (nd.parentId !== null && !nd._k)){ main.innerHTML = loadingHtml(); _lvlHtml = null; return; }
   }
-  // STĹPCOVÉ ZOBRAZENIE (29.10.2026) — namiesto dlaždíc stĺpce; promo blok ostáva nad nimi
-  const colsOn = viewMode==='cols' && colsAllowed();
-  main.classList.toggle('cols-mode', colsOn);
-  if(colsOn){ renderColumns(main, renderPromoBlock()); return; }
+  // STĹPCOVÉ ZOBRAZENIE — namiesto dlaždíc stĺpce; promo blok ostáva nad nimi (mimo pásu)
+  if(viewMode==='cols' && colsAllowed()){ renderColumns(main, renderPromoBlock()); return; }
 
   // STRÁNKA AKTUÁLNE (Zadanie 17): úvodný text + linky zoskupené podľa športu
   if(curId === LIVE_ID && !adminMode){
@@ -1888,20 +1901,38 @@ function renderLevel(){
 }
 
 // ============================================================
-// STĹPCOVÉ ZOBRAZENIE (29.10.2026) — prepínač ▦/▥ v hlavičke. Priečinok sa otvorí
-// prechodom myši (0,12 s oneskorenie), klik ho „pripne" (navigate → mení adresu,
-// breadcrumbs aj cielenie bannerov). Linka: prechod myši = popis v pravom paneli,
-// klik = otvorí web. Vidno posledné COLS_MAX stĺpce, staršie sú zbalené do pásikov.
+// STĹPCOVÉ ZOBRAZENIE (prepis 4.11.2026, Zadanie 26b) — prepínač ▦/▥ v hlavičke.
+// Priečinok sa otvorí prechodom myši do ďalšieho stĺpca vpravo, klik ho „pripne"
+// (navigate → mení adresu, breadcrumbs aj cielenie bannerov). Linka: prechod myši
+// = popis v pravom paneli, klik = otvorí web.
+// ZÁSADY (z analýzy navrhy/stlpce-analyza-2026-11-04.md):
+//  1. Priečinok sa otvorí LEN po skutočnom pohybe myši, ktorý sa zastavil nad položkou
+//     (COL_DELAY). Prechod, ktorý vznikol pohybom OBSAHU pod nehybnou myšou (koliesko,
+//     posun stránky, prekreslenie, vodorovný posun pásu, klik, Späť/Vpred), neotvára nič:
+//     a) mousemove s rovnakými súradnicami ako naposledy sa ignoruje (umelý pohyb
+//        prehliadača po posune), b) po každom posune obsahu sa položka, ktorá skončila
+//        pod kurzorom, ignoruje, kým ju myš neopustí (colMarkShift). Žiadne dispatchEvent.
+//  2. „Menu aim": keď myš smeruje do otvoreného stĺpca vpravo (trojuholník k jeho
+//     rohom), susedné položky dostanú dlhšie oneskorenie (COL_AIM_DELAY).
+//  3. Prekresľujú sa len stĺpce od zmenenej úrovne doprava; ostatné si držia posun,
+//     len sa im prepne označenie. Promo blok je mimo pásu (reklama sa nenačítava nanovo).
+//  4. Pás stĺpcov je prilepený pod hlavičkou (sticky), výška podľa okna (colsLayout);
+//     stránka sa sama neposúva, auto-rolovanie nie je. Koliesko: pás ešte neprilepený
+//     → posúva stránku; prilepený → roluje stĺpec; krátky stĺpec / začiatok stĺpca →
+//     stránku (colsWheel).
+//  5. Počet a šírka stĺpcov podľa šírky okna, pri hĺbke sa pás plynulo posúva vodorovne.
 // Len myš na počítači (hover:hover, > 700 px) a nie v admine — inak dlaždice.
 // Voľba sa pamätá v localStorage (sportStromView). Google to nevidí — statické
 // stránky aj vyhľadávanie ostávajú v dlaždiciach.
 // ============================================================
-const COLS_MAX = 4;
+const COL_DELAY = 170;       // ms zastavenia myši nad priečinkom
+const COL_AIM_DELAY = 420;   // ms, keď myš smeruje do otvoreného stĺpca vpravo (menu aim)
+const COL_LINK_DELAY = 60;   // ms pre popis linky v paneli
+const COL_PANEL_W = 280;     // šírka panela s popisom (CSS .cdetail)
 let viewMode = 'tiles';
 let colPath  = null;   // id priečinkov otvorených myšou (po úrovniach); null = podľa curId
 let colHover = null;   // id linky, ktorej popis je v paneli
-let colTimer = null;
-let _colPromo = '';
+let _colPromo = '';    // naposledy vykreslený promo blok (HTML)
 let _colPathCur;        // curId, pre ktorý bola colPath naposledy nastavená
 function colsAllowed(){ return !adminMode && window.innerWidth > 700 && window.matchMedia('(hover:hover)').matches; }
 function initViewMode(){
@@ -1909,13 +1940,14 @@ function initViewMode(){
   if(IS_EN){ const t = {tiles:'▦ Tiles', cols:'▥ Columns'}; document.querySelectorAll('#vSwitch button').forEach(b=>{ b.textContent = t[b.dataset.mode]; b.title = b.dataset.mode==='cols' ? 'Columns — folders open on mouse hover' : 'Tiles'; }); }
   updateViewSwitch();
 }
-function updateViewSwitch(){ document.querySelectorAll('#vSwitch button').forEach(b=>b.classList.toggle('on', b.dataset.mode===viewMode)); }
+function updateViewSwitch(){ document.querySelectorAll('#vSwitch button').forEach(b=>{ const on = b.dataset.mode===viewMode; b.classList.toggle('on', on); b.setAttribute('aria-pressed', on ? 'true' : 'false'); }); }
 function setViewMode(m){
   viewMode = m==='cols' ? 'cols' : 'tiles';
   lsSet('sportStromView', viewMode);
   updateViewSwitch();
-  colPath = null; colHover = null;
+  colPath = null; colHover = null; colCancel();
   render();
+  if(viewMode==='cols' && colsAllowed()) colsAfterNav();
 }
 function colNode(id){ return DB.nodes.find(n=>n.id===id); }
 function colCnt(n){
@@ -1925,85 +1957,117 @@ function colCnt(n){
 }
 // hostiteľ z adresy linky (stĺpce, dlaždice, hľadanie, stránka Aktuálne)
 function colHost(n){ try{ return new URL(n.url).hostname; }catch(e){ return ''; } }
-function renderColumns(main, promoHtml, fromHover){
+
+// ---- vykreslenie ----
+// HTML položiek jedného stĺpca — BEZ stavových tried (open/pin), tie sa prepínajú zvlášť,
+// aby sa stĺpec s rovnakým obsahom nemusel stavať nanovo (a držal si posun).
+function colItemsHtml(pid, pn){
+  if(DB._partial && pn && pn.parentId !== null && !pn._k) return loadingHtml(); // štartovací balík: hlbšie deti ešte nie sú
+  let h = '';
+  // rovnaké poradie ako v dlaždiciach (Zadanie 26b2): najprv všetky priečinky, potom všetky
+  // linky (linky líg majú order -1, inak by boli navrchu); v rámci skupiny poradie ako v dátach
+  const kids = tileKids(pid); // koreň bez noTileSk; bez prázdnych priečinkov (bod 5)
+  [...kids.filter(n => n.type === 'folder'), ...kids.filter(n => n.type !== 'folder')].forEach(n => {
+    const nm = attrEsc(nName(n));
+    const tt = nName(n).length > 22 ? ` title="${nm}"` : ''; // dlhý názov sa oreže — celý je v tooltipe
+    if(n.type==='folder'){
+      h += `<a class="cit" data-id="${n.id}" data-t="f"${tt} href="${attrEsc(urlForId(n.id))}" onclick="return navClick(event,'${n.id}')"><span class="ic">${renderIcon(nodeIcon(n),'20x15')||''}</span><span class="nm">${nm}</span><span class="cnt">${colCnt(n)}</span><span class="arr">›</span></a>`;
+    } else {
+      const host = colHost(n);
+      const liveIcon = pid===LIVE_ID;
+      const lt = (n.tag||n.order===-1) ? `<span class="lt">${n.tag?String(n.tag).toUpperCase():(IS_EN?'LEAGUE':'LIGA')}</span>` : '';
+      const soc = (n.fb?'FB':'') + (n.fb&&n.ig?' ':'') + (n.ig?'IG':'');
+      h += `<a class="cit lnk" data-id="${n.id}" data-t="l"${tt} href="${attrEsc(safeUrl(n.url))}" target="_blank" rel="noopener">${liveIcon ? `<span class="fav-fb" aria-hidden="true">${attrEsc(n.icon||'🔗')}</span>` : favHtml(n, host)}<span class="nm">${lt}${nm}</span>${soc?`<span class="soc">${soc}</span>`:''}</a>`;
+    }
+  });
+  return h;
+}
+const _colHtml = new WeakMap();   // stĺpec → HTML položiek, ktorými bol naplnený
+function renderColumns(main, promoHtml){
   _colPromo = promoHtml || '';
+  _lvlHtml = null; // dlaždice sa po prepnutí späť musia vykresliť nanovo
   // Pri zmene otvoreného priečinka (navigate) sa cesta stĺpcov nastaví podľa neho;
-  // pri prechodoch myšou (curId sa nemení) ostáva, nech ukazuje čokoľvek — aj
-  // nad pripnutým priečinkom (oprava 29.10.2026: predtým sa po kliknutí „zamrzlo").
+  // pri prechodoch myšou (curId sa nemení) ostáva, nech ukazuje čokoľvek — aj nad pripnutým.
   if(!colPath || _colPathCur !== curId){ colPath = getPath(curId).map(n=>n.id); _colPathCur = curId; }
+  let wrap = document.getElementById('colsWrap');
+  if(!wrap){
+    // colsBox = obal s výškou PRILEPENÉHO pásu: stránka sa dá posunúť presne po prilepenie
+    // pásu pod hlavičku; samotný pás je kratší, kým sú nad ním bannery (colsLayout)
+    main.innerHTML = '<div id="colsPromo"></div><div class="cols-box" id="colsBox"><div class="cols" id="colsWrap"><div class="cdetail" id="colDetail"></div></div></div>';
+    wrap = document.getElementById('colsWrap');
+  }
+  // promo blok (aj reklamný iframe) je MIMO pásu a mení sa len keď sa líši — nenačítava sa nanovo
+  const promo = document.getElementById('colsPromo');
+  const ph = _colPromo ? _colPromo + promoWarnHtml() : '';
+  if(_colHtml.get(promo) !== ph){ promo.innerHTML = ph; _colHtml.set(promo, ph); }
+  const detail = document.getElementById('colDetail');
   const levels = [null, ...colPath];
-  const firstFull = Math.max(0, levels.length - COLS_MAX);
-  let html = _colPromo + '<div class="cols" id="colsWrap">';
+  const cols = Array.from(wrap.querySelectorAll('.col'));
   levels.forEach((pid, lv) => {
     const pn = pid===null ? null : colNode(pid);
     const title = pid===null ? (IS_EN?'Sections':'Sekcie') : (pn ? nName(pn) : '');
-    if(lv < firstFull){
-      html += `<div class="col collapsed" data-lv="${lv}" title="${attrEsc(title)}" onclick="colExpand(${lv})"><span class="col-vt">${attrEsc(title)}</span></div>`;
-      return;
+    const items = colItemsHtml(pid, pn);
+    let col = cols[lv];
+    if(!(col && col.dataset.pid === String(pid) && _colHtml.get(col) === items)){
+      // iný priečinok alebo iný obsah (prišli celé dáta) → nový stĺpec; posun ostáva, ak je to ten istý priečinok
+      const el = document.createElement('div');
+      el.className = 'col'; el.dataset.pid = String(pid);
+      el.innerHTML = `<div class="col-title" title="${attrEsc(title)}">${attrEsc(title)}</div>` + items;
+      _colHtml.set(el, items);
+      const keep = col && col.dataset.pid === String(pid) ? col.scrollTop : 0;
+      if(col) col.replaceWith(el); else wrap.insertBefore(el, detail);
+      if(keep) el.scrollTop = keep;
+      col = el;
     }
-    html += `<div class="col" data-lv="${lv}"><div class="col-title">${attrEsc(title)}</div>`;
-    if(DB._partial && pn && pn.parentId !== null && !pn._k){ html += loadingHtml() + '</div>'; return; } // štartovací balík: hlbšie deti ešte nie sú (_k = mini-balík podstránky)
-    tileKids(pid).forEach(n => { // koreň bez noTileSk; bez prázdnych priečinkov (bod 5)
-      if(n.type==='folder'){
-        // zvýrazní sa len to, kade práve ide myš; červený rámik (pripnuté = adresa
-        // stránky) iba ak pripnutý priečinok leží na tejto ceste (Miro 29.10.2026)
-        const cls = colPath[lv]===n.id ? (curId===n.id ? ' pin' : ' open') : '';
-        html += `<a class="cit${cls}" data-id="${n.id}" data-lv="${lv}" data-t="f" href="${attrEsc(urlForId(n.id))}" onclick="return colClick(event,'${n.id}')"><span class="ic">${renderIcon(nodeIcon(n),'20x15')||''}</span><span class="nm">${attrEsc(nName(n))}</span><span class="cnt">${colCnt(n)}</span><span class="arr">›</span></a>`;
-      } else {
-        const host = colHost(n);
-        const liveIcon = pid===LIVE_ID;
-        const lt = (n.tag||n.order===-1) ? `<span class="lt">${n.tag?String(n.tag).toUpperCase():(IS_EN?'LEAGUE':'LIGA')}</span>` : '';
-        const soc = (n.fb?'FB':'') + (n.fb&&n.ig?' ':'') + (n.ig?'IG':'');
-        html += `<a class="cit lnk${colHover===n.id?' open':''}" data-id="${n.id}" data-t="l" href="${attrEsc(safeUrl(n.url))}" target="_blank" rel="noopener">${liveIcon ? `<span class="fav-fb" aria-hidden="true">${attrEsc(n.icon||'🔗')}</span>` : favHtml(n, host)}<span class="nm">${lt}${attrEsc(nName(n))}</span>${soc?`<span class="soc">${soc}</span>`:''}</a>`;
-      }
+    col.dataset.lv = lv;
+    // označenie: open = kade práve ide myš; pin (červený rámik) = pripnutý priečinok = adresa stránky
+    col.querySelectorAll('.cit').forEach(a => {
+      const id = a.dataset.id, f = a.dataset.t==='f';
+      a.classList.toggle('open', f ? (colPath[lv]===id && curId!==id) : colHover===id);
+      a.classList.toggle('pin', f && colPath[lv]===id && curId===id);
     });
-    html += '</div>';
   });
-  html += `<div class="cdetail" id="colDetail">${colDetailHtml()}</div></div>`;
-  if(_colPromo) html += promoWarnHtml();
-  main.innerHTML = html;
-  const wrap = document.getElementById('colsWrap');
-  if(wrap) wrap.scrollLeft = wrap.scrollWidth;
-  colEdgeStop();
-  if(fromHover) colsIntoView();
+  for(let i = levels.length; i < cols.length; i++) cols[i].remove();
+  detail.innerHTML = colDetailHtml();
+  colsLayout();
+  colMarkShift(); // po prekreslení sa položka pod nehybnou myšou neotvára
 }
-// Stránka sa sama posunie, aby stĺpce začínali hneď pod prilepenou hlavičkou
-// (bannery a Aktuálne odídu hore) — volá sa pri otvorení stĺpca myšou.
-function colsIntoView(){
-  const w = document.getElementById('colsWrap'); if(!w) return;
-  const hh = document.querySelector('header').offsetHeight;
-  const top = w.getBoundingClientRect().top - hh - 10;
-  if(top > 4){
-    window.scrollBy({top, behavior:'smooth'});
-    _colsQuietUntil = Date.now() + 700;   // kým sa stránka posúva, prechody myšou sa ignorujú
-    // po posune sa položka, ktorá skončila pod kurzorom, spracuje ako čerstvý prechod
-    // myšou (inak by sa stĺpce „zasekli", kým človek nepohne myšou na inú položku)
-    clearTimeout(_colsQuietT);
-    _colsQuietT = setTimeout(()=>{ const el = document.elementFromPoint(_mx, _my); if(el) el.dispatchEvent(new MouseEvent('mouseover',{bubbles:true})); }, 760);
-  }
+// Poloha a rozmery pásu: prilepený pod hlavičkou, výška po spodný okraj okna (kým sú
+// bannery vidieť, pás je nižšie a kratší — spodná položka je vždy dosiahnuteľná);
+// počet a šírka stĺpcov podľa šírky (1024 px: 3 stĺpce + panel bez orezania, 1920 px: 6 širších).
+function colsLayout(){
+  const wrap = document.getElementById('colsWrap'); if(!wrap) return;
+  const top0 = colsStickTop();
+  wrap.style.top = top0 + 'px';
+  const avail = wrap.clientWidth - COL_PANEL_W - 8;
+  const n  = Math.max(2, Math.min(6, Math.floor((avail + 8) / 228)));
+  const cw = Math.max(170, Math.min(300, Math.floor((avail + 8) / n) - 8));
+  wrap.style.setProperty('--colw', cw + 'px');
+  // rezerva dole = pätička (+ odstup) — prilepený pás by inak na konci stránky odišiel
+  // pod hlavičku spolu s <main> (sticky prvok nemôže opustiť svojho rodiča)
+  const foot = document.querySelector('footer');
+  const reserve = foot ? foot.offsetHeight + (parseFloat(getComputedStyle(foot).marginTop) || 0) : 0;
+  const hStuck = Math.max(240, window.innerHeight - top0 - reserve);   // výška prilepeného pásu
+  const box = document.getElementById('colsBox'); if(box) box.style.height = hStuck + 'px';
+  const top = wrap.getBoundingClientRect().top;
+  wrap.style.height = Math.max(240, Math.min(hStuck, window.innerHeight - top - reserve)) + 'px';
 }
-let _colsQuietUntil = 0, _colsQuietT = null, _mx = -1, _my = -1;
-// Automatické rolovanie stĺpca: myš pri spodnom (hornom) okraji stĺpca ho pomaly
-// roluje nadol (nahor). Počas rolovania sa priečinky pod kurzorom NEOTVÁRAJÚ.
-let _edgeCol = null, _edgeDir = 0, _edgeRaf = null;
-function colEdgeStep(){
-  if(!_edgeCol || !_edgeCol.isConnected){ colEdgeStop(); return; }
-  _edgeCol.scrollTop += _edgeDir * 4;
-  _edgeRaf = requestAnimationFrame(colEdgeStep);
+function colsStickTop(){ return document.querySelector('header').offsetHeight + 8; }
+// pás posunúť vodorovne tak, aby bol najnovší stĺpec aj panel vidno (plynulo; vyvolá
+// scroll → colMarkShift, takže posun obsahu pod myšou nič neotvorí)
+function colsScrollEnd(){
+  const wrap = document.getElementById('colsWrap'); if(!wrap) return;
+  const left = wrap.scrollWidth - wrap.clientWidth;
+  if(Math.abs(wrap.scrollLeft - left) > 1) wrap.scrollTo({left, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth'});
 }
-function colEdgeStop(){ _edgeCol = null; _edgeDir = 0; if(_edgeRaf){ cancelAnimationFrame(_edgeRaf); _edgeRaf = null; } }
-document.getElementById('main').addEventListener('mousemove', ev => {
-  _mx = ev.clientX; _my = ev.clientY;
-  if(viewMode!=='cols'){ return; }
-  const col = ev.target.closest('.col');
-  if(!col || col.classList.contains('collapsed') || col.scrollHeight <= col.clientHeight + 2){ colEdgeStop(); return; }
-  const r = col.getBoundingClientRect(), y = ev.clientY - r.top;
-  const dir = y > r.height - 36 ? 1 : (y < 36 + 24 ? -1 : 0);   // 24 = lišta s názvom stĺpca
-  if(!dir || (dir===1 && col.scrollTop + col.clientHeight >= col.scrollHeight - 1) || (dir===-1 && col.scrollTop <= 0)){ colEdgeStop(); return; }
-  _edgeCol = col; _edgeDir = dir;
-  if(!_edgeRaf) _edgeRaf = requestAnimationFrame(colEdgeStep);
-});
-document.getElementById('main').addEventListener('mouseleave', colEdgeStop);
+// po kliknutí / Späť / Vpred / prepnutí: názvy stĺpcov nesmú byť pod hlavičkou
+function colsAfterNav(){
+  const wrap = document.getElementById('colsWrap'); if(!wrap) return;
+  colsLayout();
+  const d = wrap.getBoundingClientRect().top - colsStickTop();
+  if(d < -1){ try{ window.scrollBy(0, d); }catch(e){} }
+  colsScrollEnd();
+}
 function colDetailHtml(){
   const h = colHover ? colNode(colHover) : null;
   if(h && h.type==='link'){
@@ -2016,39 +2080,107 @@ function colDetailHtml(){
   if(last) return `<h3>${iconText(renderIcon(nodeIcon(last),'24x18')||'', attrEsc(nName(last)))}</h3><p>${attrEsc(nDesc(last))}</p><div class="empty-hint">${colCnt(last)}</div>`;
   return `<div class="empty-hint">${IS_EN?'Move the mouse over a section on the left…':'Prejdi myšou po sekcii vľavo…'}</div>`;
 }
-function colExpand(lv){ colPath = colPath.slice(0, lv); colHover = null; renderColumns(document.getElementById('main'), _colPromo); }
-function colClick(ev, id){
-  if(ev.ctrlKey || ev.metaKey || ev.shiftKey || ev.button === 1) return true;
-  ev.preventDefault();
-  colPath = getPath(id).map(n=>n.id); colHover = null;
-  navigate(id);
-  return false;
+
+// ---- myš ----
+let _mx = -1, _my = -1, _mMoved = false; // poloha myši (celý dokument) a či sa pri tejto udalosti naozaj pohla
+let _colCand = null, _colT = null; // položka, nad ktorou sa myš zastavuje, a jej časovač
+let _colIgnore = null, _colIgnoreX = 0, _colIgnoreY = 0; // položka pod kurzorom po posune obsahu + kde myš vtedy bola
+const COL_IGNORE_PX = 6;           // po takomto pohybe od miesta posunu sa ignorovanie končí (chvenie 2–3 px nič neotvorí)
+let _colTrail = [];                // posledné polohy myši (menu aim)
+function colItemAt(x, y){ const e = document.elementFromPoint(x, y); return e && e.closest ? e.closest('#colsWrap .cit') : null; }
+function colCancel(){ clearTimeout(_colT); _colT = null; _colCand = null; }
+// Obsah sa pohol pod myšou (prekreslenie, posun stĺpca/pásu/stránky): čo je teraz pod
+// kurzorom, sa neotvorí, kým to myš neopustí. Bez umelých udalostí.
+function colMarkShift(){ colCancel(); if(_mx >= 0){ _colIgnore = colItemAt(_mx, _my); _colIgnoreX = _mx; _colIgnoreY = _my; } }
+// poloha myši sa sleduje na celom dokumente (len zápis súradníc) — aby colMarkShift po posune
+// stránky nepoužil starú polohu spred odchodu z pásu; capture = beží pred spracovaním nižšie
+document.addEventListener('mousemove', ev => { _mMoved = ev.clientX !== _mx || ev.clientY !== _my; _mx = ev.clientX; _my = ev.clientY; }, true);
+// Myš smeruje z položky do otvoreného stĺpca vpravo? (trojuholník: staršia poloha myši ↔ rohy stĺpca)
+function colAiming(it, x, y){
+  const col = it.closest('.col'), lv = +col.dataset.lv;
+  if(colPath[lv] === undefined) return false;               // v tomto stĺpci nie je nič otvorené
+  const next = col.nextElementSibling; if(!next || !next.classList.contains('col')) return false;
+  const now = performance.now(); let old = null;
+  for(let i = _colTrail.length - 1; i >= 0; i--){ if(now - _colTrail[i].t >= 80){ old = _colTrail[i]; break; } }
+  if(!old || x <= old.x) return false;                      // nehýbe sa doprava
+  const r = next.getBoundingClientRect(), T = 24;
+  const ax = old.x, ay = old.y, bx = r.left, by = r.top - T, cx = r.left, cy = r.bottom + T;
+  const s1 = (bx-ax)*(y-ay) - (by-ay)*(x-ax), s2 = (cx-bx)*(y-by) - (cy-by)*(x-bx), s3 = (ax-cx)*(y-cy) - (ay-cy)*(x-cx);
+  return (s1 >= 0 && s2 >= 0 && s3 >= 0) || (s1 <= 0 && s2 <= 0 && s3 <= 0);
 }
-// prechod myšou — delegované na <main>, platí len v stĺpcovom režime
-document.getElementById('main').addEventListener('mouseover', ev => {
-  if(viewMode!=='cols' || !document.getElementById('colsWrap')) return;
-  const it = ev.target.closest('.cit'); if(!it) return;
-  clearTimeout(colTimer);
-  if(Date.now() < _colsQuietUntil) return;   // stránka sa práve posúva pod kurzorom
-  colTimer = setTimeout(() => {
-    if(_edgeCol) return;   // práve sa roluje — položky pod kurzorom sa neotvárajú
-    if(it.dataset.t==='f'){
-      const lv = +it.dataset.lv;
-      if(colPath[lv]===it.dataset.id) return;
-      colPath = colPath.slice(0, lv); colPath[lv] = it.dataset.id; colHover = null;
-      renderColumns(document.getElementById('main'), _colPromo, true);
-    } else {
-      if(colHover===it.dataset.id) return;
-      colHover = it.dataset.id;
-      document.querySelectorAll('.cit.lnk.open').forEach(x=>x.classList.remove('open'));
-      it.classList.add('open');
-      const d = document.getElementById('colDetail'); if(d) d.innerHTML = colDetailHtml();
-    }
-  }, 120);
+function colOpen(it){
+  _colT = null; _colCand = null;
+  if(!it.isConnected || viewMode !== 'cols') return;
+  const lv = +it.closest('.col').dataset.lv;
+  if(colPath[lv] === it.dataset.id) return;
+  colPath = colPath.slice(0, lv); colPath[lv] = it.dataset.id; colHover = null;
+  renderColumns(document.getElementById('main'), _colPromo);
+  colsScrollEnd();
+}
+function colShowLink(it){
+  _colT = null; _colCand = null;
+  if(!it.isConnected || viewMode !== 'cols') return;
+  colHover = it.dataset.id;
+  document.querySelectorAll('#colsWrap .cit.lnk.open').forEach(x => x.classList.remove('open'));
+  it.classList.add('open');
+  const d = document.getElementById('colDetail'); if(d) d.innerHTML = colDetailHtml();
+}
+document.getElementById('main').addEventListener('mousemove', ev => {
+  if(viewMode !== 'cols') return;
+  const wrap = document.getElementById('colsWrap'); if(!wrap || !wrap.contains(ev.target)) return;
+  const x = ev.clientX, y = ev.clientY;
+  if(!_mMoved) return;   // bez skutočného pohybu (umelý mousemove prehliadača po posune obsahu)
+  _colTrail.push({x, y, t: performance.now()}); if(_colTrail.length > 12) _colTrail.shift();
+  const it = ev.target.closest('.cit');
+  // položka pod kurzorom po posune obsahu sa ignoruje, kým ju myš neopustí ALEBO sa od miesta
+  // posunu nepohne aspoň o COL_IGNORE_PX (potom ju človek zjavne chce)
+  if(_colIgnore){ if(it === _colIgnore && Math.hypot(x - _colIgnoreX, y - _colIgnoreY) < COL_IGNORE_PX) return; _colIgnore = null; }
+  if(!it){ colCancel(); return; }
+  clearTimeout(_colT); _colCand = it;
+  if(it.dataset.t === 'f'){
+    const lv = +it.closest('.col').dataset.lv;
+    if(colPath[lv] === it.dataset.id){ colCancel(); return; }   // už otvorený
+    // časovač sa každým pohybom obnoví → vyprší až keď sa myš nad položkou zastaví
+    _colT = setTimeout(() => colOpen(it), colAiming(it, x, y) ? COL_AIM_DELAY : COL_DELAY);
+  } else {
+    if(colHover === it.dataset.id){ colCancel(); return; }
+    _colT = setTimeout(() => colShowLink(it), COL_LINK_DELAY);
+  }
 });
+// odchod z položky alebo z pásu stĺpcov ruší časovač
+document.getElementById('main').addEventListener('mouseout', ev => {
+  if(!_colCand) return;
+  const it = ev.target.closest && ev.target.closest('.cit');
+  const to = ev.relatedTarget;
+  if((it && it === _colCand && !(to && it.contains(to))) || !(to && document.getElementById('colsWrap')?.contains(to))) colCancel();
+});
+// posun obsahu pod myšou: rolovanie stĺpca / pásu (zachytené na páse) aj celej stránky
+document.getElementById('main').addEventListener('scroll', ev => { if(viewMode === 'cols' && ev.target.closest && ev.target.closest('#colsWrap')) colMarkShift(); }, true);
+window.addEventListener('scroll', () => { if(viewMode === 'cols' && document.getElementById('colsWrap')){ colsLayout(); colMarkShift(); } }, {passive: true});
+// Koliesko nad pásom: pás ešte nie je prilepený pod hlavičkou → posúva sa stránka;
+// prilepený → roluje sa stĺpec; krátky stĺpec (bez posuvníka), medzera alebo stĺpec
+// na začiatku pri rolovaní hore → stránka. (Na konci dlhého stĺpca sa nič nedeje —
+// pás by inak odišiel pod hlavičku.)
+function colsWheel(ev){
+  if(viewMode !== 'cols') return;
+  const wrap = document.getElementById('colsWrap'); if(!wrap || !wrap.contains(ev.target)) return;
+  if(Math.abs(ev.deltaY) <= Math.abs(ev.deltaX)) return;   // vodorovné koliesko — pás nechá prehliadaču
+  const dy = ev.deltaMode === 1 ? ev.deltaY * 16 : ev.deltaMode === 2 ? ev.deltaY * window.innerHeight : ev.deltaY;
+  const box = ev.target.closest('.col, .cdetail');
+  const canScroll = !!box && box.scrollHeight > box.clientHeight + 1;
+  const stuck = wrap.getBoundingClientRect().top <= colsStickTop() + 1 || window.scrollY + window.innerHeight >= document.documentElement.scrollHeight - 1;
+  let toPage = !canScroll;
+  if(canScroll){
+    if(dy > 0 && !stuck) toPage = true;
+    else if(dy < 0 && box.scrollTop <= 0) toPage = true;
+  }
+  if(toPage){ ev.preventDefault(); try{ window.scrollBy(0, dy); }catch(e){} }
+}
+document.getElementById('main').addEventListener('wheel', colsWheel, {passive: false});
 window.addEventListener('resize', () => {
   const on = !!document.querySelector('main.cols-mode');
-  if(viewMode==='cols' && on !== colsAllowed()) render();
+  if(viewMode==='cols' && on !== colsAllowed()){ render(); return; }
+  if(on) colsLayout();
 });
 initViewMode();
 
