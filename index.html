@@ -146,6 +146,9 @@ a.card-root,a.card-folder,a.bc-item,a.h-left,a.f-wordmark{color:inherit;text-dec
 }
 .bc-back:hover{border-color:var(--accent);color:var(--text)}
 .bc-back.visible{display:flex}
+/* bod 8 (previerka 3): adresa neexistuje celá — nenápadná poznámka nad obsahom */
+.path-note{max-width:1100px;margin:8px auto -12px;padding:0 20px;font-size:0.8rem;color:var(--muted)}
+.path-note[hidden]{display:none}
 
 /* ===== BANNER ===== */
 .banner-wrap{
@@ -631,6 +634,7 @@ button#aktMoreBadge{-webkit-appearance:none;appearance:none;margin:0;border:0;fo
 </div>
 
 <!-- MAIN -->
+<p id="pathNote" class="path-note" role="status" hidden></p>
 <main id="main"></main>
 <div id="srLive" class="sr-only" aria-live="polite" aria-atomic="true"></div>
 <script>
@@ -976,10 +980,13 @@ async function load(){
   // = o jedno kolo siete navyše). Ak version.txt ohlási novšiu verziu než
   // DATA_VER, stiahne sa ešte raz tá novšia (zriedkavé — len kým má prehliadač
   // odložený starý index.html).
-  const fetchData = async (ver)=>{
+  // signal (bod 8, previerka 3): sťahovanie starej verzie sa dá prerušiť (AbortController)
+  const fetchData = async (ver, signal)=>{
     const url = SITE_ROOT + 'data.json' + (ver ? '?v=' + ver : '');
     const opt = ver ? {} : {cache:'no-store'};
+    if(signal) opt.signal = signal;
     for(let pokus = 0; pokus < 2; pokus++){
+      if(signal && signal.aborted) return null;
       try{
         const r = await fetch(url, Object.assign({priority:'low'}, opt)); // nízka priorita — obrázky/bannery majú prednosť
         if(r.ok){
@@ -1017,11 +1024,19 @@ async function load(){
       window.addEventListener('load', ()=>{ clearTimeout(stopka); r(); }, {once:true});
     });
   }
-  const [d0, verNew] = await Promise.all([fetchData(DATA_VER), verPromise]);
-  published = d0;
+  // Bod 8 (previerka 3): keď version.txt ohlási novšiu verziu, sťahovanie starého
+  // data.json sa HNEĎ preruší (AbortController) a stiahne sa len nový — predtým
+  // sa čakalo na celý starý súbor (2 × 1,2 MB). Ak by nový zlyhal, použije sa
+  // starý (ak už stihol prísť), inak sa stiahne znova.
+  const ctrl0 = (typeof AbortController === 'function') ? new AbortController() : null;
+  const d0p = fetchData(DATA_VER, ctrl0 ? ctrl0.signal : undefined);
+  const verNew = await verPromise;
   if(verNew !== DATA_VER){
-    const d1 = await fetchData(verNew);
-    if(d1) published = d1;
+    if(ctrl0) ctrl0.abort();
+    published = await fetchData(verNew);
+    if(!published) published = (await d0p) || await fetchData(DATA_VER);
+  }else{
+    published = await d0p;
   }
   if(published){
     lsLegacyTake(); // upratanie: staré celé dáta v localStorage už nepotrebujeme
@@ -1342,7 +1357,7 @@ function pathForId(id){
 }
 // adresa, ktorá sa zapíše do riadku prehliadača
 function urlForId(id){
-  if(!PATH_ROUTING) return (id === null) ? location.pathname + location.search
+  if(!PATH_ROUTING) return (id === null) ? location.pathname + searchBezQ()
                                          : '#/' + pathForId(id);
   return (id === null) ? BASE_PATH : BASE_PATH + pathForId(id) + '/';
 }
@@ -1411,12 +1426,68 @@ function navClick(ev, id){
   return false;
 }
 
+// ---------- Bod 10 (previerka 3): hľadaný text v adrese (?q=kosice) ----------
+// Dotaz sa zapisuje cez replaceState (bez nového záznamu histórie pri každom
+// písmene). Pri štarte a pri Späť/Vpred sa z adresy prevezme. Pri prekliku do
+// sekcie sa ?q= z adresy vynechá. Canonical je vždy bez ?q= (urlForId).
+function qFromUrl(){
+  try{ return (new URLSearchParams(location.search).get('q') || '').slice(0, 300); }catch(e){ return ''; }
+}
+function searchBezQ(){ // location.search bez ?q= (ostatné, napr. utm, ostávajú)
+  try{
+    const p = new URLSearchParams(location.search);
+    p.delete('q');
+    const s = p.toString();
+    return s ? '?' + s : '';
+  }catch(e){ return location.search; }
+}
+function syncSearchUrl(){
+  try{
+    const v = document.getElementById('srch').value.trim();
+    const p = new URLSearchParams(location.search);
+    if(v) p.set('q', v); else p.delete('q');
+    const s = p.toString();
+    const url = location.pathname + (s ? '?' + s : '') + location.hash;
+    if(url !== location.pathname + location.search + location.hash) history.replaceState(history.state, '', url);
+  }catch(e){}
+}
+
+// ---------- Bod 1 (previerka 3): Späť/Vpred vráti posun stránky ----------
+// Prehliadač by posun obnovil v okamihu, keď je na obrazovke ešte krátka
+// stránka (a orezal by ho), preto ho pri Späť/Vpred vracia appka sama: posun
+// sa ukladá do záznamu histórie (scrollY) a v popstate sa naň posunie až po
+// vykreslení. history.scrollRestoration = 'manual' sa zapína až pri prvom
+// prekliku (nie pri štarte) a pri odchode zo stránky sa vráti na 'auto' —
+// obnovenie stránky (F5) a prvý príchod sa tak správajú ako doteraz.
+let _scrollT = null;
+function saveScrollState(){
+  clearTimeout(_scrollT);
+  try{
+    if('scrollRestoration' in history) history.scrollRestoration = 'manual';
+    history.replaceState(Object.assign({}, history.state || {}, {scrollY: Math.round(window.scrollY || 0)}), '');
+  }catch(e){}
+}
+// posun sa priebežne zapisuje aj počas posúvania (aby fungovalo aj Vpred) — až keď sa posúvanie zastaví
+window.addEventListener('scroll', function(){
+  if(!history.state || history.scrollRestoration !== 'manual') return;
+  clearTimeout(_scrollT);
+  _scrollT = setTimeout(saveScrollState, 300);
+}, {passive: true});
+window.addEventListener('pagehide', function(){ try{ history.scrollRestoration = 'auto'; }catch(e){} });
+window.addEventListener('pageshow', function(e){
+  if(e.persisted && history.state && history.state.scrollY !== undefined){ try{ history.scrollRestoration = 'manual'; }catch(_){} }
+});
+
+let NAVIGOVANE = false; // bod 5: už sa preklikalo v appke (hreflang zo statickej stránky neplatí)
 function navigate(id, fromPopState){
   curId = id;
+  NAVIGOVANE = true;
   if(!fromPopState) CESTA_CELA = true; // adresu teraz zapisuje appka — sedí s obrazovkou
-  document.getElementById('srch').value = '';
+  // pri Späť/Vpred sa hľadaný text vráti z adresy (?q=), pri prekliku sa zmaže
+  document.getElementById('srch').value = fromPopState ? qFromUrl() : '';
   if(!fromPopState){
-    const url = urlForId(id) + (PATH_ROUTING && id !== null ? location.search : '');
+    saveScrollState(); // bod 1: posun opúšťanej stránky do jej záznamu histórie
+    const url = urlForId(id) + (PATH_ROUTING && id !== null ? searchBezQ() : '');
     try{ history.pushState({curId: id}, '', url); }
     catch(e){ history.pushState({curId: id}, '', ''); }
   }
@@ -1446,9 +1517,17 @@ function focusHeading(){
 
 window.addEventListener('popstate', function(e){
   if(e.state && e.state.curId !== undefined) CESTA_CELA = true; // záznam zapísala appka — adresa sedí
+  clearTimeout(_scrollT); // neskorý zápis posunu z opúšťanej stránky nesmie prepísať tento záznam
   const id = (e.state && e.state.curId !== undefined) ? e.state.curId
            : (PATH_ROUTING ? idForPath() : idForHash(location.hash));
   navigate(id, true);
+  // bod 1: posun sa vráti až po vykreslení (dlhý zoznam je už v DOM). Stĺpce
+  // majú vlastné doladenie polohy (colsAfterNav v navigate) — tam sa nič nemení.
+  if(history.scrollRestoration === 'manual' && !(viewMode==='cols' && colsAllowed())){
+    const y = (e.state && e.state.scrollY) || 0;
+    try{ window.scrollTo(0, y); }catch(_){}
+    requestAnimationFrame(function(){ try{ window.scrollTo(0, y); }catch(_){} });
+  }
 });
 
 function liveWeekLinks(){
@@ -1562,8 +1641,10 @@ function updateLinkCount(){
   const txt = IS_EN ? 'verified links' : 'overených liniek';
   if(!el.querySelector('b')) el.innerHTML = '<b>0</b><span>'+txt+'</span>';
   const b = el.querySelector('b');
-  // Animované počítadlo — iba pri prvom načítaní, potom už len číslo
-  if(updateLinkCount.done || document.hidden || matchMedia('(prefers-reduced-motion: reduce)').matches){ b.textContent = fmt(l); updateLinkCount.done = true; return; }
+  // Animované počítadlo — iba pri prvom načítaní, potom už len číslo.
+  // Bod 8 (previerka 3): animuje sa len na domove; inde (príchod z Googlu na
+  // podstránku) sa hneď ukáže konečné číslo.
+  if(updateLinkCount.done || curId !== null || document.hidden || matchMedia('(prefers-reduced-motion: reduce)').matches){ b.textContent = fmt(l); updateLinkCount.done = true; return; }
   updateLinkCount.done = true;
   const t0 = performance.now(), dur = 1400;
   (function step(t){
@@ -1640,6 +1721,12 @@ function updateHead(){
   const ctxStr = ctxT.length ? ' — ' + ctxT.join(' · ') : '';
   document.title = (n && n.id===LIVE_ID) ? liveTitle()   // stránka Aktuálne: titulok zo športov (Zadanie 17)
     : n ? (nName(n) + ctxStr + (site ? ' — ' + site : '')) : (HOME_TITLE || site || document.title);
+  // Bod 10 (previerka 3): počas hľadania titulok „Hľadanie: kosice — Športové Linky“
+  const qv = (document.getElementById('srch').value || '').trim();
+  if(qv) document.title = (IS_EN ? 'Search: ' : 'Hľadanie: ') + qv + (site ? ' — ' + site : '');
+  // Bod 5 (previerka 3): hreflang odkazy sú zo statickej stránky, na ktorú človek
+  // prišiel. Po prekliku v appke už nesedia — nepárový hreflang je horší než žiadny.
+  if(NAVIGOVANE) document.querySelectorAll('link[rel="alternate"][hreflang]').forEach(function(x){ x.remove(); });
   const m = document.querySelector('meta[name="description"]');
   if(m){
     if(ORIG_DESC === null) ORIG_DESC = m.content;
@@ -1697,6 +1784,13 @@ function render(){
   const colsOn = !q && viewMode==='cols' && colsAllowed();
   document.getElementById('main').classList.toggle('cols-mode', colsOn);
   document.body.classList.toggle('cols-on', colsOn);
+  // Bod 8 (previerka 3, bod 28 previerky 2): adresa neexistuje celá — appka ukazuje
+  // najbližšiu sekciu; nenápadná poznámka nad obsahom. Pri prekliku zmizne (CESTA_CELA = true).
+  const pn = document.getElementById('pathNote');
+  if(pn){
+    pn.hidden = !(PATH_ROUTING && CESTA_CELA === false && !DB._partial && !DATA_FAIL && !adminMode && !q);
+    pn.textContent = IS_EN ? "This address doesn't exist — showing the closest section." : 'Táto adresa neexistuje, zobrazujeme najbližšiu sekciu.';
+  }
   if(q){
     if(DB._partial || (DATA_FAIL && !(DB.nodes||[]).length)){ document.getElementById('main').innerHTML = loadingHtml(); return; }
     renderSearch(q); return;
@@ -1728,7 +1822,8 @@ function renderBreadcrumb(){
   const parentId = curId !== null ? (DB.nodes.find(n=>n.id===curId)?.parentId ?? null) : null;
   const backVis = curId !== null;
   const backTarget = parentId === null ? 'null' : `'${parentId}'`;
-  html += `<button class="bc-back ${backVis?'visible':''}" onclick="navigate(${backTarget})">← ${IS_EN?'Back':'Späť'}</button>`;
+  // Bod 7 (previerka 3): tlačidlo ide o úroveň vyššie (nie späť v histórii) — preto „↑ Vyššie“
+  html += `<button class="bc-back ${backVis?'visible':''}" onclick="navigate(${backTarget})">↑ ${IS_EN?'Up':'Vyššie'}</button>`;
 
   // Home
   html += `<a class="bc-item ${curId===null?'active':''}" href="${attrEsc(urlForId(null))}" onclick="return navClick(event,null)">🏠 ${IS_EN?'Home':'Domov'}</a>`;
@@ -2315,7 +2410,7 @@ function savePromoBanner(){
 // ============================================================
 // Debounce — hľadá sa až keď človek na chvíľu prestane písať (nie pri každom písmene)
 let _srchT = null;
-function onSearch(){ clearTimeout(_srchT); _srchT = setTimeout(render, 200); }
+function onSearch(){ clearTimeout(_srchT); _srchT = setTimeout(function(){ syncSearchUrl(); render(); }, 200); } // bod 10: dotaz aj do adresy (?q=)
 const SRCH_MAX = 200;
 const _srchCache = new WeakMap(); // max. počet zobrazených kariet v každej skupine
 
@@ -2413,16 +2508,19 @@ function renderSearch(q){
     try{ return new RegExp('(^|[^\\p{L}\\p{N}])'+e,'u'); }catch(_){ return new RegExp('(^|[^a-z0-9])'+e); } });
   const allIn = (t)=> words.length>1 && wRes.every(r=>r.test(t));
   // Skóre: 0 = názov začína hľadaným textom, 1 = slovo v názve začína,
-  // 2 = kdekoľvek v názve, 3 = slovo v popise začína (zmienka), -1 = nič
+  // 2 = všetky slová v názve, 3 = slovo v popise začína (zmienka),
+  // 4 = kdekoľvek v názve (aj v strede slova), -1 = nič.
+  // Bod 4 (previerka 3): zhoda v strede slova (4) ide AŽ za zhody na začiatku
+  // slova a za popisy — „slovan“ už nemá ako prvý výsledok „Veslovanie“.
   const score = (n)=>{ const c = srchText(n);
     if(c.name.startsWith(nq)) return 0;
     if(wordRe.test(c.name)) return 1;
-    if(c.name.includes(nq)) return 2;
     if(allIn(c.name)) return 2;                  // všetky slová v názve
     if(words.length>1 && wRes.some(r=>r.test(c.name))    // napr. „slovan hokej“ — šport je v ceste
        && allIn(c.name+' '+norm(pathOf(n.parentId).map(p=>nName(p)).join(' ')))) return 2;
     if(wordRe.test(c.desc)) return 3;
     if(allIn(c.name+' '+c.desc)) return 3;       // slová rozdelené medzi názov a popis
+    if(c.name.includes(nq)) return 4;            // kdekoľvek v názve — až na koniec
     return -1; };
   const scored = [];
   pool.forEach(n=>{ const sc = score(n); if(sc>=0) scored.push({n,sc}); });
@@ -2435,6 +2533,7 @@ function renderSearch(q){
   }
   const hits     = scored.filter(x=>x.sc<3).map(x=>x.n);   // zhoda v názve
   const mentions = scored.filter(x=>x.sc===3).map(x=>x.n); // len zmienka v popise
+  const partial  = scored.filter(x=>x.sc===4).map(x=>x.n); // časť slova v názve (bod 4)
   const more = (all)=> all.length > SRCH_MAX
     ? `<p class="sr-path" style="margin:8px 0 0">${IS_EN?`Showing first ${SRCH_MAX} of ${all.length} — refine your search`:`Zobrazených prvých ${SRCH_MAX} z ${all.length} — spresni hľadanie`}</p>` : '';
   const folderCard = (n, snip)=>{
@@ -2467,6 +2566,7 @@ function renderSearch(q){
   html += section(IS_EN?'Categories':'Kategórie', foldersAll, true);
   html += section(IS_EN?'Links':'Linky', linksAll, !foldersAll.length);
   html += section(IS_EN?'Mentioned in descriptions':'Spomenuté v popise', mentions, !hits.length, true);
+  html += section(IS_EN?'Partial matches in names':'Čiastočná zhoda v názve', partial, !hits.length && !mentions.length);
   main.innerHTML = html;
 }
 
@@ -3249,7 +3349,8 @@ function aktState(a, today){
   if(a.startsAt && today < a.startsAt) return 'wait';
   return 'on';
 }
-function aktVisible(a, today){ return !!(a && a.url) && aktState(a, today) === 'on'; }
+// bod 8 (previerka 3): adresa, z ktorej safeUrl() urobí '#' (javascript:, bez https…), sa nezobrazí
+function aktVisible(a, today){ return !!(a && a.url) && safeUrl(a.url) !== '#' && aktState(a, today) === 'on'; }
 function aktPublic(){ const t = todayLocal(); return aktAll().filter(a=>aktVisible(a, t)); }
 // kedy sa položka OBJAVILA verejnosti — od toho 24 h štítok NEW
 function aktShownAt(a){
@@ -3841,10 +3942,11 @@ function updateAktFade(){
   const more = s.scrollWidth - s.clientWidth - s.scrollLeft > 8;
   w.classList.toggle('has-more', more);
   if(more){
-    // spočítaj karty, ktoré sú celé za pravým okrajom (skryté)
-    const rightEdge = s.scrollLeft + s.clientWidth;
+    // spočítaj karty, ktoré za pravým okrajom nie sú vidieť celé — skryté aj
+    // orezané (bod 8, previerka 3: predtým len celé skryté, pri 3 kartách „›“ bez čísla)
+    const rightEdge = s.getBoundingClientRect().right;
     let hidden = 0;
-    s.querySelectorAll('.akt-card').forEach(c=>{ if(c.offsetLeft >= rightEdge - 8) hidden++; });
+    s.querySelectorAll('.akt-card').forEach(c=>{ if(c.getBoundingClientRect().right > rightEdge + 1) hidden++; });
     const badge = document.getElementById('aktMoreBadge');
     badge.textContent = hidden > 0 ? '+'+hidden+' ›' : '›';
     // bod 25: popis tlačidla pre čítačky — „Zobraziť ďalšie 4 linky" / „Show 4 more links"
@@ -3909,6 +4011,9 @@ function initApp(){
 // a stránka sa vykreslí hneď. Adresa, ktorá sa rozlúštiť nedá (404, chýbajúci
 // balík), sa nevykresľuje — čaká sa na celé dáta, aby sa adresa neprepísala
 // vyššie (viď initFromUrl / CESTA_CELA).
+// Bod 10 (previerka 3): hľadaný text z adresy (?q=kosice) — hľadanie sa spustí
+// hneď pri štarte (pred príchodom celých dát ukáže „Načítavam…“).
+try{ const q0 = qFromUrl().trim(); if(q0) document.getElementById('srch').value = q0; }catch(e){}
 let bootShown = false;
 if(BOOT && BOOT.nodes && PATH_ROUTING && !(location.hash && location.hash.indexOf('#/') === 0)){
   try{
