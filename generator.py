@@ -166,6 +166,18 @@ def slugify(name: str) -> str:
     return s.strip("-")
 
 
+# Zadanie 32 (bod 19 previerky 3): slug z NÁZVU priečinka (keď nemá uložený slug)
+# sa skráti na SLUG_MAX znakov — inak by veľmi dlhý názov zhodil build chybou
+# „File name too long". ROVNAKO ako slugCut() v index.html (nodeSlugBase), aby
+# adresy appky a generátora ostali zhodné. Dnešné slugy majú najviac ~50 znakov.
+SLUG_MAX = 80
+
+
+def slug_cut(s: str) -> str:
+    """Skráti slug na SLUG_MAX znakov a odreže pomlčky na konci (ako slugCut v index.html)."""
+    return s[:SLUG_MAX].rstrip("-") if len(s) > SLUG_MAX else s
+
+
 def node_desc(node: dict) -> str:
     """Popis v aktuálnom jazyku s fallbackom na slovenčinu."""
     if LANG != "sk":
@@ -474,6 +486,21 @@ def load_data(path: str) -> dict:
 # STROM
 # ------------------------------------------------------------
 
+def order_num(v, default=0):
+    """Pole "order"/"order_en" ako číslo (Zadanie 32, bod 19): text „5" → 5; prázdne,
+    nečíselné, NaN či nekonečno → default. Ako akt_norm — zlé dáta build nezhodia
+    (predtým TypeError pri porovnaní čísla s textom)."""
+    if v is None or v == "" or isinstance(v, bool):
+        return default
+    try:
+        o = float(v)
+    except (TypeError, ValueError):
+        return default
+    if o != o or o in (float("inf"), float("-inf")):
+        return default
+    return o
+
+
 def build_tree(nodes: list, lang: str = None):
     """Vráti (children, by_id): mapy pre rýchlu navigáciu stromom."""
     lang = lang or LANG
@@ -487,9 +514,10 @@ def build_tree(nodes: list, lang: str = None):
     for pid, lst in children.items():
         # order_en — voliteľné pole: na EN webe má prednosť pred order
         if lang == "en":
-            lst.sort(key=lambda x: x.get("order_en", x.get("order", 0)))
+            lst.sort(key=lambda x: order_num(x["order_en"]) if "order_en" in x
+                     else order_num(x.get("order")))
         else:
-            lst.sort(key=lambda x: x.get("order", 0))
+            lst.sort(key=lambda x: order_num(x.get("order")))
         # EN: krajiny vnútri kontinentov podľa anglickej abecedy
         parent = by_id.get(pid)
         if (lang == "en" and parent is not None and pid not in NO_EN_ALPHA
@@ -535,10 +563,10 @@ def slug_base(n: dict, lang: str = None) -> str:
     lang = lang or LANG
     if lang == "en":
         return (n.get("slug_en")
-                or slugify(node_name(n, lang))
+                or slug_cut(slugify(node_name(n, lang)))
                 or "cat-" + slugify(n["id"]))
     return (n.get("slug")
-            or slugify(n.get("name", ""))
+            or slug_cut(slugify(n.get("name", "")))
             or "kat-" + slugify(n["id"]))
 
 
@@ -1020,6 +1048,7 @@ h1 .ic{margin-right:8px}
 .promo{display:flex;gap:22px;align-items:flex-start;background:#182430;border:1px solid #2a3642;border-radius:12px;padding:20px;margin-bottom:22px}
 .promo-ban{flex-shrink:0;width:300px;min-height:250px;display:flex;flex-direction:column;align-items:center}
 .promo-ban img{max-width:100%;display:block}
+.promo-ban[hidden]{display:none}
 .promo-txt{flex:1;min-width:0}
 .promo-tag{font-size:.65rem;letter-spacing:1px;color:#8fa3b3;margin-bottom:8px}
 .promo-txt h3{margin:0 0 10px;font-size:1.25rem;line-height:1.25;color:#fff}
@@ -1089,7 +1118,22 @@ CSP_META = f'<meta http-equiv="Content-Security-Policy" content="{CSP}"/>'
 # partnera) sa vloží do <iframe sandbox> cez srcdoc: bez allow-same-origin a bez
 # allow-top-navigation skript nevidí stránku, cookies ani nepresmeruje hlavné okno.
 AD_SANDBOX = "allow-scripts allow-popups allow-popups-to-escape-sandbox"
-AD_NEEDS_FRAME_RE = re.compile(r"<(script|iframe)\b", re.I)
+
+
+# Zadanie 32 (bod 3 previerky 3): BLOKOVAČ REKLÁM / VÝPADOK PARTNERA. Skript v hlavičke
+# okienka (pred kódom partnera, aby zachytil aj jeho chybu) sleduje partnerský <script>:
+#  - chyba načítania (onerror — blokovač, výpadok) → kontrola hneď,
+#  - inak po ~4 s; ak sa skript partnera ešte len sťahuje (pomalá sieť), počká naň.
+# Kontrola: v tele okienka nie je obrázok, iframe, odkaz (ani svg/video/canvas, ani
+# viditeľný text) → parent.postMessage({sportlinkyAdFail:1}). Rodič slot ZBALÍ.
+# Text ROVNAKÝ ako AD_FAIL_JS v index.html (adFrame) — meň oba naraz.
+AD_FAIL_JS = ('<script>(function(){var d=0,w=0;function e(){var b=document.body;'
+              'return !b||(!b.querySelector("img,iframe,a,svg,video,canvas,object,embed")&&!(b.innerText||"").trim())}'
+              'function f(){if(!d&&e()){d=1;parent.postMessage({sportlinkyAdFail:1},"*")}}'
+              'function k(){var s=document.querySelectorAll("script[src]");for(var i=0;i<s.length;i++)if(!s[i]._x){w=1;return}f()}'
+              'addEventListener("error",function(v){var t=v.target;if(t&&t.tagName==="SCRIPT"){t._x=1;f()}},true);'
+              'addEventListener("load",function(v){var t=v.target;if(t&&t.tagName==="SCRIPT"){t._x=1;if(w)setTimeout(k,1000)}},true);'
+              'setTimeout(k,4000)})()</script>')
 
 
 def ad_frame_doc(h: str, auto: bool) -> str:
@@ -1102,16 +1146,8 @@ def ad_frame_doc(h: str, auto: bool) -> str:
              'if(h&&h!==p){p=h;parent.postMessage({sportlinkyAdH:h},"*")}}'
              'if(window.ResizeObserver)new ResizeObserver(s).observe(document.body);addEventListener("load",s);setTimeout(s,0);setTimeout(s,2000)})()</script>'
              if auto else '')
-    return ('<!DOCTYPE html><html><head><meta charset="utf-8"><base target="_blank">' + css
+    return ('<!DOCTYPE html><html><head><meta charset="utf-8"><base target="_blank">' + css + AD_FAIL_JS
             + '</head><body>' + h + vyska + '</body></html>')
-
-
-def ad_frame(h: str, auto: bool) -> str:
-    """<iframe sandbox srcdoc=…> pre kód partnera; ostatné HTML vráti bez zmeny."""
-    if not AD_NEEDS_FRAME_RE.search(h or ""):
-        return h
-    return (f'<iframe class="adframe adframe-{"auto" if auto else "slot"}" sandbox="{AD_SANDBOX}" '
-            f'srcdoc="{escape(ad_frame_doc(h, auto), quote=True)}" title="Reklama" scrolling="no"></iframe>')
 
 
 PAGE = """<!DOCTYPE html>
@@ -1153,7 +1189,8 @@ PAGE = PAGE.replace("<!--CSP-->", CSP_META, 1)
 # začiatok a koniec okienka slotu + sandbox pre __dyn (JS pole; "</" → "<\\/", aby
 # text nezavrel <script>)
 _af = ad_frame_doc("\x00", False).split("\x00")
-ADFRAME_JS = json.dumps([_af[0], _af[1], AD_SANDBOX]).replace("</", "<\\/")
+_afa = ad_frame_doc("\x00", True).split("\x00")     # promo blok (výška podľa obsahu)
+ADFRAME_JS = json.dumps([_af[0], _af[1], AD_SANDBOX, _afa[0], _afa[1]]).replace("</", "<\\/")
 
 # Dynamický JS: banner + Aktuálne z data.json.
 # __ANC__ = id priečinkov od koreňa po túto stránku (cielenie bannerov),
@@ -1167,6 +1204,14 @@ window.addEventListener("message",function(e){
   var h=d.sportlinkyAdH;if(!isFinite(h)||h<10||h>1000)return;
   var fs=document.querySelectorAll("iframe.adframe-auto");
   for(var i=0;i<fs.length;i++){if(fs[i].contentWindow===e.source){fs[i].style.height=Math.round(h)+"px";return}}
+});
+// Zadanie 32 (bod 3): reklama partnera neprišla (blokovač, výpadok) → slot zbaliť
+// (žiadna prázdna plocha). Len od nášho okienka (e.source), ako pri výške. Neobnovuje sa.
+window.addEventListener("message",function(e){
+  var d=e.data;if(!d||typeof d!=="object"||d.sportlinkyAdFail!==1)return;
+  var fs=document.querySelectorAll("iframe.adframe");
+  for(var i=0;i<fs.length;i++){if(fs[i].contentWindow===e.source){
+    var p=fs[i].parentNode;if(p&&(p.className==="bslot"||p.className==="promo-ban"))p.style.display="none";return}}
 });
 function __dyn(){
   // bod 16: kód partnera (<script>/<iframe>) v banneri → uzavreté okienko (ako adFrame v index.html)
@@ -1209,6 +1254,15 @@ function __dyn(){
     }
     showSlot("bslot",1);
     showSlot("bslot2",2);
+    // Zadanie 32 (bod 2): okienko promo bloku (Tipovanie) — len tu, v zálohe.
+    // Generátor nechal prázdny kontajner len vtedy, keď je promo banner aktívny.
+    var pbe=document.getElementById("pban"),pb=d.promoBanner;
+    if(pbe&&pb&&typeof pb==="object"&&pb.active!==false&&String(pb.html||"").trim()
+       &&!(pb.startsAt&&today<pb.startsAt)&&!(pb.endsAt&&today>pb.endsAt)){
+      pbe.innerHTML=/<(script|iframe)\\b/i.test(pb.html)?'<iframe class="adframe adframe-auto" sandbox="'+AF[2]+'" srcdoc="'+esc(AF[3]+pb.html+AF[4])+'" title="Reklama" scrolling="no"></iframe>'
+        :pb.html;
+      pbe.hidden=false;
+    }
     // Aktuálne: čerstvý aktualne.json (EN: najprv SK web, potom kópia z buildu);
     // keď nepríde, pole "aktualne" z data.json. Pravidlá ako akt_visible v generator.py.
     function showAkt(src){
@@ -1362,7 +1416,11 @@ def promo_block(anc_ids: list):
         return "", ""
     out = ['<div class="promo">']
     if ban_on:
-        out.append(f'<div class="promo-ban">{ad_frame(pb["html"], True)}</div>')   # bod 16: okienko
+        # Zadanie 32 (bod 2 previerky 3): okienko s rotátorom partnera NIE JE v statickom
+        # HTML — appka ho po prevzatí vykreslí sama (inak by sa partner načítal 2×).
+        # Prázdny skrytý kontajner naplní len záložný __dyn(), keď prevzatie zlyhá
+        # (rovnako ako bannery 468×60). Reklamný text nižšie ostáva pre Google.
+        out.append('<div class="promo-ban" id="pban" hidden></div>')
     if texts:
         p = max(texts, key=lambda x: int(x.get("weight") or 1))
         paras = "".join(f"<p>{escape(t.strip())}</p>" for t in str(p.get("text") or "").split("\n") if t.strip())
@@ -1711,6 +1769,73 @@ def render_page(node, path, children, by_id, paths, site_title, alt_url=None, pa
 # HLAVNÝ BEH
 # ------------------------------------------------------------
 
+# ------------------------------------------------------------
+# POISTKA BUILDU (Zadanie 32, bod 18 previerky 3)
+# ------------------------------------------------------------
+# Hlavné sekcie = priečinky na domove (bez parentId). Iný priečinok bez parentId je
+# skoro iste chyba v dátach (stratil rodiča) — len UPOZORNENIE, build pokračuje.
+# NOVÁ HLAVNÁ SEKCIA → doplň jej id sem, inak bude v logu upozornenie.
+MAIN_SECTIONS = {"f_ltw", "f_fut", "f_hok", "f_ten", "f_bas", "f_had", "f_vol",
+                 "f_zim", "f_ost", "f_med", "f_tip"}
+MIN_PAGES = 500          # absolútne minimum stránok priečinkov
+MIN_PAGES_RATIO = 0.9    # … a aspoň 90 % adries z minulého buildu (sitemap-lastmod.json)
+WARN_ROWS = 20           # max. riadkov upozornení na jeden druh chyby
+
+
+def _warn_list(title: str, items: list) -> None:
+    """UPOZORNENIE s id a názvom — najviac WARN_ROWS riadkov + celkový počet."""
+    if not items:
+        return
+    print(f"UPOZORNENIE: {title}: {len(items)}")
+    for n in items[:WARN_ROWS]:
+        print(f"  - {n.get('id')!s} | {str(n.get('name') or '')[:80]}")
+    if len(items) > WARN_ROWS:
+        print(f"  … a ďalších {len(items) - WARN_ROWS}")
+
+
+def check_structure(nodes: list) -> None:
+    """Upozorní na uzly, ktoré na webe potichu chýbajú alebo sú navyše: duplicitné id,
+    nedosiahnuteľné z koreňa (rodič neexistuje, cyklus), priečinky bez parentId,
+    ktoré nie sú hlavné sekcie. Nič nemení, build nezastaví."""
+    ok = [n for n in nodes if isinstance(n, dict) and n.get("id") is not None]
+    if len(ok) != len(nodes):
+        print(f"UPOZORNENIE: uzly bez id alebo nie slovník: {len(nodes) - len(ok)} (vynechané z kontroly)")
+    seen, dup = set(), []
+    for n in ok:
+        if n["id"] in seen:
+            dup.append(n)
+        seen.add(n["id"])
+    _warn_list("duplicitné id uzlov (na webe by boli 2×)", dup)
+    by = {}
+    for n in ok:
+        by.setdefault(n["id"], n)
+    kids = {}
+    for n in by.values():
+        kids.setdefault(n.get("parentId"), []).append(n["id"])
+    reach, stack = set(), list(kids.get(None, []))
+    while stack:                       # prechod od koreňa (bez rekurzie — aj pri cykle skončí)
+        i = stack.pop()
+        if i in reach:
+            continue
+        reach.add(i)
+        stack.extend(kids.get(i, []))
+    lost = [n for n in by.values() if n["id"] not in reach]
+    _warn_list("uzly mimo stromu — rodič neexistuje alebo cyklus parentId (na webe chýbajú)", lost)
+    roots = [n for n in by.values() if n.get("parentId") is None and n.get("type") == "folder"
+             and n["id"] not in MAIN_SECTIONS]
+    _warn_list("priečinky bez parentId, ktoré nie sú hlavné sekcie (na domove by boli dlaždicou)", roots)
+
+
+def check_page_count(count: int) -> None:
+    """SystemExit, keď je stránok priečinkov podozrivo málo (pokazené dáta)."""
+    prev = len(load_lastmod())
+    need = max(MIN_PAGES, int(prev * MIN_PAGES_RATIO))
+    if count < need:
+        raise SystemExit(f"CHYBA: podozrivo málo stránok — vygenerovaných {count}, očakávam aspoň {need} "
+                         f"(minulý build: {prev} adries v {LASTMOD_FILE}, minimum {MIN_PAGES}). "
+                         "Skontroluj data.json (nodes, parentId) — web ostáva po starom.")
+
+
 def main():
     out = "_site"
     if "--out" in sys.argv:
@@ -1725,15 +1850,34 @@ def main():
     print(f"Aktuálne: {len(AKT_ITEMS)} položiek z {akt_zdroj}, verejnosti viditeľných dnes: "
           f"{len(akt_public(AKT_ITEMS))}")
     global PROMOS, PROMO_BANNER
+    # Zadanie 32 (bod 19): zlý typ promo dát build nezhodí — ignoruje sa s upozornením
     PROMOS = data.get("promos") or []
+    if not isinstance(PROMOS, list):
+        print('UPOZORNENIE: "promos" v data.json nie je zoznam — reklamné texty Tipovania ignorujem.')
+        PROMOS = []
+    elif any(not isinstance(p, dict) for p in PROMOS):
+        print('UPOZORNENIE: niektoré položky "promos" v data.json nie sú slovník — ignorujem ich.')
+        PROMOS = [p for p in PROMOS if isinstance(p, dict)]
     PROMO_BANNER = data.get("promoBanner") or {}
+    if not isinstance(PROMO_BANNER, dict):
+        print('UPOZORNENIE: "promoBanner" v data.json nie je slovník — promo banner Tipovania ignorujem.')
+        PROMO_BANNER = {}
     global DATA_VER
-    DATA_VER = str(data.get("version", "") or "")
+    # Zadanie 32 (bod 18c): bez čísla verzie by sa cache dát prestala obnovovať
+    # (data.json bez ?v=, prázdny version.txt) — build radšej zastaví.
+    ver = data.get("version")
+    if isinstance(ver, bool) or not re.fullmatch(r"\d+", str(ver if ver is not None else "").strip()):
+        raise SystemExit(f'CHYBA: data.json nemá platné číslo verzie ("version": {ver!r}). '
+                         'Ulož dáta znova z adminu (Publikovať) — web ostáva po starom.')
+    DATA_VER = str(ver).strip()
     if LANG == "en":
         site_title = data.get("title_en") or data.get("title", "Sportlinking")
     else:
         site_title = data.get("title", "Športové Linky")
     nodes = data.get("nodes", [])
+    if not isinstance(nodes, list):
+        raise SystemExit('CHYBA: "nodes" v data.json nie je zoznam — web ostáva po starom.')
+    check_structure(nodes)
     children, by_id = build_tree(nodes)
 
     # Aktuálne / Live This Week: priečinok je v dátach prázdny, obsah mu dodajú
@@ -1801,9 +1945,15 @@ def main():
             f.write(html)
         count += 1
 
+    # Zadanie 32 (bod 18b): POISTKA PROTI „PRÁZDNEMU" WEBU. Keď je stránok podozrivo
+    # málo (pokazené data.json), build spadne PRED zápisom sitemapy a dátumov zmien —
+    # nasadenie sa nespustí a návštevníci ďalej vidia starý web.
+    check_page_count(count)
+
     # sitemap.xml (len v hlavnej jazykovej vetve)
     if not OUT_PREFIX:
-        today = date.today().isoformat()
+        # Zadanie 32 (bod 22): dátum v Bratislave (ako všetko ostatné), nie UTC
+        today = dnes()
         # lastmod podľa skutočnej zmeny (viď page_fingerprint / LASTMOD_FILE)
         lm_state, lm_new = load_lastmod(), {}
         # štvorice (vlastná adresa, adresa v druhom jazyku alebo None, kľúč, odtlačok)
