@@ -1018,7 +1018,13 @@ class Test:
             page = self.stranka(ctx)
             page.goto(self.base, wait_until="load")
             self.cakaj_na_appku(page)
-            page.wait_for_function("typeof DB !== 'undefined' && DB.nodes && DB.nodes.length > 100 && !DB._partial")
+            # celé dáta v appke — bez wait_for_function so stringom (to potrebuje eval, ktorý
+            # CSP webu zakazuje — 'unsafe-eval' nie je povolený); page.evaluate eval nepotrebuje
+            koniec = time.time() + CAKANIE_MS / 1000
+            while not page.evaluate("typeof DB !== 'undefined' && !!DB.nodes && DB.nodes.length > 100 && !DB._partial"):
+                if time.time() > koniec:
+                    raise Zlyhanie("appka nenačítala celé dáta (data.json) do limitu")
+                page.wait_for_timeout(250)
             page.click("#vSwitch button[data-mode=cols]")
             page.wait_for_selector("#colsWrap .col[data-lv='0'] .cit[data-t='f']", state="visible")
 
