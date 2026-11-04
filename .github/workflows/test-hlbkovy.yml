@@ -1,0 +1,88 @@
+# HĹBKOVÝ TEST WEBU — raz denne prejde CELÝ živý web (skript testy/test_hlbkovy.py):
+# všetky adresy zo sitemap.xml (HTTP 200), titulky, canonical a hreflang, páry SK ↔ EN,
+# robots.txt, verziu data.json, presmerovania http→https a www→bez www, ikonky a vlajky,
+# a porovná adresy a titulky z appky (index.html) s generátorom (generator.py).
+# Nič nemení. Pri chybe: červený krížik v Actions (a e-mail od GitHubu). Výsledok
+# s ✅/⚠️/❌ je rovno na stránke behu (Summary), úplný zoznam chýb v prílohe
+# „test-hlbkovy" (Artifacts, 14 dní).
+# Súbor je ROVNAKÝ v sport-linky aj sportlinking — adresu webu zistí configure-pages,
+# jazyk webu zistí skript sám.
+# Ručné spustenie: Actions → „Hĺbkový test webu" → Run workflow.
+name: Hĺbkový test webu
+
+on:
+  schedule:
+    # denne 05:30 UTC — po nočných buildoch (SK ~23:17 UTC, EN hneď po ňom)
+    - cron: "30 5 * * *"
+  workflow_dispatch:
+  # pull request, ktorý mení testy — overí ich proti živému webu
+  pull_request:
+    paths: [testy/**, .github/workflows/test-hlbkovy.yml]
+
+permissions:
+  contents: read
+  pages: read       # configure-pages zisťuje adresu webu
+
+env:
+  PW_VERSION: "1.64.1"   # verzia Playwright (aj kľúč pamäte prehliadača) — rovnaká ako v test-webu.yml
+
+concurrency:
+  group: test-hlbkovy-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      # skript testu z tejto vetvy (pri PR nová verzia testu)
+      - uses: actions/checkout@v7
+
+      # kontrola d): verzia data.json v hlavnej vetve main (na SK webe sa porovnáva s webom)
+      - uses: actions/checkout@v7
+        with:
+          ref: main
+          path: main-repo
+          sparse-checkout: data.json
+          sparse-checkout-cone-mode: false
+
+      - uses: actions/configure-pages@v6
+        id: pages
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Nainštaluj Playwright
+        run: pip install "playwright==$PW_VERSION"
+
+      # prehliadač Chromium z pamäte (cache) — rovnaký kľúč ako v test-webu.yml
+      - name: Pamäť prehliadača (cache)
+        id: pw-cache
+        uses: actions/cache@v5
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-chromium-${{ runner.os }}-${{ env.PW_VERSION }}
+
+      - name: Stiahni Chromium (prehliadač nie je v pamäti)
+        if: steps.pw-cache.outputs.cache-hit != 'true'
+        run: python -m playwright install --with-deps chromium
+
+      - name: Doinštaluj systémové knižnice (prehliadač je z pamäte)
+        if: steps.pw-cache.outputs.cache-hit == 'true'
+        run: python -m playwright install-deps chromium
+
+      - name: Hĺbkový test živého webu
+        env:
+          WEB_URL: ${{ steps.pages.outputs.base_url }}
+          REPO_DATA_JSON: main-repo/data.json
+        run: python testy/test_hlbkovy.py --url "$WEB_URL" --vystup test-hlbkovy-vystup
+
+      - name: Ulož zoznam chýb
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-hlbkovy
+          path: test-hlbkovy-vystup/
+          retention-days: 14
+          if-no-files-found: ignore

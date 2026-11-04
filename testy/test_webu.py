@@ -31,6 +31,12 @@ má H1, úvodný text, skupiny podľa športu, popisy pod názvom, skrytú lišt
 vyhľadávanie nájde položku Aktuálnych; odkaz v pätičke vedie na stránku. Kým priečinok f_ltw
 na SK webe nie je (enOnly:true v dátach), časť o stránke sa na SK webe preskočí.
 
+Bod 19 (4.11.2026, Zadanie 24): keď sa ani po 10 minútach čakania neobjaví na webe nová
+verzia (Last-Modified index.html starší než štart buildu), je to ❌ — nasadenie sa nepodarilo
+a test by inak skúšal starý web. Všetky adresy, ktoré test prečíta z webu (sitemap.xml,
+odkazy v stránkach), sa prepíšu na zadanú --url (schéma + doména), takže skúška na inej
+adrese (napr. http://localhost:8000/) testuje tú adresu, nie ostrý web.
+
 Spustenie (lokálne):  python testy/test_webu.py --url https://sportlinky.sk/
 Voliteľne:  --od 2026-11-02T02:30:00Z  (počkaj, kým živý web nemá novšiu verziu)
             --vystup test-vystup        (priečinok na snímky a zoznam chýb)
@@ -80,7 +86,7 @@ CAKANIE_MS = 20_000         # max. čas na zobrazenie prvku (dlaždice, výsledk
 POMALA_S = 15               # stránka pomalšia ako toto = ⚠️ varovanie
 MIN_LINIEK = 10_000         # data.json musí mať aspoň toľko liniek
 AKT_MASTER = "https://sportlinky.sk/aktualne.json"   # hlavná kópia Aktuálnych (EN web ju číta zo SK webu)
-DEPLOY_MAX_S = 300          # čakanie na obnovenie GitHub Pages (max. 5 min)
+DEPLOY_MAX_S = 600          # čakanie na obnovenie GitHub Pages (max. 10 min, potom ❌)
 DEPLOY_KROK_S = 20          # … skúšať každých 20 s
 
 
@@ -116,6 +122,7 @@ class Test:
     def __init__(self, base, vystup):
         self.base = base if base.endswith("/") else base + "/"
         self.host = urllib.parse.urlsplit(self.base).netloc
+        self.schema = urllib.parse.urlsplit(self.base).scheme
         self.vystup = vystup
         os.makedirs(vystup, exist_ok=True)
         self.vysledky = []      # (stav, názov, detail)  stav: ok / warn / fail
@@ -127,6 +134,15 @@ class Test:
         self.ligy = []          # adresy z kontroly c) (pre mobil)
         self.adresy = []        # všetky adresy zo sitemap.xml (náhrada pre kontrolu i)
         self.snimky = 0
+
+    def na_url(self, u):
+        """Bod 19: absolútnu adresu prečítanú z webu (sitemap.xml, odkaz v stránke)
+        prepíše na schému a doménu zo zadanej --url — skúška na inej adrese tak
+        testuje tú adresu, nie ostrý web. Relatívne adresy ostávajú bez zmeny."""
+        c = urllib.parse.urlsplit((u or "").strip())
+        if c.scheme in ("http", "https") and c.netloc:
+            return urllib.parse.urlunsplit((self.schema, self.host, c.path, c.query, c.fragment))
+        return u
 
     # ------------------------------------------------ prehliadač
     def smerovanie(self, route):
@@ -262,10 +278,12 @@ class Test:
             except Exception as e:
                 posledny = f"chyba: {e}"
             if time.time() >= koniec:
-                self.vysledky.append(("warn", "Nová verzia na webe",
+                # bod 19: nasadenie sa neprejavilo — ❌ (test ďalej beží, ale skúša STARÝ web)
+                self.vysledky.append(("fail", "Nová verzia na webe",
                                       f"ani po {DEPLOY_MAX_S // 60} min nie je na webe novšia verzia "
-                                      f"(Last-Modified: {posledny}, build začal {od}) — GitHub Pages sa "
-                                      "obnovuje pomaly, test pokračuje so starou verziou"))
+                                      f"(Last-Modified: {posledny}, build začal {od}) — nasadenie sa "
+                                      "neprejavilo; ďalšie kontroly skúšajú STARÚ verziu webu"))
+                self.log.append(f"[fail] Nová verzia na webe: Last-Modified {posledny}, build začal {od}")
                 return
             print(f"čakám na novú verziu webu (Last-Modified: {posledny})…", flush=True)
             time.sleep(DEPLOY_KROK_S)
@@ -340,7 +358,8 @@ class Test:
         kod, _, text = stiahni(self.base + "sitemap.xml")
         if kod != 200:
             raise Zlyhanie(f"sitemap.xml vrátil HTTP {kod}")
-        adresy = re.findall(r"<loc>([^<]+)</loc>", text)
+        # bod 19: adresy zo sitemapy na zadanú --url (inak by sa testoval ostrý web)
+        adresy = [self.na_url(html.unescape(u.strip())) for u in re.findall(r"<loc>([^<]+)</loc>", text)]
         self.adresy = adresy
         root_path = urllib.parse.urlsplit(self.base).path
 
@@ -875,6 +894,7 @@ class Test:
         kod, _, domov = stiahni(self.base)
         m = re.search(r'<a class="f-live" id="fLive"([^>]*)>', domov)
         odkaz = re.search(r'href="([^"]+)"', m.group(1)).group(1) if (m and "href=" in m.group(1)) else ""
+        odkaz = self.na_url(html.unescape(odkaz)) if odkaz else ""   # bod 19
         stav, info = "ok", []
         items, zdroj = self.akt_zdroj()
         # ikonka webu novej položky Aktuálnych sa stiahne až pri ďalšom builde (ikony.py) —
@@ -902,6 +922,7 @@ class Test:
             if not odkaz:
                 raise Zlyhanie("v surovom HTML domova chýba odkaz v pätičke na stránku Aktuálne (#fLive)")
             hlav = page.eval_on_selector("#aktHead", "e => e.getAttribute('href') || ''")
+            hlav = self.na_url(hlav) if hlav else ""
             if hlav != odkaz:
                 raise Zlyhanie(f"nápis lišty Aktuálne nie je odkaz na stránku ({hlav!r} ≠ {odkaz!r})")
             page.click("#fLive")
