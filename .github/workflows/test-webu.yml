@@ -6,6 +6,7 @@
 # snímky obrazovky v prílohe „test-webu" (Artifacts, 14 dní).
 # Súbor je ROVNAKÝ v sport-linky aj sportlinking — adresu webu zistí configure-pages.
 # Ručné spustenie: Actions → „Test webu" → Run workflow.
+# Bod 19 (4.11.2026): nová verzia sa na webe neobjaví do 10 min → ❌; prehliadač z pamäte (cache).
 name: Test webu
 
 on:
@@ -21,6 +22,9 @@ on:
 permissions:
   contents: read
   pages: read       # configure-pages zisťuje adresu webu
+
+env:
+  PW_VERSION: "1.64.1"   # verzia Playwright (aj kľúč pamäte prehliadača)
 
 # keď príde nové nasadenie skôr, ako test dobehne, starší test sa zruší
 concurrency:
@@ -43,10 +47,25 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Nainštaluj Playwright + Chromium
-        run: |
-          pip install playwright==1.64.1
-          python -m playwright install --with-deps chromium
+      - name: Nainštaluj Playwright
+        run: pip install "playwright==$PW_VERSION"
+
+      # bod 19: prehliadač Chromium (~49 s sťahovania) sa ukladá do pamäte (cache);
+      # kľúč = systém + verzia Playwright — nová verzia = nové stiahnutie
+      - name: Pamäť prehliadača (cache)
+        id: pw-cache
+        uses: actions/cache@v5
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-chromium-${{ runner.os }}-${{ env.PW_VERSION }}
+
+      - name: Stiahni Chromium (prehliadač nie je v pamäti)
+        if: steps.pw-cache.outputs.cache-hit != 'true'
+        run: python -m playwright install --with-deps chromium
+
+      - name: Doinštaluj systémové knižnice (prehliadač je z pamäte)
+        if: steps.pw-cache.outputs.cache-hit == 'true'
+        run: python -m playwright install-deps chromium
 
       - name: Otestuj živý web
         env:
