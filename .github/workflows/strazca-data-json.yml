@@ -1,10 +1,21 @@
-# Strážca: ak pull request mení data.json, aktualne.json alebo sitemap-lastmod.json, kontrola zlyhá
-# (červený krížik). aktualne.json (od 3.11.2026) zadáva LEN Miro cez admin na webe — pull request
-# by mohol prepísať, čo medzitým zadal.
+# Strážca: pull request NESMIE meniť súbory, ktoré spravuje Miro alebo robot. Ak ich mení,
+# kontrola zlyhá (červený krížik) a vypíše, ktoré súbory to sú.
+#   - data.json            hlavná kópia dát je na Mirovom PC, nahráva ju len Miro
+#   - aktualne.json        (od 3.11.2026) zadáva LEN Miro cez admin na webe — pull request
+#                          by mohol prepísať, čo medzitým zadal
+#   - sitemap-lastmod.json zapisuje build (GitHub Actions)
+#   - ikony/, vlajky/      zapisuje build (ikony.py, vlajky.py)
+#   - kontrola-liniek/     zapisuje Strážca liniek (stav.json, sprava.md, sprava.csv);
+#                          výnimka: README.md (popis priečinka) sa smie meniť pull requestom
+# Premenovanie alebo presun chráneného súboru sa ráta ako zmena (--no-renames).
+# Priame nahrávanie do main (Miro, roboty) tento strážca nekontroluje — beží len pri PR.
 name: Strazca data.json
 
 on:
   pull_request:
+
+permissions:
+  contents: read
 
 jobs:
   kontrola:
@@ -13,12 +24,16 @@ jobs:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 2
-      - name: Mení tento návrh data.json?
+      - name: Mení tento návrh chránené súbory?
         run: |
-          ZMENENE=$(git diff --name-only HEAD^1 HEAD)
+          ZMENENE=$(git diff --name-only --no-renames HEAD^1 HEAD)
           echo "Zmenené súbory:"; echo "$ZMENENE"
-          if echo "$ZMENENE" | grep -qxE 'data\.json|aktualne\.json|sitemap-lastmod\.json'; then
-            echo "::error::Tento návrh mení data.json, aktualne.json alebo sitemap-lastmod.json — NESPÁJAŤ (neklikať Merge)!"
+          CHRANENE=$(echo "$ZMENENE" \
+            | grep -E '^(data\.json|aktualne\.json|sitemap-lastmod\.json|ikony/.*|vlajky/.*|kontrola-liniek/.*)$' \
+            | grep -vx 'kontrola-liniek/README\.md' || true)
+          if [ -n "$CHRANENE" ]; then
+            echo "Tento návrh mení chránené súbory:"; echo "$CHRANENE"
+            echo "::error::Tento návrh mení chránené súbory ($(echo $CHRANENE)) — NESPÁJAŤ (neklikať Merge)!"
             exit 1
           fi
-          echo "OK — data.json ani aktualne.json sa nemení."
+          echo "OK — návrh nemení data.json, aktualne.json, sitemap-lastmod.json ani súbory robotov."
