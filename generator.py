@@ -51,7 +51,8 @@ import time
 import shutil
 import sys
 import unicodedata
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
+from zoneinfo import ZoneInfo
 from html import escape
 from urllib.parse import unquote, urlsplit
 
@@ -220,6 +221,17 @@ AKTUALNE_FILE = os.environ.get("AKTUALNE_FILE", "aktualne.json")
 AKT_MASTER_URL = "https://sportlinky.sk/aktualne.json"
 
 
+# ČASOVÉ PÁSMO WEBU (bod 30 previerky 2): „dnes" sa ráta v našom čase, nie v čase
+# servera (GitHub = UTC). Inak by medzi polnocou a 1:00 (v lete 2:00) statické HTML
+# ukázalo Aktuálne a promo ešte podľa včerajška. Appka ráta v miestnom čase prehliadača.
+TZ_WEB = ZoneInfo("Europe/Bratislava")
+
+
+def dnes() -> str:
+    """Dnešný dátum v Bratislave ako text RRRR-MM-DD (rovnako ako todayLocal() v index.html)."""
+    return datetime.now(TZ_WEB).date().isoformat()
+
+
 def safe_url(u) -> str:
     """Adresa len http(s) alebo relatívna od koreňa webu, inak "#" (ROVNAKO ako safeUrl v index.html)."""
     s = str(u or "").strip()
@@ -263,7 +275,7 @@ def load_aktualne(data: dict):
 
 def akt_visible(a: dict, today: str = None) -> bool:
     """Vidí položku verejnosť? (ROVNAKO ako aktVisible() v index.html)"""
-    today = today or date.today().isoformat()
+    today = today or dnes()
     if a.get("disabled") is True:
         return False
     if a.get("startsAt") and today < str(a["startsAt"]):
@@ -289,7 +301,7 @@ def akt_shown_ms(a: dict) -> int:
         try:
             y, m, d = (int(x) for x in str(a["startsAt"]).split("-"))
             date(y, m, d)          # neplatný dátum (13. mesiac…) → ValueError
-            start = int(time.mktime((y, m, d, 0, 0, 0, 0, 0, -1)) * 1000)
+            start = int(datetime(y, m, d, tzinfo=TZ_WEB).timestamp() * 1000)   # polnoc u nás
         except (TypeError, ValueError, OverflowError):
             start = 0
     return max(added, start)
@@ -310,7 +322,7 @@ def akt_for_web(items: list, today: str = None) -> list:
     """Položky do BOOT a odľahčeného data.json: bez vypnutých a skončených
     (naplánované ostávajú — appka ich ukáže sama v deň začiatku, aj keby mala
     stránku z pamäte prehliadača). SK bez anglických polí."""
-    today = today or date.today().isoformat()
+    today = today or dnes()
     keys = AKT_KEYS + (("name_en", "desc_en") if LANG == "en" else ())
     out = []
     for a in items:
@@ -550,7 +562,7 @@ def gen_meta(ids) -> dict:
             "_slugFix": {k: v for k, v in sorted(SLUG_FIX.items()) if k in ids}}
 
 
-def build_boot(data: dict, children: dict) -> dict:
+def build_boot(data: dict, children: dict, lcnt: dict) -> dict:
     """ŠTARTOVACÍ BALÍK pre appku (od 2.10.2026, rýchlosť domovskej stránky).
 
     Appka (index.html) má riadok `let BOOT = null;` — main() doň vloží tento
@@ -563,20 +575,7 @@ def build_boot(data: dict, children: dict) -> dict:
       - _totalLinks = počet VŠETKÝCH liniek v dátach (appka počíta rovnako,
         bez ohľadu na jazyk).
     Strom `children` je už filtrovaný podľa jazyka (visible), rovnako ako
-    getChildren() v appke."""
-    link_count = {}
-
-    def cnt(fid):
-        c = 0
-        for k in children.get(fid, []):
-            c += 1 if k.get("type") == "link" else cnt(k["id"])
-        link_count[fid] = c
-        return c
-
-    for top in children.get(None, []):
-        if top.get("type") == "folder":
-            cnt(top["id"])
-
+    getChildren() v appke. lcnt = link_counts(children)."""
     keep = BOOT_KEEP
     nodes = []
 
@@ -587,8 +586,8 @@ def build_boot(data: dict, children: dict) -> dict:
         if n["id"] == LIVE_ID:
             # stránka Aktuálne: úvodný text (popis) hneď z balíka (Zadanie 17)
             m.update({k: n[k] for k in ("desc", "desc_en") if n.get(k)})
-        m["_cnt"] = link_count.get(n["id"], 0)
-        m["_sub"] = sum(1 for k in children.get(n["id"], []) if k.get("type") == "folder")
+        m["_cnt"] = lcnt.get(n["id"], 0)
+        m["_sub"] = sub_count(n["id"], children, lcnt)
         nodes.append(m)
         if depth < 2:
             for k in children.get(n["id"], []):
@@ -614,7 +613,9 @@ def build_boot(data: dict, children: dict) -> dict:
 
 
 def link_counts(children: dict) -> dict:
-    """Počet liniek v podstrome každého priečinka (ako _cnt v build_boot)."""
+    """Počet liniek v podstrome každého priečinka — JEDINÉ miesto, kde sa to ráta
+    (bod 29 previerky 2). main() ho spočíta raz a použijú ho build_boot (_cnt),
+    mini-balíky podstránok, dlaždice domova aj compute_has_link."""
     out = {}
 
     def cnt(fid):
@@ -630,13 +631,20 @@ def link_counts(children: dict) -> dict:
     return out
 
 
+def sub_count(fid, children: dict, lcnt: dict) -> int:
+    """Počet podpriečinkov pre text „X sekcií" (Zadanie 22): len tie, ktoré
+    návštevník vidí — s aspoň 1 linkou v podstrome; Aktuálne / Live This Week
+    (LIVE_ID) vždy, jeho linky prichádzajú z Aktuálnych. ROVNAKO ako subCount()
+    v index.html (a emptyFolder() tam)."""
+    return sum(1 for k in children.get(fid, [])
+               if k.get("type") == "folder" and (k["id"] == LIVE_ID or lcnt.get(k["id"], 0) > 0))
+
+
 def _lite_node(n: dict) -> dict:
     """Uzol presne tak, ako ho má návštevník v data.json (viď lite_data)."""
     if LANG == "en":
         return {k: v for k, v in n.items() if not (k == "desc" and n.get("desc_en"))}
     return {k: v for k, v in n.items() if k not in EN_NODE_KEYS}
-
-
 
 
 def build_page_boot(node, children, by_id, boot_ids, lcnt) -> str:
@@ -657,7 +665,7 @@ def build_page_boot(node, children, by_id, boot_ids, lcnt) -> str:
         if LANG != "en":
             m = {k: v for k, v in m.items() if k not in EN_NODE_KEYS}
         m["_cnt"] = lcnt.get(n["id"], 0)
-        m["_sub"] = sum(1 for k in children.get(n["id"], []) if k.get("type") == "folder")
+        m["_sub"] = sub_count(n["id"], children, lcnt)
         return m
 
     nodes = []
@@ -873,20 +881,19 @@ def skl(n: int, jedna: str, dvestyri: str, vela: str) -> str:
     return jedna if n == 1 else (dvestyri if 2 <= n <= 4 else vela)
 
 
-def home_static_html(children: dict, paths: dict):
+def home_static_html(children: dict, paths: dict, lcnt: dict):
     """Vráti (HTML do #main, HTML do #hSports) PRESNE v značkovaní renderLevel()
     (domov, bežný režim — vrátane skrytej admin lišty, aby bol obsah zhodný
-    s appkou) a renderSportsNav() (bez triedy "on"). Počty _cnt/_sub sa rátajú
-    ako v build_boot(), zo stromu children už filtrovaného podľa jazyka.
-    Appka pri prvom vykreslení obsah porovná a ak je zhodný, neprepíše ho."""
-    def cnt(fid):
-        return sum(1 if k.get("type") == "link" else cnt(k["id"])
-                   for k in children.get(fid, []))
-
+    s appkou) a renderSportsNav() (bez triedy "on"). Počty _cnt/_sub sú tie isté
+    ako v build_boot() (lcnt = link_counts, sub_count), zo stromu children už
+    filtrovaného podľa jazyka. Appka pri prvom vykreslení obsah porovná a ak je
+    zhodný, neprepíše ho."""
     def href(fid):
         return escape(SITE_ABS_ROOT + "/".join(paths.get(fid, [])) + "/", quote=True)
 
-    top = [n for n in children.get(None, []) if not no_tile(n)]   # SK: bez noTileSk
+    # SK: bez noTileSk; bez prázdnych priečinkov (ako tileKids/emptyFolder v appke, bod 5)
+    top = [n for n in children.get(None, []) if not no_tile(n)
+           and not (n.get("type") == "folder" and n["id"] != LIVE_ID and lcnt.get(n["id"], 0) == 0)]
     folders = [n for n in top if n.get("type") == "folder"]
     has_links = any(n.get("type") == "link" for n in top)
     main = ""
@@ -897,8 +904,8 @@ def home_static_html(children: dict, paths: dict):
         main += '<div class="grid-root anim">' if big else '<div class="grid-deep anim">'
         for n in folders:
             i = n["id"]
-            total = cnt(i)
-            sub = sum(1 for k in children.get(i, []) if k.get("type") == "folder")
+            total = lcnt.get(i, 0)
+            sub = sub_count(i, children, lcnt)
             sek = f"{sub} {skl(sub, 'sekcia', 'sekcie', 'sekcií')}"
             lin = f"{total} {skl(total, 'linka', 'linky', 'liniek')}"
             c = f"{sek} · {lin}" if (sub > 0 and total > 0) else (sek if sub > 0 else lin)
@@ -942,7 +949,7 @@ def home_static_html(children: dict, paths: dict):
     return main, nav
 
 
-def inject_home(html: str, children: dict, paths: dict) -> str:
+def inject_home(html: str, children: dict, paths: dict, lcnt: dict) -> str:
     """Do prázdneho #main vloží dlaždice hlavných sekcií a do prázdneho #hSports
     ikonky športov. Dovtedy ich kreslil len JavaScript, takže roboti bez neho
     nevideli na domove žiadny odkaz dovnútra webu. Rovnako ako inject_aktualne()."""
@@ -952,7 +959,7 @@ def inject_home(html: str, children: dict, paths: dict) -> str:
         print("UPOZORNENIE: v index.html nie je prázdny #main / #hSports — "
               "dlaždice domova ostanú len cez JavaScript (roboti ich neuvidia).")
         return html
-    main, nav = home_static_html(children, paths)
+    main, nav = home_static_html(children, paths, lcnt)
     # #hSports je v HTML PRED #main — najprv zadný úsek, aby pozície sedeli
     html = html[:m.start()] + '<main id="main">' + main + "</main>" + html[m.end():]
     html = html[:v.start()] + v.group(1) + nav + "</nav>" + html[v.end():]
@@ -987,24 +994,12 @@ def inject_live_links(html: str, href: str) -> str:
     return html
 
 
-def compute_has_link(children: dict) -> dict:
-    """Pre každý priečinok zistí, či má v podstrome aspoň 1 linku.
+def compute_has_link(children: dict, lcnt: dict = None) -> dict:
+    """Pre každý priečinok zistí, či má v podstrome aspoň 1 linku (z link_counts).
     Priečinky bez liniek nedostanú statickú stránku („tenký obsah")."""
-    has_link = {}
-
-    def check(fid):
-        kids = children.get(fid, [])
-        result = any(k.get("type") == "link" for k in kids)
-        for k in kids:
-            if k.get("type") == "folder":
-                result = check(k["id"]) or result
-        has_link[fid] = result
-        return result
-
-    for top in children.get(None, []):
-        if top.get("type") == "folder":
-            check(top["id"])
-    return has_link
+    if lcnt is None:
+        lcnt = link_counts(children)
+    return {fid: c > 0 for fid, c in lcnt.items()}
 
 
 # ------------------------------------------------------------
@@ -1083,7 +1078,7 @@ FAVICON_LINKS = (f'<link rel="icon" href="{SITE_ABS_ROOT}favicon.ico" sizes="48x
 # ako <meta http-equiv="Content-Security-Policy"> v index.html (main() to pri builde
 # kontroluje, build pri rozdiele spadne). Vysvetlenie jednotlivých častí je v index.html.
 CSP = ("default-src 'self'; script-src 'self' 'unsafe-inline' https://ban.tipsport.sk https://gc.zgo.at; "
-       "connect-src 'self' https://sportlinky.sk https://www.sportlinky.sk https://ban.tipsport.sk https://sportlinky.goatcounter.com https://sportlinking.goatcounter.com; "
+       "connect-src 'self' https://sportlinky.sk https://ban.tipsport.sk https://sportlinky.goatcounter.com https://sportlinking.goatcounter.com; "
        "img-src 'self' data: https:; style-src 'self' 'unsafe-inline'; font-src 'self' data:; "
        "frame-src 'self' https://ban.tipsport.sk; object-src 'none'; base-uri 'self'; form-action 'self'")
 CSP_META = f'<meta http-equiv="Content-Security-Policy" content="{CSP}"/>'
@@ -1345,7 +1340,7 @@ def _promo_ok(p: dict, anc_ids: list) -> bool:
     """Rovnaké pravidlá ako v appke: aktívny, v dátumovom okne, cielený na sekciu v ceste."""
     if p.get("active") is False:
         return False
-    today = date.today().isoformat()
+    today = dnes()
     if p.get("startsAt") and today < p["startsAt"]:
         return False
     if p.get("endsAt") and today > p["endsAt"]:
@@ -1373,7 +1368,7 @@ def promo_block(anc_ids: list):
         out.append(f'<div class="promo-txt"><div class="promo-tag">{escape(pb.get("label") or "REKLAMA")}</div>'
                    f'<h3>{escape(p.get("title") or "")}</h3>{paras}')
         if p.get("btnUrl"):
-            out.append(f'<a class="promo-btn" href="{escape(p["btnUrl"], quote=True)}" target="_blank" '
+            out.append(f'<a class="promo-btn" href="{escape(safe_url(p["btnUrl"]), quote=True)}" target="_blank" '
                        f'rel="noopener sponsored">{escape(p.get("btnText") or "Viac")} ›</a>')
         out.append("</div>")
     out.append("</div>")
@@ -1572,8 +1567,9 @@ def render_page(node, path, children, by_id, paths, site_title, alt_url=None, pa
             d = escape(node_desc(l))
             lic = icon_html(l.get("icon", ""), "20x15")
             ds = f'<div class="ds">{d}</div>' if d else ""
-            url = escape(l.get("url", ""), quote=True)
-            host = re.sub(r"^https?://(www\.)?", "", l.get("url", "")).split("/")[0]
+            su = safe_url(l.get("url"))      # bod 10: zlá adresa → "#" (ako safeUrl v appke)
+            url = escape(su, quote=True)
+            host = re.sub(r"^https?://(www\.)?", "", su).split("/")[0] if su != "#" else ""
             cards.append(
                 f'<a class="card" href="{url}" target="_blank" rel="noopener">'
                 f'<div class="nm">{lic + " " if lic else ""}{escape(node_name(l))}</div>{ds}'
@@ -1675,11 +1671,9 @@ def render_page(node, path, children, by_id, paths, site_title, alt_url=None, pa
               .replace("__AKT_LABEL__", escape(T["aktualne"])))
 
     takeover = (TAKEOVER
-                .replace("__DATAURL__", data_url)
                 .replace("__ROOT__", root)
                 .replace("__GOAT__", GOAT))
 
-    body = fold_cards + link_cards + icon
     return PAGE.format(
         lang=LANG,
         title=page_title,
@@ -1754,7 +1748,8 @@ def main():
     # Prázdne sekcie (rozostavané) tak nemajú verejnú SEO stránku — neodradia
     # návštevníkov ani Google („tenký obsah"). Po doplnení liniek sa stránka
     # vyrobí automaticky pri najbližšom builde.
-    has_link = compute_has_link(children)
+    lcnt = link_counts(children)          # počty liniek v podstrome — raz pre celý build
+    has_link = compute_has_link(children, lcnt)
     if live_here:
         has_link[LIVE_ID] = True   # stránka Aktuálne vzniká aj bez aktívnych položiek (úvodný text)
     skipped = [fid for fid in paths if not has_link.get(fid)]
@@ -1789,8 +1784,7 @@ def main():
     os.makedirs(out, exist_ok=True)
 
     # mini-balíky podstránok (bod 2) — doplnok k BOOT, viď build_page_boot()
-    boot_ids = {n["id"] for n in build_boot(data, children)["nodes"]}
-    lcnt = link_counts(children)
+    boot_ids = {n["id"] for n in build_boot(data, children, lcnt)["nodes"]}
 
     # stránky priečinkov
     count = 0
@@ -1946,13 +1940,13 @@ def main():
             # bez markera sa správa ako doteraz (čaká na celé dáta).
             boot_marker = 'let BOOT = null;'
             if boot_marker in html:
-                boot_js = json.dumps(build_boot(data, children), ensure_ascii=False,
+                boot_js = json.dumps(build_boot(data, children, lcnt), ensure_ascii=False,
                                      separators=(",", ":")).replace("</", "<\\/")
                 html = html.replace(boot_marker, "let BOOT = " + boot_js + ";", 1)
             # AKTUÁLNE PRIAMO V HTML (od 2.10.2026) — viď inject_aktualne().
             html = inject_aktualne(html, AKT_ITEMS)
             # DLAŽDICE DOMOVA + IKONKY ŠPORTOV PRIAMO V HTML (od 2.11.2026) — viď inject_home().
-            html = inject_home(html, children, all_paths)
+            html = inject_home(html, children, all_paths, lcnt)
             # NÁPIS LIŠTY + PÄTIČKA → odkaz na stránku Aktuálne (Zadanie 17)
             html = inject_live_links(html, (SITE_ABS_ROOT + "/".join(all_paths[LIVE_ID]) + "/")
                                      if (live_here and LIVE_ID in all_paths) else None)
