@@ -179,6 +179,7 @@ a.card-root,a.card-folder,a.bc-item,a.h-left,a.f-wordmark{color:inherit;text-dec
 .promo{display:flex;gap:22px;align-items:flex-start;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:22px}
 .promo-ban{flex-shrink:0;width:300px;min-height:250px;display:flex;flex-direction:column;align-items:center;gap:6px}
 .promo-ban img{max-width:100%;display:block}
+.ad-fail .promo-ban-ad{display:none}   /* Zadanie 32: reklama partnera neprišla — okienko zbalené */
 .promo-txt{flex:1;min-width:0}
 .promo-tag{font-size:0.65rem;letter-spacing:1px;color:var(--muted);margin-bottom:8px}
 .promo-txt h3{margin:0 0 10px;font-size:1.25rem;line-height:1.25;color:#fff}
@@ -1348,9 +1349,13 @@ function slugify(name){
 // TRVALÝ SLUG: adresa priečinka sa priradí raz a pri premenovaní sa NEMENÍ
 // (inak by premenovanie po spustení webu rozbilo URL pre Google aj uložené linky)
 // Slug pred riešením duplicít — ROVNAKÝ ako slug_base() v generator.py.
+// Zadanie 32 (bod 19): slug z názvu najviac SLUG_MAX znakov — ROVNAKO ako slug_cut()
+// v generator.py (veľmi dlhý názov by generátoru zhodil build „File name too long").
+const SLUG_MAX = 80;
+function slugCut(s){ return s.length > SLUG_MAX ? s.slice(0, SLUG_MAX).replace(/-+$/,'') : s; }
 function nodeSlugBase(n){
-  if(IS_EN) return n.slug_en || slugify(String(n.name_en||'').trim() || String(n.name||'').trim()) || 'cat-'+slugify(n.id);
-  return n.slug || slugify(n.name) || 'kat-'+slugify(n.id);
+  if(IS_EN) return n.slug_en || slugCut(slugify(String(n.name_en||'').trim() || String(n.name||'').trim())) || 'cat-'+slugify(n.id);
+  return n.slug || slugCut(slugify(n.name)) || 'kat-'+slugify(n.id);
 }
 // DUPLICITNÉ SLUGY SÚRODENCOV (bod 21 previerky, 2.11.2026): generátor dá druhému
 // priečinku s rovnakým slugom „-2", tretiemu „-3"… Výsledné slugy, ktoré sa líšia
@@ -2056,8 +2061,23 @@ function renderLevel(){
   const skip = _lvlSkipSame; _lvlSkipSame = false;
   if(skip && html === _lvlHtml && main.firstChild) return;
   _lvlHtml = html;
-  main.innerHTML = html;
+  // Zadanie 32 (bod 2 previerky 3): promo blok s okienkom partnera (Tipovanie) sa pri
+  // prekreslení tej istej stránky (napr. po stiahnutí celých dát pribudnú linky)
+  // NEPREPISUJE, keď je rovnaký — nové okienko by načítalo rotátor partnera druhýkrát.
+  // Prepíše sa len obsah pod ním. (Admin má pod blokom tlačidlo — tam po starom.)
+  const keep = !adminMode && promoHtml && main.firstElementChild === _promoEl
+    && _promoSrc === promoHtml && html.startsWith(promoHtml);
+  if(keep){
+    while(_promoEl.nextSibling) _promoEl.nextSibling.remove();
+    _promoEl.insertAdjacentHTML('afterend', html.slice(promoHtml.length));
+  } else {
+    main.innerHTML = html;
+  }
+  const f = main.firstElementChild;
+  _promoEl = (promoHtml && f && f.classList.contains('promo')) ? f : null;
+  _promoSrc = _promoEl ? promoHtml : '';
 }
+var _promoEl = null, _promoSrc = '';   // promo blok práve v #main (viď vyššie)
 
 // ============================================================
 // STĹPCOVÉ ZOBRAZENIE (prepis 4.11.2026, Zadanie 26b) — prepínač ▦/▥ v hlavičke.
@@ -2379,7 +2399,9 @@ function renderPromoBlock(){
   const label = attrEsc(pb.label || 'REKLAMA');
   let html = `<div class="promo">`;
   // bod 16: rotátor partnera v uzavretom okienku (výška podľa obsahu)
-  if(banOn) html += `<div class="promo-ban">${adNeedsFrame(pb.html) ? adFrame(pb.html, true) : pb.html}</div>`;
+  // Zadanie 32: okienko partnera má triedu promo-ban-ad — po zlyhaní reklamy (trieda
+  // ad-fail na <html>) je zbalené cez CSS; HTML bloku sa tým nemení (render ho neprepíše)
+  if(banOn) html += `<div class="promo-ban${adNeedsFrame(pb.html) ? ' promo-ban-ad' : ''}">${adNeedsFrame(pb.html) ? adFrame(pb.html, true) : pb.html}</div>`;
   if(p){
     html += `<div class="promo-txt"><div class="promo-tag">${label}</div><h3>${attrEsc(p.title||'')}</h3>${promoParas(p.text)}`;
     if(p.btnUrl) html += `<a class="promo-btn" href="${attrEsc(safeUrl(p.btnUrl))}" target="_blank" rel="noopener sponsored">${attrEsc(p.btnText||'Viac')} ›</a>`;
@@ -3227,9 +3249,15 @@ function bannerWeight(b){ return Math.max(1, Math.min(10, parseInt(b.weight)||1)
 // <base target="_blank"> = každý odkaz v okienku ide do novej karty, aj bez target.
 // Okienko dedí Content-Security-Policy stránky (preto ban.tipsport.sk v script-src).
 // Vlastné bannery bez skriptu (obrázok, SVG s navClick) ostávajú po starom.
-// ROVNAKÝ obsah okienka vyrába aj generator.py (ad_frame) — meň oba naraz.
+// ROVNAKÝ obsah okienka vyrába aj generator.py (ad_frame_doc) — meň oba naraz.
 // ============================================================
 const AD_SANDBOX = 'allow-scripts allow-popups allow-popups-to-escape-sandbox';
+// Zadanie 32 (bod 3 previerky 3): BLOKOVAČ REKLÁM / VÝPADOK PARTNERA. Skript v hlavičke
+// okienka sleduje partnerský <script>: chyba načítania (onerror) → kontrola hneď, inak
+// po ~4 s (ak sa skript ešte sťahuje, počká naň). V tele okienka nie je obrázok, iframe,
+// odkaz (ani svg/video/canvas, ani text) → postMessage({sportlinkyAdFail:1}) → slot sa
+// zbalí (poslucháč správ nižšie). ROVNAKÝ text ako AD_FAIL_JS v generator.py — meň oba naraz.
+const AD_FAIL_JS = '<script>(function(){var d=0,w=0;function e(){var b=document.body;return !b||(!b.querySelector("img,iframe,a,svg,video,canvas,object,embed")&&!(b.innerText||"").trim())}function f(){if(!d&&e()){d=1;parent.postMessage({sportlinkyAdFail:1},"*")}}function k(){var s=document.querySelectorAll("script[src]");for(var i=0;i<s.length;i++)if(!s[i]._x){w=1;return}f()}addEventListener("error",function(v){var t=v.target;if(t&&t.tagName==="SCRIPT"){t._x=1;f()}},true);addEventListener("load",function(v){var t=v.target;if(t&&t.tagName==="SCRIPT"){t._x=1;if(w)setTimeout(k,1000)}},true);setTimeout(k,4000)})()<\/script>';
 function adNeedsFrame(h){ return /<(script|iframe)\b/i.test(String(h||'')); }
 // auto=false: pevná veľkosť slotu (468×60, na mobile podľa šírky);
 // auto=true: výška podľa obsahu — okienko ju pošle cez postMessage (promo blok)
@@ -3241,7 +3269,7 @@ function adFrame(h, auto){
   const vyska = auto ? '<script>(function(){var p=0;function s(){var h=Math.ceil(document.body.getBoundingClientRect().height);'
     + 'if(h&&h!==p){p=h;parent.postMessage({sportlinkyAdH:h},"*")}}'
     + 'if(window.ResizeObserver)new ResizeObserver(s).observe(document.body);addEventListener("load",s);setTimeout(s,0);setTimeout(s,2000)})()<\/script>' : '';
-  const doc = '<!DOCTYPE html><html><head><meta charset="utf-8"><base target="_blank">' + css + '</head><body>' + h + vyska + '</body></html>';
+  const doc = '<!DOCTYPE html><html><head><meta charset="utf-8"><base target="_blank">' + css + AD_FAIL_JS + '</head><body>' + h + vyska + '</body></html>';
   return `<iframe class="adframe adframe-${auto ? 'auto' : 'slot'}" sandbox="${AD_SANDBOX}" srcdoc="${attrEsc(doc)}" title="Reklama" scrolling="no"></iframe>`;
 }
 // výška z okienka: len od NAŠEHO okienka (event.source) a len rozumné číslo
@@ -3254,12 +3282,32 @@ window.addEventListener('message', e=>{
     if(f.contentWindow === e.source){ f.style.height = Math.round(h) + 'px'; return; }
   }
 });
+// Zadanie 32 (bod 3): reklama partnera neprišla (blokovač, výpadok) → slot ZBALIŤ —
+// banner 468×60 aj okienko promo bloku 300×250 (text promo bloku ostáva). Len od
+// NAŠEHO okienka (event.source), ako pri výške. AD_FAIL si zapamätá, že reklama
+// partnera počas tejto návštevy nejde: ďalšie okienka partnera (rotácia, iná stránka)
+// sa už vykreslia rovno zbalené. Keď reklama príde neskôr, slot sa už neobnovuje.
+// Vlastné bannery bez skriptu partnera (obrázok, SVG — EN) sa ukazujú normálne.
+var AD_FAIL = false;   // var: renderPromoBlock/renderOneSlot ho môžu čítať aj pred týmto riadkom
+window.addEventListener('message', e=>{
+  const d = e.data;
+  if(!d || typeof d !== 'object' || d.sportlinkyAdFail !== 1) return;
+  for(const f of document.querySelectorAll('iframe.adframe')){
+    if(f.contentWindow === e.source){
+      AD_FAIL = true;
+      document.documentElement.classList.add('ad-fail');
+      const box = f.closest('.banner-slot, .promo-ban');
+      if(box) box.style.display = 'none';
+      return;
+    }
+  }
+});
 
 // Vykreslí jeden slot — každý slot rotuje len svoje vlastné bannery
 function renderOneSlot(el, slotNum){
   const banners = eligibleBanners(slotNum);
   if(!banners.length){
-    if(el.dataset.bid !== 'ph'){ el.dataset.bid = 'ph'; el.innerHTML = '<div class="banner-placeholder">📢 Banner 468 × 60</div>'; }
+    if(el.dataset.bid !== 'ph'){ el.dataset.bid = 'ph'; el.style.display = ''; el.innerHTML = '<div class="banner-placeholder">📢 Banner 468 × 60</div>'; }
     return;
   }
   let banner;
@@ -3288,8 +3336,11 @@ function renderOneSlot(el, slotNum){
     }
     // bod 16: kód partnera (<script>/<iframe>) → uzavreté okienko; vlastný banner
     // bez skriptu (napr. SVG s navClick) ostáva priamo v stránke ako doteraz
+    // Zadanie 32: po zlyhaní reklamy partnera (AD_FAIL) ostáva jeho slot zbalený
+    el.style.display = (AD_FAIL && adNeedsFrame(h)) ? 'none' : '';
     el.innerHTML = adNeedsFrame(h) ? adFrame(h, false) : h;
   } else {
+    el.style.display = '';
     el.innerHTML = `<a href="${attrEsc(safeUrl(banner.linkUrl))}" target="_blank" rel="noopener sponsored">
       <img src="${attrEsc(safeUrl(banner.imageUrl))}" alt="${attrEsc(banner.alt||'Reklama')}" style="width:100%;height:100%;object-fit:cover;display:block"/>
     </a>`;
