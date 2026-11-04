@@ -138,6 +138,9 @@ jobs:
       # (napr. súbežný push) deploy NEZASTAVÍ — dátumy sa dorovnajú pri ďalšom builde.
       # Bod 8: keď „git pull --rebase" zlyhá, rebase sa zruší (žiadny polorozbitý
       # stav) a NEpushuje sa — len varovanie v logu.
+      # Zadanie 29: --autostash — v pracovnom priečinku sú zmenené súbory (napr.
+      # stiahnutý data.json); bez neho rebase zlyhal na „unstaged changes" a
+      # sitemap-lastmod.json sa neukladal. Zmeny sa odložia a po rebase vrátia.
       - name: Ulož dátumy zmien pre sitemap
         continue-on-error: true
         run: |
@@ -146,7 +149,7 @@ jobs:
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
             git add sitemap-lastmod.json
             git commit -m "sitemap: dátumy zmien stránok [skip ci]"
-            if git pull --rebase origin main; then
+            if git pull --rebase --autostash origin main; then
               git push || echo "::warning::git push sitemap-lastmod.json zlyhal — dorovná sa pri ďalšom builde"
             else
               git rebase --abort || true
