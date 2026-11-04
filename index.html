@@ -206,6 +206,12 @@ a.card-root,a.card-folder,a.bc-item,a.h-left,a.f-wordmark{color:inherit;text-dec
 .bfarm-status.on{background:rgba(46,204,113,.15);color:var(--green)}
 .bfarm-status.off{background:rgba(255,255,255,.05);color:var(--muted)}
 .bfarm-actions{display:flex;gap:4px;flex-shrink:0}
+/* Zadanie 31 (bod 15): úzky mobil — riadok bannera sa zalomí (tlačidlá pod text), nič sa neoreže */
+@media(max-width:560px){
+  .bfarm-row{flex-wrap:wrap}
+  .bfarm-info{flex:1 1 140px}
+  .bfarm-actions{margin-left:auto}
+}
 .rotate-settings{
   background:var(--bg);border:1px solid var(--border);border-radius:10px;
   padding:12px;margin-bottom:14px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;
@@ -249,6 +255,10 @@ a.akt-head[href]:hover #aktHeadTxt{text-decoration:underline}
 .card-root.no-tile{opacity:.45}
 .no-tile-tag{position:absolute;bottom:6px;right:8px;font-size:0.6rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
 .admin-mode footer{margin-bottom:64px} /* nech ju neprekrýva admin lišta */
+/* Zadanie 31 (bod 15): na mobile má lišta 2–3 riadky — odsadenie podľa jej skutočnej
+   výšky (--abh nastaví appka pri zapnutí adminu a pri zmene veľkosti okna).
+   Na počítači ostáva 64 px (lišta je nižšia). */
+.admin-mode footer{margin-bottom:max(64px, calc(var(--abh, 0px) + 8px))}
 
 /* Efekty pri prejdení myšou (nadvihnutie kariet a pod.) sú v @media(hover:hover):
    na dotykovej obrazovke by po ťuknutí ostali „zaseknuté“; na počítači bez zmeny. */
@@ -360,6 +370,17 @@ a.akt-head[href]:hover #aktHeadTxt{text-decoration:underline}
 .ibtn:hover{border-color:var(--accent);color:var(--accent)}
 .ibtn.d:hover{border-color:var(--red);color:var(--red)}
 
+/* Admin na mobile a dotykových zariadeniach (Zadanie 31, bod 15) — na počítači
+   s myšou sa nič nemení. Lišta ▲▼✏️🗑 ide POD text karty (neprekrýva názov
+   ani popis), tlačidlá 38 px (pohodlné na prst). */
+@media(max-width:700px),(hover:none){
+  .admin-mode .card-link,.admin-mode .card-folder{flex-wrap:wrap}
+  .admin-mode .card-admin-bar{position:static;order:99;flex:0 0 100%;justify-content:flex-end;gap:6px;margin-top:6px}
+  .admin-mode .card-root .card-admin-bar{flex:none;justify-content:center;margin:0 auto;flex-wrap:wrap;width:88px} /* dlaždica je úzka — tlačidlá 2 × 2 */
+  .admin-mode .card-admin-bar .ibtn{width:38px;height:38px;font-size:0.95rem}
+  .admin-mode .card-link .card-admin-bar{margin-right:0}
+}
+
 /* ===== ADMIN FLOATING BAR ===== */
 #adminBar{
   position:fixed;bottom:0;left:0;right:0;z-index:100;
@@ -404,6 +425,15 @@ a.akt-head[href]:hover #aktHeadTxt{text-decoration:underline}
 .fg input:focus,.fg select:focus,.fg textarea:focus{border-color:var(--accent)}
 .fg select option{background:var(--surface)}
 .mo-acts{display:flex;gap:8px;margin-top:18px;justify-content:flex-end}
+/* Zadanie 31 (bod 15): políčka adminu na dotykových zariadeniach 16 px — iPhone
+   pri ťuknutí do políčka nepriblíži stránku (na počítači ostáva pôvodné písmo) */
+@media(hover:none){.fg input,.fg select,.fg textarea,.pw-box input{font-size:16px}}
+/* okno Pridať/Upraviť linku je na mobile vyššie než obrazovka — Uložiť/Zrušiť
+   ostávajú prilepené dole v okne (netreba rolovať) */
+@media(max-width:560px){
+  #nodeMo .mo-acts{position:sticky;bottom:-18px;z-index:2;background:#1a2a3a;
+    margin:12px -18px -18px;padding:12px 18px 18px;border-top:1px solid var(--border)}
+}
 .type-toggle{display:flex;gap:8px;margin-bottom:16px}
 .type-btn{
   flex:1;padding:8px;border-radius:8px;border:1.5px solid var(--border);
@@ -905,6 +935,11 @@ let BOOT = null;
 // Verzia (?v=), s ktorou sa z webu stiahol data.json — rovnakou sa po
 // prihlásení admina sťahuje data-full.json. Prázdne = dáta nie sú z webu.
 let PUB_VER = "";
+// Zadanie 31 (bod 12): číslo verzie dát, ktoré sú práve na webe (0 = nevieme,
+// napr. lokálny súbor). FROM_STORE = dáta sa prevzali z úložiska prehliadača
+// (rozpracované úpravy admina), nie z webu.
+let WEB_VER = 0;
+let FROM_STORE = false;
 let DB = {};
 let adminMode = false;
 let curId = null;      // null = root
@@ -921,6 +956,8 @@ let nodeType = 'folder';
 //   sportStromVer   — verzia dát naposledy uložených/načítaných v tomto prehliadači
 //                     (synchrónna ochrana pred starým oknom v save())
 //   sportStromDirty — '1' = v IndexedDB sú rozpracované, nezverejnené admin úpravy
+//   sportStromPubClean — '1' = od posledného 🚀 Publikovať sa nič neupravilo
+//                     (Zadanie 31: keď web dostane tú istú verziu a značku, prevezme sa web)
 // Návštevníkom webu sa do IndexedDB neukladá NIČ — čerstvé dáta sú vždy zo servera.
 const IDB_NAME = 'sportStromDB', IDB_STORE = 'data', IDB_KEY = 'sportStrom';
 function idbOpen(){
@@ -1045,14 +1082,30 @@ async function load(){
     // rozpracované úpravy z IndexedDB čítame LEN keď je nastavený príznak dirty
     // (inak by sme návštevníkovi zbytočne čítali megabajty z disku)
     if(dirty){ try{ storedW = await idbGet(); }catch(e){ storedW = null; } }
-    if(storedW && dirty && (storedW.version||0) >= (published.version||0)){
+    WEB_VER = published.version||0;
+    const sv = storedW ? (storedW.version||0) : 0, pv = published.version||0;
+    // Bod 12 (previerka 3, Zadanie 31): pri ROVNAKEJ verzii rozhoduje značka
+    // publikovania "updated" (zapisuje ju 🚀 Publikovať):
+    //  - rovnaká značka (aj chýbajúca na oboch stranách) = rozpracované úpravy
+    //    vznikli z toho istého obsahu, aký je na webe:
+    //      · od publikovania sa nič neupravilo (sportStromPubClean) → súbor už
+    //        je nahratý na webe → prevziať web, zrušiť „rozpracované“;
+    //      · inak sú to nezverejnené úpravy → majú prednosť (ako doteraz);
+    //  - iná značka (alebo ju má len jedna strana) = na webe je INÝ obsah
+    //    s tou istou verziou (napr. publikované z PC) → hláška so zálohou.
+    const sameUpd = storedW && (storedW.updated||'') === (published.updated||'');
+    const pubClean = lsGet('sportStromPubClean') === '1';
+    if(storedW && dirty && (sv > pv || (sv === pv && sameUpd && !pubClean))){
       // rozpracované nezverejnené úpravy v admine — majú prednosť pred webom
-      DB = storedW; return;
+      DB = storedW; FROM_STORE = true; return;
     }
-    if(storedW && dirty && (storedW.version||0) < (published.version||0)){
-      // web má NOVŠIU verziu než rozpracované úpravy — ponúkni záchrannú zálohu
+    if(storedW && dirty && (sv < pv || (sv === pv && !sameUpd))){
+      // web má NOVŠIU verziu (alebo tú istú verziu s iným obsahom) než rozpracované
+      // úpravy — ponúkni záchrannú zálohu
       const chce = confirm(
-        'POZOR: Web obsahuje novú verziu dát (v'+published.version+').\n' +
+        (sv < pv
+          ? 'POZOR: Web obsahuje novú verziu dát (v'+published.version+').\n'
+          : 'POZOR: Web obsahuje iné dáta s tou istou verziou (v'+published.version+') — zrejme publikované inde (napr. z PC).\n') +
         'V prehliadači máš rozpracované staršie úpravy z admin režimu (v'+(storedW.version||'?')+'), ktoré sa teraz nahradia.\n\n' +
         'Chceš si NAJPRV stiahnuť zálohu svojich úprav (JSON súbor)?'
       );
@@ -1071,6 +1124,7 @@ async function load(){
     // verzie pre ochranu starého okna v save() a zruší sa príznak dirty.
     lsSet('sportStromVer', String(DB.version||0));
     lsDel('sportStromDirty');
+    lsDel('sportStromPubClean');
     // prekonané rozpracované úpravy v IndexedDB zahoď (záloha bola ponúknutá vyššie)
     if(storedW){ idbDel().catch(()=>{}); }
     return;
@@ -1128,6 +1182,7 @@ function save(force){
   // malé kľúče hneď (synchrónne) …
   lsSet('sportStromVer', String(DB.version||0));
   lsSet('sportStromDirty', '1'); // rozpracované nezverejnené úpravy
+  lsDel('sportStromPubClean');    // niečo sa zmenilo po publikovaní (Zadanie 31)
   // … a celé dáta do IndexedDB na pozadí (trvá pár milisekúnd, nikto naň nečaká;
   // zápisy idú v poradí, v akom boli zavolané, takže posledný vyhráva).
   // Keď IndexedDB nie je k dispozícii (niektoré súkromné okná), povedz to nahlas —
@@ -1198,6 +1253,15 @@ function nName(n){ return (IS_EN && n.name_en) ? n.name_en : (n.name||''); }
 function nDesc(n){ return (IS_EN && n.desc_en) ? n.desc_en : (n.desc||''); }
 // bezpecny text do HTML atributu (title="...") — aby uvodzovky nerozbili znacku
 function attrEsc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+// Zadanie 31 (bod 14 previerky 3): kontrola tvaru adresy v admin oknách —
+// rovnaká ako v okne Aktuálnych (saveAkt). Vráti true, ak je adresa v poriadku;
+// inak ukáže hlášku. relOk = smie byť aj relatívna od koreňa webu (/obrazok.png, /).
+function urlOk(u, pole, relOk){
+  if(/^https?:\/\//i.test(u)) return true;
+  if(relOk && /^\/(?!\/)/.test(u)) return true;
+  alert((pole ? pole + ': adresa' : 'URL') + ' musí začínať https:// (alebo http://)' + (relOk ? ' alebo / (adresa na tomto webe)' : '') + '.');
+  return false;
+}
 // bezpečná adresa do href/src — len http:// alebo https://, inak '#' (bod 14)
 function safeUrl(u){ const s = String(u||'').trim(); return /^(https?:\/\/|\/(?!\/))/i.test(s) ? s : '#'; } // https://… alebo relatívna od koreňa webu (/obrazok.png, /) — nie //cudzi-web (oprava 2.11.2026: EN bannery mali po bode 14 adresu #)
 // priečinky, ktorých deti (krajiny) sa v EN radia podľa anglickej abecedy
@@ -2389,6 +2453,7 @@ function savePromo(){
   const g = id=>document.getElementById(id).value.trim();
   const title=g('pTitle'), text=g('pText'), btnText=g('pBtnText'), btnUrl=g('pBtnUrl');
   if(!title || !text || !btnText || !btnUrl){ alert('Vyplň nadpis, text, text tlačidla aj URL!'); return; }
+  if(!urlOk(btnUrl, 'URL tlačidla')) return; // bod 14 (Zadanie 31)
   const startsAt=g('pFrom')||null, endsAt=g('pTo')||null;
   if(startsAt && endsAt && startsAt>endsAt){ alert('Dátum „od" je neskôr než „do"!'); return; }
   const rec = { name:g('pName'), title, text, btnText, btnUrl, sectionId:g('pSection')||null, startsAt, endsAt,
@@ -2716,6 +2781,14 @@ async function chkPw(){
     _pwBusy = false; btn.disabled = false;
   }
 }
+// Zadanie 31 (bod 15): skutočná výška admin lišty → CSS premenná --abh
+// (odsadenie pätičky; na mobile má lišta 2–3 riadky)
+function abhSet(){
+  const bar = document.getElementById('adminBar');
+  document.documentElement.style.setProperty('--abh', (bar && adminMode ? bar.offsetHeight : 0) + 'px');
+}
+try{ if(window.ResizeObserver) new ResizeObserver(abhSet).observe(document.getElementById('adminBar')); }catch(e){}
+window.addEventListener('resize', abhSet);
 function enterAdmin(){
   document.getElementById('pwScreen').classList.remove('open');
   adminMode = true;
@@ -2723,6 +2796,7 @@ function enterAdmin(){
   document.getElementById('adminTog').textContent = '⚙️ Admin ✓';
   document.getElementById('adminBar').classList.add('on');
   document.body.classList.add('admin-mode');
+  abhSet();
   render();
   renderAktualne();
   updateVerBadge();
@@ -2752,6 +2826,11 @@ function setType(t){
   document.querySelectorAll('#nodeMo .soc-fg').forEach(el=>{ el.style.display = t==='link' ? '' : 'none'; });
 }
 function openAdd(){
+  // bod 15 (Zadanie 31): priečinok Aktuálne nemá vlastné linky — obsah mu dodávajú Aktuálne
+  if(curId === LIVE_ID){
+    alert('Do priečinka Aktuálne sa linky nepridávajú.\n\nObsah sa pridáva cez tlačidlo 📌 Upraviť Aktuálne na tejto stránke (alebo 📌 Aktuálne v lište dole).');
+    return;
+  }
   editNodeId = null;
   setType('link');
   document.getElementById('moTitle').textContent = 'Pridať do: ' + (curId ? DB.nodes.find(n=>n.id===curId)?.name : 'Domov');
@@ -2798,6 +2877,14 @@ function saveNode(){
   const ig   = document.getElementById('nIg').value.trim();
   if(!name){ alert('Vyplň názov!'); return; }
   if(nodeType==='link' && !url){ alert('Vyplň URL!'); return; }
+  // bod 14 (Zadanie 31): tvar adresy — prázdne FB/IG sú povolené
+  // (pri úprave priečinka sa URL/FB/IG neukladajú, preto sa ani nekontrolujú)
+  const jeLinka = editNodeId ? ((DB.nodes.find(x=>x.id===editNodeId)||{}).type==='link') : nodeType==='link';
+  if(jeLinka){
+    if(!urlOk(url, 'URL')) return;
+    if(fb && !urlOk(fb, 'Facebook')) return;
+    if(ig && !urlOk(ig, 'Instagram')) return;
+  }
 
   if(editNodeId){
     const n = DB.nodes.find(x=>x.id===editNodeId);
@@ -2833,7 +2920,8 @@ function saveNode(){
     }
     DB.nodes.push(node);
   }
-  save(); closeMo('nodeMo'); render();
+  if(!save()) return; // bod 15: neuložené (staré okno) — nevykresľuj ako uložené
+  closeMo('nodeMo'); render();
 }
 function delNode(id){
   const n = DB.nodes.find(x=>x.id===id);
@@ -2853,21 +2941,68 @@ function delNode(id){
   DB.nodes = DB.nodes.filter(x=>!toDelete.includes(x.id));
   save(); render();
 }
+// ▲▼ (body 11 a 15 previerky 3, Zadanie 31):
+//  - SK web mení pole order (ako doteraz), EN web mení order_en — EN radí podľa
+//    neho; ak ho niektorý súrodenec nemá, najprv sa doplní z order (všetkým
+//    súrodencom, aby sa poradie na EN nezmenilo). SK order sa na EN nemení.
+//  - EN priečinky kontinentov sa radia abecedne (getChildren) — tam sa nič nemení.
+//  - Záporné poradie (−1 = linka ligy so štítkom LIGA, −2 = rýchle linky) sa
+//    nemení nikdy. Dvaja súrodenci s rovnakým záporným poradím si vymenia miesto
+//    v zozname uzlov (pri rovnakom poradí rozhoduje poradie v dátach — appka aj
+//    generátor radia stabilne). Bežnú linku nemožno presunúť „cez“ zápornú.
+//  - Rovnaké nezáporné poradie: súrodenci sa prečíslujú 0, 1, 2… podľa nového poradia.
+function enAlphaFolder(parentId){
+  if(!IS_EN || parentId === null || NO_EN_ALPHA.has(parentId)) return false;
+  const p = nodeById(parentId);
+  return !!(p && CONTINENTS_SK.has(p.name));
+}
 function moveNode(id, dir){
   const n = DB.nodes.find(x=>x.id===id);
+  if(!n) return;
+  if(enAlphaFolder(n.parentId)){ alert('Here the order is alphabetical.\n(Tu sa na EN webe radí abecedne — poradie sa nedá meniť.)'); return; }
   const siblings = getChildren(n.parentId);
   const i = siblings.findIndex(x=>x.id===id);
   const ni = i + dir;
-  if(ni<0||ni>=siblings.length) return;
-  const tmp = siblings[i].order;
-  siblings[i].order = siblings[ni].order;
-  siblings[ni].order = tmp;
+  if(i<0||ni<0||ni>=siblings.length) return;
+  const F = IS_EN ? 'order_en' : 'order';
+  const val = x => (x[F]!==undefined && x[F]!==null) ? x[F] : (x.order||0);
+  const a = siblings[i], b = siblings[ni];
+  const va = val(a), vb = val(b);
+  if((va < 0) !== (vb < 0) || (va < 0 && va !== vb)){
+    alert(IS_EN
+      ? 'The league link / quick links (order −1 / −2) always stay at the top — they cannot be moved past other items.'
+      : 'Linka ligy a rýchle linky (poradie −1 / −2) ostávajú vždy navrchu — cez ostatné položky sa presúvať nedajú.');
+    return;
+  }
+  if(IS_EN) siblings.forEach(x=>{ if(x.order_en===undefined || x.order_en===null) x.order_en = x.order; });
+  if(va < 0){
+    // rovnaké záporné poradie — vymeň miesto v zozname uzlov, hodnoty ostanú
+    const ia = DB.nodes.indexOf(a), ib = DB.nodes.indexOf(b);
+    DB.nodes[ia] = b; DB.nodes[ib] = a;
+    _cSrc = null; // index detí (childrenOf) treba postaviť znova — poradie v poli sa zmenilo
+  } else if(va === vb){
+    // rovnaké poradie — prečísluj nezáporných súrodencov podľa nového poradia
+    const nove = siblings.slice(); nove[i] = b; nove[ni] = a;
+    let k = 0;
+    nove.forEach(x=>{ if(val(x) >= 0) x[F] = k++; });
+  } else {
+    a[F] = vb; b[F] = va;
+  }
   save(); render();
 }
 
 // ============================================================
 // SETTINGS
 // ============================================================
+// Podnadpis v hlavičke a titulok karty z DB (na EN z title_en/subtitle_en) —
+// rovnako ako pri štarte (initApp). Zadanie 31, bod 15.
+// stranka=true: titulok podľa otvorenej stránky (updateHead), inak názov webu
+// (Nastavenia, Import — tak ako doteraz, len v správnom jazyku).
+function setHeadFromDB(stranka){
+  document.getElementById('siteSub').textContent = (IS_EN ? (DB.subtitle_en||DB.subtitle) : DB.subtitle)||'';
+  if(stranka) updateHead();
+  else document.title = (IS_EN ? (DB.title_en||DB.title) : DB.title)||document.title;
+}
 function openSettings(){
   document.getElementById('stTitle').value = DB.title;
   document.getElementById('stSub').value   = DB.subtitle;
@@ -2879,8 +3014,7 @@ async function saveSett(){
   DB.subtitle = document.getElementById('stSub').value.trim();
   const pw    = document.getElementById('stPw').value;
   if(pw){ DB.pwKdf = await makePwKdf(pw); }
-  document.getElementById('siteSub').textContent = DB.subtitle;
-  document.title = DB.title;
+  setHeadFromDB(); // bod 15: na EN z title_en/subtitle_en
   save(); closeMo('settMo');
 }
 
@@ -2914,8 +3048,22 @@ function publishData(){
                 'aktualne.json ešte nebol publikovaný — najprv klikni 📌 Aktuálne → 🚀 Publikovať Aktuálne a nahraj ho, inak lišta Aktuálne na webe zmizne.\n\n'+
                 'Publikovať data.json aj tak?')) return;
   }
-  DB.version = (DB.version||0) + 1;
-  if(!save()){ DB.version--; return; } // staré okno — nesťahuj staré dáta
+  // Zadanie 31 (bod 12): staré okno sa odhalí ešte PRED zvýšením verzie
+  // (inak by ho max(...) nižšie prekrylo a staré dáta by sa stiahli).
+  const lv = lsVer(), oldVer = DB.version||0;
+  if(lv > oldVer){
+    alert('POZOR: Úprava sa NEULOŽILA!\n\nV prehliadači sú novšie dáta (v'+lv+') než v tomto okne (v'+(DB.version||'?')+').\nToto okno je zrejme staré — obnov stránku (F5) a sprav úpravu znova.');
+    return;
+  }
+  // nová verzia = najvyššia známa (dáta v okne, web, úložisko prehliadača) + 1 —
+  // po importe staršej zálohy tak nevznikne nižšie číslo než na webe
+  const oldUpd = DB.updated;
+  DB.version = Math.max(oldVer, WEB_VER||0, parseInt(PUB_VER,10)||0, lv) + 1;
+  // značka publikovania (ISO čas, ako v aktualne.json) — pri prvom publikovaní
+  // pribudne na KONIEC koreňových kľúčov, potom sa len prepisuje na mieste
+  DB.updated = new Date().toISOString();
+  if(!save()){ DB.version = oldVer; if(oldUpd === undefined) delete DB.updated; else DB.updated = oldUpd; return; } // nesťahuj
+  lsSet('sportStromPubClean', '1'); // od teraz nič neupravené — po nahratí na web sa prevezme web
   downloadJSON('data.json');
 }
 function importData(e){
@@ -2927,13 +3075,18 @@ function importData(e){
       if(!d.nodes) throw new Error('Neplatný formát');
       if(d._lite) throw new Error('toto je odľahčený data.json z webu (chýbajú v ňom polia druhého jazyka). Importuj úplný súbor z PC.');
       if(!confirm('Importovať? Nahradí všetky aktuálne dáta.')) return;
+      // Zadanie 31 (bod 12): záloha so staršou verziou, než má web
+      const webV = Math.max(WEB_VER||0, parseInt(PUB_VER,10)||0);
+      if(webV && (d.version||0) < webV &&
+         !confirm('POZOR: Záloha má STARŠIU verziu dát (v'+(d.version||'?')+') než web (v'+webV+').\n'+
+                  'Ak ju naimportuješ, nahradí novšie dáta z webu (čo pribudlo po tejto zálohe, sa stratí).\n\n'+
+                  'OK = pokračovať s importom, Zrušiť = nič nemeniť.')) return;
       DB=d;
       ensureSlugs(); // stará záloha nemusí mať slugy — doplň ich hneď
       save(true); render(); renderAktualne(); renderBannerSlot(); // force — import nahrádza dáta zámerne
       if(adminMode && Array.isArray(d.aktualne) && d.aktualne.length) setTimeout(()=>aktOfferImport(d.aktualne), 300); // prechod: staré Aktuálne z importu
       stopRotation(); startRotation(); // rotácia podľa nastavení z importu
-      document.getElementById('siteSub').textContent=DB.subtitle;
-      document.title=DB.title;
+      setHeadFromDB(); // bod 15: na EN z title_en/subtitle_en
       alert('Import úspešný ✅');
     }catch(err){alert('Chyba: '+err.message);}
   };
@@ -2944,8 +3097,32 @@ function importData(e){
 // MODAL UTILS
 // ============================================================
 function closeMo(id){ document.getElementById(id).classList.remove('open'); }
+// Bod 15 (previerka 3, Zadanie 31): klik mimo okna (na tmavé pozadie) a Escape
+// zatvoria okno bez otázky len vtedy, keď v ňom nie sú rozpísané zmeny —
+// inak sa opýtajú. Escape zatvára len VRCHNÉ okno (naposledy otvorené).
+// Stav políčok sa zapamätá pri otvorení okna (moSnap) a porovná pri zatváraní.
+const _moSnap = new Map(), _moStack = [];
+function moState(m){
+  return Array.from(m.querySelectorAll('input,select,textarea'))
+    .filter(x=>x.type!=='file' && x.type!=='hidden')
+    .map(x=>(x.type==='checkbox'||x.type==='radio') ? (x.checked?'1':'0') : x.value).join('\u0001');
+}
+function moDirty(m){ return _moSnap.has(m) && _moSnap.get(m) !== moState(m); }
+function moTryClose(m){
+  if(moDirty(m) && !confirm('Zavrieť okno? Rozpísané zmeny sa neuložia.')) return;
+  m.classList.remove('open');
+}
 document.querySelectorAll('.mo').forEach(m=>{
-  m.addEventListener('click',e=>{ if(e.target===m) m.classList.remove('open'); });
+  m.addEventListener('click',e=>{ if(e.target===m) moTryClose(m); });
+  new MutationObserver(()=>{
+    const i = _moStack.indexOf(m);
+    if(m.classList.contains('open')){
+      if(i < 0){ _moStack.push(m); _moSnap.set(m, moState(m)); }
+    } else {
+      if(i >= 0) _moStack.splice(i, 1);
+      _moSnap.delete(m);
+    }
+  }).observe(m, {attributes:true, attributeFilter:['class']});
 });
 // Bod 27 (previerka 2): okno s heslom sa dá zavrieť krížikom aj klávesom Escape.
 // #admin sa z adresy odstráni (ak tam ešte je), aby sa okno po F5 neotvorilo znova.
@@ -2960,7 +3137,12 @@ function closePw(){
 }
 document.addEventListener('keydown',e=>{
   if(e.key==='Escape' && document.getElementById('pwScreen').classList.contains('open')){ closePw(); return; }
-  if(e.key==='Escape') document.querySelectorAll('.mo.open').forEach(m=>m.classList.remove('open'));
+  if(e.key==='Escape'){
+    // len vrchné okno (posledné otvorené, ktoré je ešte otvorené)
+    const top = _moStack.filter(m=>m.classList.contains('open')).pop()
+             || Array.from(document.querySelectorAll('.mo.open')).pop();
+    if(top) moTryClose(top);
+  }
   if(e.key==='Enter'&&document.getElementById('pwScreen').classList.contains('open')) chkPw();
 });
 // Bod 26 (2.11.2026): admin okná sú dialógy (role="dialog", aria-modal v HTML).
@@ -3181,20 +3363,26 @@ function renderBannerFarmGrid(){
 
 function activateBanner(id){
   DB.bannerSettings.activeId = id;
+  save(); // bod 13 (Zadanie 31): uložiť hneď, nie až po „Uložiť nastavenia“
   renderBannerFarmGrid();
+  renderBannerSlot();
 }
 
 function toggleBannerActive(id){
   const b = DB.banners.find(x=>x.id===id);
   if(b) b.active = b.active===false ? true : false;
+  save(); // bod 13 (Zadanie 31)
   renderBannerFarmGrid();
+  renderBannerSlot();
 }
 
 function deleteBanner(id){
   if(!confirm('Zmazať tento banner?')) return;
   DB.banners = DB.banners.filter(b=>b.id!==id);
   if(DB.bannerSettings.activeId===id) DB.bannerSettings.activeId=null;
+  save(); // bod 13 (Zadanie 31): zmazanie prežije obnovenie stránky
   renderBannerFarmGrid();
+  renderBannerSlot();
 }
 
 // Naplní výber sekcií hlavnými kategóriami (banner sa dá cieliť na hlavnú kategóriu + jej podstrom)
@@ -3254,6 +3442,12 @@ function saveBanner(){
   const endsAt    = document.getElementById('bTo').value || null;
   const weight    = Math.max(1, Math.min(10, parseInt(document.getElementById('bWeight').value)||1));
   if(!imageUrl && !html){ alert('Vlož URL obrázka alebo HTML kód!'); return; }
+  // bod 14 (Zadanie 31): obrázok len https:// alebo /… (http:// blokuje CSP);
+  // odkaz http(s):// alebo /… (EN bannery odkazujú na „/“), prázdny = bez odkazu
+  if(imageUrl && !/^https:\/\//i.test(imageUrl) && !/^\/(?!\/)/.test(imageUrl)){
+    alert('URL obrázka: musí začínať https:// alebo / (obrázok na tomto webe).'); return;
+  }
+  if(linkUrl && !urlOk(linkUrl, 'Odkaz (kam vedie klik)', true)) return;
   if(startsAt && endsAt && startsAt > endsAt){ alert('Dátum „od" je neskôr než „do"!'); return; }
   if(!DB.banners) DB.banners=[];
   if(editingBannerId){
@@ -4069,6 +4263,9 @@ function afterLoad(opakovanie){
   // sú zhodné) — tie sa NEPREKRESĽUJÚ, aby karty nepreblikli. Prekreslí sa len
   // hĺbka 2+ („Načítavam…“) a rozpísané hľadanie; hlavička/popis vždy.
   ensureSlugs();
+  // bod 15 (Zadanie 31): dáta prevzaté z úložiska prehliadača (rozpracované úpravy
+  // admina) môžu mať iný podnadpis/názov než balík BOOT — hlavičku nastav z DB
+  if(FROM_STORE) setHeadFromDB(true);
   const cur = curId ? DB.nodes.find(x=>x.id===curId) : null;
   const q = document.getElementById('srch').value.trim();
   const hlboko = cur && cur.parentId !== null;
