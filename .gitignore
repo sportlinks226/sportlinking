@@ -1,3 +1,5 @@
 # aktualne.json sa pri builde sťahuje zo SK webu (sportlinky.sk) — v tomto repozitári sa NEcommituje
 aktualne.json
+# data.json sa pri builde sťahuje zo SK webu (sportlinky.sk) — v tomto repozitári sa NEcommituje
+data.json
 __pycache__/

@@ -23,6 +23,11 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
+      # Zadanie 29: data.json v tomto repozitári nie je — stiahne sa zo SK webu (ako build)
+      - name: Stiahni aktuálne dáta zo slovenského webu (ako build)
+        run: |
+          curl -fsSL --retry 3 "https://sportlinky.sk/data-full.json?build=$GITHUB_RUN_ID" -o data.json \
+            || curl -fsSL --retry 3 "https://sportlinky.sk/data.json?build=$GITHUB_RUN_ID" -o data.json
       - name: Stiahni všetky vlajky do dočasného priečinka
         run: python vlajky.py --dir _vlajky_skuska --vystup vlajky-skuska.json
       - name: Súhrn
