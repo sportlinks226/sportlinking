@@ -85,7 +85,8 @@ UI = {
         "folders": "Kategórie",
         "links": "Linky",
         "open_app": "Otvoriť v interaktívnej aplikácii",
-        "meta_folder": "{name} — športové linky: {nfold} podkategórií, {nlink} liniek.",
+        "ad": "Reklama",
+        "meta_folder": "{name}{ctx} — športové linky: {nfold} podkategórií, {nlink} liniek.",
         "footer": "Prehľadný rozcestník športových webov. Databáza liniek je chránená právom na ochranu databáz (smernica 96/9/ES); jej kopírovanie alebo systematické vyťažovanie bez súhlasu prevádzkovateľa je zakázané.",
         "aktualne": "Aktuálne",
     },
@@ -94,7 +95,8 @@ UI = {
         "folders": "Categories",
         "links": "Links",
         "open_app": "Open in the interactive app",
-        "meta_folder": "{name} — sports links: {nfold} subcategories, {nlink} links.",
+        "ad": "Advertisement",
+        "meta_folder": "{name}{ctx} — sports links: {nfold} subcategories, {nlink} links.",
         "footer": "A clear directory of sports websites. The link database is protected by database rights (Directive 96/9/EC); copying or systematic extraction without the operator's consent is prohibited.",
         "aktualne": "Live this week",
     },
@@ -109,14 +111,40 @@ ACCENT_HOVER = "#c73535" if LANG == "sk" else "#2f6bc4"
 ACCENT_TEXT = "#ef5a5a" if LANG == "sk" else "#5b9bf0"
 ACCENT_STRONG = "#d63333" if LANG == "sk" else "#2a6fd6"
 
+# EN PORADIE KRAJÍN (Zadanie 33, bod 17 previerky 3): deti kontinentov sa na EN
+# webe radia takto — najprv PINNED_EN (podľa order), potom ostatné podľa anglickej
+# abecedy BEZ DIAKRITIKY (en_alpha_key: „São Tomé" sa radí ako „Sao Tome").
+# JEDINÝ ZDROJ PRAVDY je tento generátor: hotové poradie pošle appke ako kľúč
+# "_orderEn" ({id rodiča: [id detí v poradí]}) v odľahčenom data.json, v BOOT
+# a v mini-balíku stránky (viď gen_meta / ORDER_EN). Appka (getChildren v index.html)
+# radí podľa neho; vlastné radenie (enAlphaSort — rovnaké pravidlá ako tu) použije
+# len ako zálohu, keď hotové poradie nemá (admin s data-full.json).
+# CONTINENTS, PINNED_EN a NO_EN_ALPHA MUSIA zostať zhodné s CONTINENTS_SK,
+# PINNED_EN a NO_EN_ALPHA v index.html.
 # priečinky, ktorých deti (krajiny) sa v EN verzii radia podľa anglickej abecedy
 CONTINENTS = {"Európa", "Ázia", "Afrika", "Južná Amerika", "Severná Amerika",
-              "Severná a Stredná Amerika", "Oceánia", "Ázia & Oceánia"}
+              "Severná a Stredná Amerika", "Oceánia", "Ázia & Oceánia",
+              "Južná a Stredná Amerika (SCAHC)", "Severná Amerika a Karibik (NACHC)"}
+
+# uzly, ktoré ostávajú na začiatku zoznamu aj v EN (nezaradia sa do abecedy)
+PINNED_EN = {
+    "f_bas_klu_eu_esp", "f_bas_klu_eu_ger", "f_bas_klu_eu_ita", "f_bas_klu_eu_fra",
+    # Ázia — päť krajín, kde robíme aj najvyššiu ženskú ligu, ostáva vpredu
+    "f_bas_klu_az_chn", "f_bas_klu_az_jpn", "f_bas_klu_az_kor",
+    "f_bas_klu_az_tpe", "f_bas_klu_az_idn",
+    # Hádzaná Kluby Európa — krajiny s 3 ligami (muži, ženy, 2. liga) a potom
+    # s 2 ligami ostávajú vpredu podľa významu (order), zvyšok abecedne
+    "f_had_deu", "f_had_fra", "f_had_esp", "f_had_dnk", "f_had_nor", "f_had_swe",
+    "f_had_cze", "f_had_svk", "f_had_hun", "f_had_rou", "f_had_rus",
+    # Hádzaná Kluby mimo Európy (v347) — krajiny s mužskou aj ženskou ligou vpredu
+    "f_had_jpn", "f_had_kor", "f_had_bra", "f_had_arg",
+}
 
 # VÝNIMKY z abecedného radenia v EN — priečinky, ktoré sa síce volajú ako kontinent,
 # ale ich obsah NIE SÚ krajiny (napr. Súťaže › Európa: poradie = úroveň súťaže).
-# MUSÍ zostať zhodné s NO_EN_ALPHA v sport-strom.html.
-NO_EN_ALPHA = {"f_bas_sut_eu", "f_bas_sut_oc", "f_bas_sut_na", "f_bas_sut_ja", "f_bas_sut_af", "f_bas_sut_az"}
+# Hádzanárske súťaže Amerík (f_had_sut_ja, f_had_sut_na) — Zadanie 33.
+NO_EN_ALPHA = {"f_bas_sut_eu", "f_bas_sut_oc", "f_bas_sut_na", "f_bas_sut_ja", "f_bas_sut_af", "f_bas_sut_az",
+               "f_had_sut_ja", "f_had_sut_na"}
 
 # Stránka Aktuálne / "Live This Week" (priečinok f_ltw) — nemá vlastné linky:
 # napĺňa sa naživo z Aktuálnych (aktualne.json, v prechode pole "aktualne"
@@ -442,6 +470,54 @@ def live_cut(s: str, mx: int) -> str:
     return re.sub(r"[\s,.;:–—-]+$", "", a[:i] if i > mx * 0.6 else a) + "…"
 
 
+# META POPIS STRÁNKY PRIEČINKA (Zadanie 33, bod 23 previerky 3): Google ukáže
+# ~155–160 znakov, dlhší popis odreže (alebo si úryvok zloží sám). Do meta
+# description / og:description preto ide len PRVÁ VETA popisu, skrátená na
+# META_DESC_MAX znakov; ak je prvá veta kratšia ako META_DESC_SHORT a popis
+# pokračuje, pridá sa aj druhá veta (ak sa obe zmestia do META_DESC_MAX).
+# Plný popis ostáva viditeľný na stránke (<p class="desc">, karty).
+# Veta končí na . ! ? + medzera + VEĽKÉ písmeno alebo číslica — NIE za radovou
+# číslovkou („1. MFL"), jedným písmenom ani skratkou („St. Kitts", „napr.").
+# ROVNAKO ako metaDesc() / descSentences() v index.html (test porovnáva popis
+# appky a generátora). Stránka Aktuálne má vlastný live_meta_desc().
+META_DESC_MAX = 155
+META_DESC_SHORT = 70
+DESC_ABBR = {"st", "sv", "mt", "ft", "dr", "jr", "sr", "mr", "mrs", "no", "nr", "vs",
+             "tzv", "napr", "resp", "atď", "pod", "príp", "č", "cca", "inc", "ltd", "co"}
+
+
+def desc_sentences(t: str) -> list:
+    """Rozdelí text na vety (pravidlá viď vyššie). ROVNAKO ako descSentences() v index.html."""
+    t = re.sub(r"\s+", " ", str(t or "")).strip()
+    out, start = [], 0
+    for m in re.finditer(r"[.!?](?= (\S))", t):
+        nxt = m.group(1)
+        if not (unicodedata.category(nxt) == "Lu" or nxt.isdigit() and nxt.isascii()):
+            continue
+        if t[m.start()] == ".":
+            w = re.search(r"(\S+)$", t[start:m.start()])
+            w = w.group(1) if w else ""
+            if (re.fullmatch(r"[0-9]{1,2}", w) or len(w) == 1
+                    or w.lower().lstrip("(") in DESC_ABBR):
+                continue
+        out.append(t[start:m.end()])
+        start = m.end() + 1
+    if start < len(t):
+        out.append(t[start:])
+    return out
+
+
+def meta_desc(t: str) -> str:
+    """Meta popis z popisu priečinka (prvá veta, ~155 znakov). ROVNAKO ako metaDesc() v index.html."""
+    v = desc_sentences(t)
+    if not v:
+        return ""
+    d = v[0]
+    if len(d) < META_DESC_SHORT and len(v) > 1 and len(d) + 1 + len(v[1]) <= META_DESC_MAX:
+        d += " " + v[1]
+    return live_cut(d, META_DESC_MAX)
+
+
 def live_meta_desc(node: dict) -> str:
     """Meta popis: úvodná veta z desc + „Práve teraz: šport, šport.“ (max ~155 znakov)."""
     base = live_first_sentence(node_desc(node)) or LIVE_TXT["fallback"]
@@ -518,12 +594,30 @@ def build_tree(nodes: list, lang: str = None):
                      else order_num(x.get("order")))
         else:
             lst.sort(key=lambda x: order_num(x.get("order")))
-        # EN: krajiny vnútri kontinentov podľa anglickej abecedy
-        parent = by_id.get(pid)
-        if (lang == "en" and parent is not None and pid not in NO_EN_ALPHA
-                and parent.get("name") in CONTINENTS):
-            lst.sort(key=lambda x: node_name(x, lang).lower())
+        # EN: krajiny vnútri kontinentov — PINNED_EN vpredu, zvyšok podľa abecedy
+        if lang == "en" and en_alpha_parent(by_id.get(pid)):
+            lst[:] = en_alpha_sort(lst)
     return children, by_id
+
+
+def en_alpha_parent(parent) -> bool:
+    """Radia sa deti tohto priečinka na EN webe abecedne? (ako enAlphaFolder v index.html)"""
+    return (parent is not None and parent.get("id") not in NO_EN_ALPHA
+            and parent.get("name") in CONTINENTS)
+
+
+def en_alpha_key(n: dict) -> str:
+    """Kľúč EN abecedy: anglický názov bez diakritiky, malými písmenami.
+    ROVNAKO ako enAlphaKey() v index.html (porovnáva sa po znakoch)."""
+    s = unicodedata.normalize("NFD", node_name(n, "en"))
+    return "".join(c for c in s if not unicodedata.combining(c)).lower()
+
+
+def en_alpha_sort(lst: list) -> list:
+    """PINNED_EN vpredu (v pôvodnom poradí podľa order), ostatné podľa en_alpha_key.
+    Radenie je stabilné — rovnaký kľúč ostane podľa order (ako sort v JS)."""
+    return ([x for x in lst if x["id"] in PINNED_EN]
+            + sorted((x for x in lst if x["id"] not in PINNED_EN), key=en_alpha_key))
 
 
 def folder_paths(children: dict, lang: str = None):
@@ -579,15 +673,23 @@ def slug_base(n: dict, lang: str = None) -> str:
 # sa NEPÍŠE. Vypĺňa main().
 SLUG_FIX = {}
 
+# EN PORADIE DETÍ KONTINENTOV (Zadanie 33, bod 17): {id rodiča: [id detí]} — len na
+# EN webe, len priečinky radené abecedne (en_alpha_parent). Kľúč "_orderEn". Vypĺňa main().
+ORDER_EN = {}
+
 
 def gen_meta(ids) -> dict:
-    """Kľúče _titleNoSport a _slugFix obmedzené na dané id-čka (BOOT, mini-balík).
-    ids=None = všetko (odľahčený data.json)."""
+    """Kľúče _titleNoSport, _titleNameOnly, _slugFix a _orderEn obmedzené na dané
+    id-čka (BOOT, mini-balík; _orderEn podľa id rodiča). ids=None = všetko
+    (odľahčený data.json)."""
     if ids is None:
-        return {"_titleNoSport": sorted(TITLE_NOSPORT), "_slugFix": dict(sorted(SLUG_FIX.items()))}
+        return {"_titleNoSport": sorted(TITLE_NOSPORT), "_titleNameOnly": sorted(TITLE_NAMEONLY),
+                "_slugFix": dict(sorted(SLUG_FIX.items())), "_orderEn": dict(sorted(ORDER_EN.items()))}
     ids = set(ids)
     return {"_titleNoSport": sorted(i for i in TITLE_NOSPORT if i in ids),
-            "_slugFix": {k: v for k, v in sorted(SLUG_FIX.items()) if k in ids}}
+            "_titleNameOnly": sorted(i for i in TITLE_NAMEONLY if i in ids),
+            "_slugFix": {k: v for k, v in sorted(SLUG_FIX.items()) if k in ids},
+            "_orderEn": {k: v for k, v in sorted(ORDER_EN.items()) if k in ids}}
 
 
 def build_boot(data: dict, children: dict, lcnt: dict) -> dict:
@@ -977,7 +1079,7 @@ def home_static_html(children: dict, paths: dict, lcnt: dict):
     return main, nav
 
 
-def inject_home(html: str, children: dict, paths: dict, lcnt: dict) -> str:
+def inject_home(html: str, children: dict, paths: dict, lcnt: dict, total_links: int | None = None) -> str:
     """Do prázdneho #main vloží dlaždice hlavných sekcií a do prázdneho #hSports
     ikonky športov. Dovtedy ich kreslil len JavaScript, takže roboti bez neho
     nevideli na domove žiadny odkaz dovnútra webu. Rovnako ako inject_aktualne()."""
@@ -991,6 +1093,27 @@ def inject_home(html: str, children: dict, paths: dict, lcnt: dict) -> str:
     # #hSports je v HTML PRED #main — najprv zadný úsek, aby pozície sedeli
     html = html[:m.start()] + '<main id="main">' + main + "</main>" + html[m.end():]
     html = html[:v.start()] + v.group(1) + nav + "</nav>" + html[v.end():]
+    # Zadanie 33 (bod 29 previerky 3): počítadlo v hlavičke a drobček „🏠 Domov"
+    # tiež priamo v HTML — inak ich dopíše až skript a všetko pod nimi poskočí
+    # (CLS). Značkovanie je PRESNE ako updateLinkCount() (konečné číslo) a
+    # renderBreadcrumb() na domove v index.html.
+    if total_links is not None:
+        num = f"{total_links:,}".replace(",", "," if LANG == "en" else "\u00a0")  # ako toLocaleString en-US / sk-SK
+        txt = "verified links" if LANG == "en" else "overených liniek"
+        cnt = f'<div class="h-count" id="linkCount"><b>{num}</b><span>{txt}</span></div>'
+        if html.count('<div class="h-count" id="linkCount"></div>') == 1:
+            html = html.replace('<div class="h-count" id="linkCount"></div>', cnt, 1)
+        else:
+            print("UPOZORNENIE: v index.html nie je prázdny #linkCount — počítadlo dopíše až appka.")
+    home = "Home" if LANG == "en" else "Domov"
+    up = "Up" if LANG == "en" else "Vyššie"
+    bc = (f'<div id="breadcrumb"><button class="bc-back " onclick="navigate(null)">↑ {up}</button>'
+          f'<a class="bc-item active" href="{escape(SITE_ABS_ROOT, quote=True)}" '
+          f'onclick="return navClick(event,null)">🏠 {home}</a></div>')
+    if html.count('<div id="breadcrumb"></div>') == 1:
+        html = html.replace('<div id="breadcrumb"></div>', bc, 1)
+    else:
+        print("UPOZORNENIE: v index.html nie je prázdny #breadcrumb — drobček dopíše až appka.")
     return html
 
 
@@ -1248,8 +1371,8 @@ function __dyn(){
       if(!b)return;
       var el=document.getElementById(elId);
       el.hidden=false;
-      el.innerHTML=!b.html?'<a href="'+esc(safeUrl(b.linkUrl))+'" target="_blank" rel="noopener sponsored"><img src="'+esc(safeUrl(b.imageUrl))+'" alt="'+esc(b.alt||"Reklama")+'"></a>'
-        :/<(script|iframe)\\b/i.test(b.html)?'<iframe class="adframe adframe-slot" sandbox="'+AF[2]+'" srcdoc="'+esc(AF[0]+b.html+AF[1])+'" title="Reklama" scrolling="no"></iframe>'
+      el.innerHTML=!b.html?'<a href="'+esc(safeUrl(b.linkUrl))+'" target="_blank" rel="noopener sponsored"><img src="'+esc(safeUrl(b.imageUrl))+'" alt="'+esc(b.alt||"__ADTXT__")+'"></a>'
+        :/<(script|iframe)\\b/i.test(b.html)?'<iframe class="adframe adframe-slot" sandbox="'+AF[2]+'" srcdoc="'+esc(AF[0]+b.html+AF[1])+'" title="__ADTXT__" scrolling="no"></iframe>'
         :b.html;
     }
     showSlot("bslot",1);
@@ -1259,7 +1382,7 @@ function __dyn(){
     var pbe=document.getElementById("pban"),pb=d.promoBanner;
     if(pbe&&pb&&typeof pb==="object"&&pb.active!==false&&String(pb.html||"").trim()
        &&!(pb.startsAt&&today<pb.startsAt)&&!(pb.endsAt&&today>pb.endsAt)){
-      pbe.innerHTML=/<(script|iframe)\\b/i.test(pb.html)?'<iframe class="adframe adframe-auto" sandbox="'+AF[2]+'" srcdoc="'+esc(AF[3]+pb.html+AF[4])+'" title="Reklama" scrolling="no"></iframe>'
+      pbe.innerHTML=/<(script|iframe)\\b/i.test(pb.html)?'<iframe class="adframe adframe-auto" sandbox="'+AF[2]+'" srcdoc="'+esc(AF[3]+pb.html+AF[4])+'" title="__ADTXT__" scrolling="no"></iframe>'
         :pb.html;
       pbe.hidden=false;
     }
@@ -1526,9 +1649,14 @@ def home_title(n: int) -> str:
 # kľúč "_titleNoSport" v odľahčenom data.json, v BOOT a v mini-balíku stránky —
 # aby titulok po prevzatí appkou bol presne taký istý ako na statickej stránke.
 # Do data-full.json (dáta admina) sa NEPÍŠE.
+# DRUHÝ STUPEŇ (Zadanie 33, bod 24 previerky 3): ak je titulok aj bez športu
+# stále dlhší ako TITLE_MAX, skúsi sa „{názov} — {web}" (bez rodiča aj športu) —
+# opäť len ak je na celom webe jedinečný. Zoznam takých priečinkov (TITLE_NAMEONLY)
+# dostane appka ako kľúč "_titleNameOnly" (rovnako ako _titleNoSport).
 TITLE_MAX = 65
 TITLES = {}             # id priečinka -> titulok (bez HTML escapovania)
 TITLE_NOSPORT = set()   # id priečinkov, ktorým sa šport z titulku vynechal
+TITLE_NAMEONLY = set()  # id priečinkov s titulkom len „{názov} — {web}"
 
 
 def compute_titles(folder_ids, by_id, site_title: str, home: str):
@@ -1539,8 +1667,10 @@ def compute_titles(folder_ids, by_id, site_title: str, home: str):
     Skrátený titulok sa použije, len ak sa na webe nevyskytuje nikde inde —
     ani medzi plnými titulkami iných stránok, ani medzi inými skrátenými,
     ani ako titulok domova. Kontroluje sa opakovane, kým sa nič nemení
-    (stránka, ktorej sa skrátenie zamietne, má zase plný titulok)."""
-    full, short = {}, {}
+    (stránka, ktorej sa skrátenie zamietne, sa vráti o stupeň: z „{názov} — {web}"
+    na titulok bez športu, z neho na plný titulok).
+    Vracia (titulky, množina id bez športu, množina id „{názov} — {web}")."""
+    full, short, bare = {}, {}, {}
     for fid in folder_ids:
         n = by_id[fid]
         chain = []
@@ -1561,19 +1691,31 @@ def compute_titles(folder_ids, by_id, site_title: str, home: str):
                      else f"{name} — {site_title}")
         if len(chain) >= 3 and len(full[fid]) > TITLE_MAX:
             short[fid] = f"{name} — {ctx[0]} — {site_title}"
-    nosport = set(short)
+        if ctx and len(short.get(fid, full[fid])) > TITLE_MAX:
+            bare[fid] = f"{name} — {site_title}"
+    # stupeň: 2 = „{názov} — {web}", 1 = bez športu, 0 = plný titulok
+    level = {fid: (2 if fid in bare else 1 if fid in short else 0) for fid in folder_ids}
+
+    def title_of(fid):
+        lv = level[fid]
+        return bare[fid] if lv == 2 else short[fid] if lv == 1 else full[fid]
+
     while True:
         cnt = {}
         for fid in folder_ids:
-            t = short[fid] if fid in nosport else full[fid]
+            t = title_of(fid)
             cnt[t] = cnt.get(t, 0) + 1
         cnt[home] = cnt.get(home, 0) + 1
-        bad = {fid for fid in nosport if cnt[short[fid]] > 1}
+        bad = [fid for fid in folder_ids if level[fid] and cnt[title_of(fid)] > 1]
         if not bad:
             break
-        nosport -= bad
-    titles = {fid: (short[fid] if fid in nosport else full[fid]) for fid in folder_ids}
-    return titles, nosport
+        for fid in bad:   # o stupeň nižšie (bez športu sa preskočí, ak ho priečinok nemá)
+            level[fid] -= 1
+            if level[fid] == 1 and fid not in short:
+                level[fid] = 0
+    titles = {fid: title_of(fid) for fid in folder_ids}
+    return (titles, {fid for fid in folder_ids if level[fid] == 1},
+            {fid for fid in folder_ids if level[fid] == 2})
 
 
 def render_page(node, path, children, by_id, paths, site_title, alt_url=None, page_boot=""):
@@ -1643,8 +1785,12 @@ def render_page(node, path, children, by_id, paths, site_title, alt_url=None, pa
 
     # meta popis z NEescapovaného textu (escapuje sa až pri vložení do šablóny,
     # inak by apostrofy skončili dvojito escapované, napr. Europe&amp;#x27;s)
-    meta = node_desc(node) or T["meta_folder"].format(
-        name=node_name(node), nfold=len(folders), nlink=len(links))
+    # Zadanie 33: prvá veta popisu (meta_desc, bod 23); priečinok bez popisu má
+    # náhradu S KONTEXTOM „Názov (rodič · šport) — …" — rovnako ako updateHead() v appke (bod 25)
+    ctx = [node_name(c) for c in chain[1:2] + (chain[-1:] if len(chain) >= 3 else [])]
+    meta = meta_desc(node_desc(node)) or T["meta_folder"].format(
+        name=node_name(node), ctx=f" ({' · '.join(ctx)})" if ctx else "",
+        nfold=len(folders), nlink=len(links))
     if node["id"] == LIVE_ID:
         meta = live_meta_desc(node)   # úvodná veta + aktívne športy (Zadanie 17)
     url_path = "/".join(path) + "/"
@@ -1728,6 +1874,7 @@ def render_page(node, path, children, by_id, paths, site_title, alt_url=None, pa
                   ([AKT_MASTER_URL] if LANG == "en" else []) + [f"{root}aktualne.json"]))
               .replace("__ROOT__", root)
               .replace("__LANG__", LANG)
+              .replace("__ADTXT__", T["ad"])      # Zadanie 33 (bod 38): EN „Advertisement"
               .replace("__AKT_LABEL__", escape(T["aktualne"])))
 
     takeover = (TAKEOVER
@@ -1909,12 +2056,19 @@ def main():
     # bod 23: titulky všetkých priečinkov (aj bez statickej stránky — appka ich
     # tiež ukazuje) a zoznam tých, ktorým sa vynechá šport
     n_links = count_links(children, paths)
-    titles, nosport = compute_titles(list(all_paths), by_id, site_title, home_title(n_links))
+    titles, nosport, nameonly = compute_titles(list(all_paths), by_id, site_title, home_title(n_links))
     TITLES.clear(); TITLES.update(titles)
     TITLE_NOSPORT.clear(); TITLE_NOSPORT.update(nosport)
+    TITLE_NAMEONLY.clear(); TITLE_NAMEONLY.update(nameonly)
     n_long = sum(1 for fid in paths if len(titles[fid]) > TITLE_MAX)
-    print(f"titulky: {len(nosport)} priečinkov bez športu v titulku "
-          f"(statických stránok s titulkom nad {TITLE_MAX} znakov ostáva: {n_long})")
+    print(f"titulky: {len(nosport)} priečinkov bez športu v titulku, {len(nameonly)} len "
+          f"„názov — web“ (statických stránok s titulkom nad {TITLE_MAX} znakov ostáva: {n_long})")
+
+    # bod 17 (Zadanie 33): hotové EN poradie detí kontinentov pre appku (_orderEn)
+    ORDER_EN.clear()
+    if LANG == "en":
+        ORDER_EN.update({pid: [k["id"] for k in lst] for pid, lst in children.items()
+                         if pid is not None and en_alpha_parent(by_id.get(pid))})
 
     # hreflang: strom a cesty DRUHÉHO jazyka — aby sme vedeli, či tá istá
     # stránka existuje aj na druhom webe a na akej adrese. Aktuálne / Live This
@@ -2025,6 +2179,10 @@ def main():
                     ('🔍  Hľadaj kdekoľvek v strome...', '🔍  Search anywhere in the tree...'),
                     ('aria-label="Hľadaj v strome"', 'aria-label="Search the tree"'),
                     ('aria-label="Heslo"', 'aria-label="Password"'),
+                    # Zadanie 33 (bod 38): prepínač ▦/▥ a krížik okna hesla
+                    ('aria-label="Zobrazenie"', 'aria-label="View"'),
+                    ('id="pwClose" aria-label="Zavrieť" title="Zavrieť"',
+                     'id="pwClose" aria-label="Close" title="Close"'),
                     ('aria-label="Zobraziť ďalšie linky"', 'aria-label="Show more links"'),
                     ('<span id="aktHeadTxt">Aktuálne</span>', '<span id="aktHeadTxt">Live This Week</span>'),
                     ('<a class="f-live" id="fLive" hidden>Aktuálne – live výsledky</a>',
@@ -2098,7 +2256,8 @@ def main():
             # AKTUÁLNE PRIAMO V HTML (od 2.10.2026) — viď inject_aktualne().
             html = inject_aktualne(html, AKT_ITEMS)
             # DLAŽDICE DOMOVA + IKONKY ŠPORTOV PRIAMO V HTML (od 2.11.2026) — viď inject_home().
-            html = inject_home(html, children, all_paths, lcnt)
+            html = inject_home(html, children, all_paths, lcnt,
+                               sum(1 for n in nodes if n.get("type") == "link"))   # ako _totalLinks v BOOT
             # NÁPIS LIŠTY + PÄTIČKA → odkaz na stránku Aktuálne (Zadanie 17)
             html = inject_live_links(html, (SITE_ABS_ROOT + "/".join(all_paths[LIVE_ID]) + "/")
                                      if (live_here and LIVE_ID in all_paths) else None)

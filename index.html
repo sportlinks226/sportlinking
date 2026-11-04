@@ -1285,7 +1285,11 @@ const PINNED_EN = new Set([
 // VÝNIMKY z abecedného radenia v EN — priečinky, ktoré sa síce volajú ako kontinent,
 // ale ich obsah NIE SÚ krajiny (napr. Súťaže › Európa: poradie = úroveň súťaže).
 // Uvádza sa ID priečinka, takže pravidlo platí aj pre linky pridané neskôr.
-const NO_EN_ALPHA = new Set(["f_bas_sut_eu", "f_bas_sut_oc", "f_bas_sut_na", "f_bas_sut_ja", "f_bas_sut_af", "f_bas_sut_az"]);
+// Hádzanárske súťaže Amerík (f_had_sut_ja, f_had_sut_na) — Zadanie 33.
+// CONTINENTS_SK, PINNED_EN a NO_EN_ALPHA MUSIA byť zhodné s CONTINENTS, PINNED_EN
+// a NO_EN_ALPHA v generator.py.
+const NO_EN_ALPHA = new Set(["f_bas_sut_eu", "f_bas_sut_oc", "f_bas_sut_na", "f_bas_sut_ja", "f_bas_sut_af", "f_bas_sut_az",
+  "f_had_sut_ja", "f_had_sut_na"]);
 // Stránka Aktuálne / "Live This Week" (priečinok f_ltw). Nemá vlastné linky: obsah
 // mu naživo dodávajú Aktuálne (aktualne.json), čiže tie isté linky, ktoré sú v lište
 // na domovskej stránke. MUSÍ sedieť s LIVE_ID v generator.py.
@@ -1386,11 +1390,15 @@ let _slugMemo = null; // vyprázdni ho rebuildChildIndex() (každý render, zmen
 // admina (data-full.json, Publikovať, Export) sa tak nikdy nedostanú.
 let SLUG_FIX = null;                 // {id: slug}; null = mapa nie je (lokálne)
 const TITLE_NOSPORT = new Set();     // id priečinkov s titulkom bez športu
+const TITLE_NAMEONLY = new Set();    // id priečinkov s titulkom „{názov} — {web}" (Zadanie 33, bod 24)
+let ORDER_EN = null;                 // {id rodiča: [id detí]} — EN poradie krajín (Zadanie 33, bod 17)
 function takeGenMeta(o){
   if(!o || typeof o !== 'object') return;
   if(o._slugFix && typeof o._slugFix === 'object') SLUG_FIX = Object.assign(SLUG_FIX || {}, o._slugFix);
   if(Array.isArray(o._titleNoSport)) o._titleNoSport.forEach(id => TITLE_NOSPORT.add(id));
-  delete o._slugFix; delete o._titleNoSport;
+  if(Array.isArray(o._titleNameOnly)) o._titleNameOnly.forEach(id => TITLE_NAMEONLY.add(id));
+  if(o._orderEn && typeof o._orderEn === 'object') ORDER_EN = Object.assign(ORDER_EN || {}, o._orderEn);
+  delete o._slugFix; delete o._titleNoSport; delete o._titleNameOnly; delete o._orderEn;
 }
 // Migrácia: doplní slug všetkým priečinkom, ktoré ho ešte nemajú.
 // Deterministická (prechádza deti podľa order) — rovnaký výsledok pre každého.
@@ -1657,17 +1665,30 @@ function getChildren(parentId){
   // order_en — voliteľné pole: ak ho uzol má, EN web radí podľa neho (inak podľa order)
   const ord = n => (IS_EN && n.order_en!==undefined && n.order_en!==null) ? n.order_en : n.order;
   arr.sort((a,b)=>ord(a)-ord(b));
-  if(IS_EN && parentId !== null && !NO_EN_ALPHA.has(parentId)){
-    const p = nodeById(parentId);
-    if(p && CONTINENTS_SK.has(p.name)){
-      // pripnuté uzly ostávajú vpredu (podľa order), zvyšok abecedne po anglicky
-      const pinned = arr.filter(n=>PINNED_EN.has(n.id));
-      const rest = arr.filter(n=>!PINNED_EN.has(n.id))
-                      .sort((a,b)=>nName(a).localeCompare(nName(b),'en'));
-      arr = pinned.concat(rest);
-    }
+  if(enAlphaFolder(parentId)){
+    // EN poradie krajín (Zadanie 33, bod 17): hotové poradie z generátora (_orderEn),
+    // aby appka ukázala PRESNE to isté ako statická stránka. Zálohou (admin s
+    // data-full.json, súbor z disku) je enAlphaSort — rovnaké pravidlá ako generátor.
+    const ord = (!adminMode && ORDER_EN) ? ORDER_EN[parentId] : null;
+    if(ord){
+      const pos = new Map(ord.map((id, i) => [id, i]));
+      const known = arr.filter(n=>pos.has(n.id)).sort((a,b)=>pos.get(a.id)-pos.get(b.id));
+      arr = known.concat(enAlphaSort(arr.filter(n=>!pos.has(n.id)))); // nové (ešte bez buildu) na koniec
+    } else arr = enAlphaSort(arr);
   }
   return arr;
+}
+// EN abeceda (Zadanie 33): pripnuté uzly (PINNED_EN) vpredu v poradí podľa order,
+// zvyšok podľa anglického názvu BEZ DIAKRITIKY („São Tomé" ako „Sao Tome").
+// ROVNAKO ako en_alpha_sort() / en_alpha_key() v generator.py.
+function enAlphaKey(n){
+  return String(nName(n)).trim().normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+}
+function enAlphaSort(arr){
+  const pinned = arr.filter(n=>PINNED_EN.has(n.id));
+  const rest = arr.filter(n=>!PINNED_EN.has(n.id)).map(n=>[enAlphaKey(n), n])
+                  .sort((a,b)=> a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0).map(x=>x[1]);
+  return pinned.concat(rest);
 }
 function getPath(id){
   const path = [];
@@ -1715,6 +1736,9 @@ function updateLinkCount(){
   // podstránku) sa hneď ukáže konečné číslo.
   if(updateLinkCount.done || curId !== null || document.hidden || matchMedia('(prefers-reduced-motion: reduce)').matches){ b.textContent = fmt(l); updateLinkCount.done = true; return; }
   updateLinkCount.done = true;
+  // Zadanie 33 (bod 29): číslo je už v statickom HTML (inject_home) — počas animácie
+  // drží jeho šírku, aby text „overených liniek" vedľa neposkakoval (CLS).
+  b.textContent = fmt(l); b.style.minWidth = b.getBoundingClientRect().width + 'px';
   const t0 = performance.now(), dur = 1400;
   (function step(t){
     const p = Math.max(0, Math.min(1,(t-t0)/dur)), e = 1-Math.pow(1-p,3); // max(0): prvý rAF snímok môže mať čas < t0 → záporné číslo (slabé CPU)
@@ -1786,7 +1810,8 @@ function updateHead(){
   // Bod 23 (2.11.2026): titulok dlhší ako 65 znakov je bez športu, ak tak ostane
   // na webe jedinečný. Rozhoduje generátor (compute_titles) — appka len číta jeho
   // zoznam TITLE_NOSPORT, takže titulok je zhodný so statickou stránkou.
-  const ctxT = (n && TITLE_NOSPORT.has(n.id)) ? ctx.slice(0, 1) : ctx;
+  // Zadanie 33 (bod 24): druhý stupeň — zoznam TITLE_NAMEONLY = titulok „{názov} — {web}".
+  const ctxT = (n && TITLE_NAMEONLY.has(n.id)) ? [] : (n && TITLE_NOSPORT.has(n.id)) ? ctx.slice(0, 1) : ctx;
   const ctxStr = ctxT.length ? ' — ' + ctxT.join(' · ') : '';
   document.title = (n && n.id===LIVE_ID) ? liveTitle()   // stránka Aktuálne: titulok zo športov (Zadanie 17)
     : n ? (nName(n) + ctxStr + (site ? ' — ' + site : '')) : (HOME_TITLE || site || document.title);
@@ -1799,8 +1824,8 @@ function updateHead(){
   const m = document.querySelector('meta[name="description"]');
   if(m){
     if(ORIG_DESC === null) ORIG_DESC = m.content;
-    let d = (n && n.id===LIVE_ID) ? liveMetaDesc(n) : n ? nDesc(n) : '';
-    if(n && !d){ // sekcia bez popisu — náhrada ako v generator.py, doplnená o kontext
+    let d = (n && n.id===LIVE_ID) ? liveMetaDesc(n) : n ? metaDesc(nDesc(n)) : ''; // prvá veta, ~155 znakov (Zadanie 33)
+    if(n && !d){ // sekcia bez popisu — náhrada S KONTEXTOM, ROVNAKO ako T["meta_folder"] v generator.py
       const kids = getChildren(n.id);
       const nf = kids.filter(k=>k.type==='folder' && !emptyFolder(k)).length; // ako v generator.py (len priečinky so stránkou)
       const nl = kids.filter(k=>k.type==='link').length;
@@ -2116,7 +2141,7 @@ let _colPathCur;        // curId, pre ktorý bola colPath naposledy nastavená
 function colsAllowed(){ return !adminMode && window.innerWidth > 700 && window.matchMedia('(hover:hover)').matches; }
 function initViewMode(){
   viewMode = lsGet('sportStromView')==='cols' ? 'cols' : 'tiles';
-  if(IS_EN){ const t = {tiles:'▦ Tiles', cols:'▥ Columns'}; document.querySelectorAll('#vSwitch button').forEach(b=>{ b.textContent = t[b.dataset.mode]; b.title = b.dataset.mode==='cols' ? 'Columns — folders open on mouse hover' : 'Tiles'; }); }
+  if(IS_EN){ const vs = document.getElementById('vSwitch'); if(vs) vs.setAttribute('aria-label', 'View'); const t = {tiles:'▦ Tiles', cols:'▥ Columns'}; document.querySelectorAll('#vSwitch button').forEach(b=>{ b.textContent = t[b.dataset.mode]; b.title = b.dataset.mode==='cols' ? 'Columns — folders open on mouse hover' : 'Tiles'; }); }
   updateViewSwitch();
 }
 function updateViewSwitch(){ document.querySelectorAll('#vSwitch button').forEach(b=>{ const on = b.dataset.mode===viewMode; b.classList.toggle('on', on); b.setAttribute('aria-pressed', on ? 'true' : 'false'); }); }
@@ -2753,7 +2778,7 @@ function toggleAdmin(){
   // pusti do admina bez hesla, aby sa dal spraviť Import. Na webe NIKDY.
   if(!hasPw(DB) && location.protocol === 'file:'){ enterAdmin(); return; }
   document.getElementById('pwScreen').classList.add('open');
-  const px = document.getElementById('pwClose'); if(px) px.setAttribute('aria-label', IS_EN ? 'Close' : 'Zavrieť');
+  const px = document.getElementById('pwClose'); if(px){ px.setAttribute('aria-label', IS_EN ? 'Close' : 'Zavrieť'); px.title = IS_EN ? 'Close' : 'Zavrieť'; }
   document.getElementById('pwIn').value='';
   document.getElementById('pwErr').textContent='';
   setTimeout(()=>document.getElementById('pwIn').focus(),100);
@@ -3270,7 +3295,7 @@ function adFrame(h, auto){
     + 'if(h&&h!==p){p=h;parent.postMessage({sportlinkyAdH:h},"*")}}'
     + 'if(window.ResizeObserver)new ResizeObserver(s).observe(document.body);addEventListener("load",s);setTimeout(s,0);setTimeout(s,2000)})()<\/script>' : '';
   const doc = '<!DOCTYPE html><html><head><meta charset="utf-8"><base target="_blank">' + css + AD_FAIL_JS + '</head><body>' + h + vyska + '</body></html>';
-  return `<iframe class="adframe adframe-${auto ? 'auto' : 'slot'}" sandbox="${AD_SANDBOX}" srcdoc="${attrEsc(doc)}" title="Reklama" scrolling="no"></iframe>`;
+  return `<iframe class="adframe adframe-${auto ? 'auto' : 'slot'}" sandbox="${AD_SANDBOX}" srcdoc="${attrEsc(doc)}" title="${IS_EN ? 'Advertisement' : 'Reklama'}" scrolling="no"></iframe>`;
 }
 // výška z okienka: len od NAŠEHO okienka (event.source) a len rozumné číslo
 window.addEventListener('message', e=>{
@@ -3342,7 +3367,7 @@ function renderOneSlot(el, slotNum){
   } else {
     el.style.display = '';
     el.innerHTML = `<a href="${attrEsc(safeUrl(banner.linkUrl))}" target="_blank" rel="noopener sponsored">
-      <img src="${attrEsc(safeUrl(banner.imageUrl))}" alt="${attrEsc(banner.alt||'Reklama')}" style="width:100%;height:100%;object-fit:cover;display:block"/>
+      <img src="${attrEsc(safeUrl(banner.imageUrl))}" alt="${attrEsc(banner.alt||(IS_EN ? 'Advertisement' : 'Reklama'))}" style="width:100%;height:100%;object-fit:cover;display:block"/>
     </a>`;
   }
 }
@@ -3641,6 +3666,38 @@ function liveTitle(){
   const base = IS_EN ? 'Live scores this week' : 'Aktuálne live výsledky', suf = ' — ' + LIVE_SITE;
   const used = liveFit(base + ': ', liveSportList(), suf, LIVE_TITLE_MAX);
   return used.length ? base + ': ' + used.join(', ') + suf : base + suf;
+}
+// META POPIS PRIEČINKA (Zadanie 33, bod 23 previerky 3): prvá veta popisu skrátená
+// na META_DESC_MAX znakov; ak je kratšia ako META_DESC_SHORT a popis pokračuje,
+// pridá sa aj druhá (ak sa zmestí). Veta končí na . ! ? + medzera + VEĽKÉ písmeno
+// alebo číslica — nie za radovou číslovkou („1. MFL"), jedným písmenom ani skratkou
+// („St. Kitts"). ROVNAKO ako meta_desc() / desc_sentences() v generator.py.
+const META_DESC_MAX = 155, META_DESC_SHORT = 70;
+const DESC_ABBR = new Set(["st","sv","mt","ft","dr","jr","sr","mr","mrs","no","nr","vs",
+  "tzv","napr","resp","atď","pod","príp","č","cca","inc","ltd","co"]);
+function descSentences(t){
+  t = String(t||'').replace(/\s+/g,' ').trim();
+  const out = []; let start = 0, m;
+  const re = /[.!?](?= (\S))/gu;
+  while((m = re.exec(t))){
+    const nxt = m[1];
+    if(!(/^\p{Lu}$/u.test(nxt) || /^[0-9]$/.test(nxt))) continue;
+    if(m[0] === '.'){
+      const wm = t.slice(start, m.index).match(/(\S+)$/u), w = wm ? wm[1] : '';
+      if(/^[0-9]{1,2}$/.test(w) || cpLen(w) === 1 || DESC_ABBR.has(w.toLowerCase().replace(/^\(+/,''))) continue;
+    }
+    out.push(t.slice(start, m.index + 1));
+    start = m.index + 2;
+  }
+  if(start < t.length) out.push(t.slice(start));
+  return out;
+}
+function metaDesc(t){
+  const v = descSentences(t);
+  if(!v.length) return '';
+  let d = v[0];
+  if(cpLen(d) < META_DESC_SHORT && v.length > 1 && cpLen(d) + 1 + cpLen(v[1]) <= META_DESC_MAX) d += ' ' + v[1];
+  return liveCut(d, META_DESC_MAX);
 }
 function liveFirstSentence(t){
   t = String(t||'').replace(/\s+/g,' ').trim();
