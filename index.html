@@ -10,7 +10,7 @@
      'unsafe-inline' = vložené skripty a onclick v appke; ban.tipsport.sk = reklama
      (beží v uzavretom okienku, ktoré tento zoznam dedí); gc.zgo.at + *.goatcounter.com
      = štatistika (SK aj EN); img-src https: = admin môže zadať obrázok z hocijakej adresy. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://ban.tipsport.sk https://gc.zgo.at; connect-src 'self' https://sportlinky.sk https://www.sportlinky.sk https://ban.tipsport.sk https://sportlinky.goatcounter.com https://sportlinking.goatcounter.com; img-src 'self' data: https:; style-src 'self' 'unsafe-inline'; font-src 'self' data:; frame-src 'self' https://ban.tipsport.sk; object-src 'none'; base-uri 'self'; form-action 'self'"/>
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://ban.tipsport.sk https://gc.zgo.at; connect-src 'self' https://sportlinky.sk https://ban.tipsport.sk https://sportlinky.goatcounter.com https://sportlinking.goatcounter.com; img-src 'self' data: https:; style-src 'self' 'unsafe-inline'; font-src 'self' data:; frame-src 'self' https://ban.tipsport.sk; object-src 'none'; base-uri 'self'; form-action 'self'"/>
 <title>Športové Linky</title>
 <meta name="description" content="Všetky športové weby sveta na jednom mieste — prehľadný rozcestník overených liniek pre každý šport a krajinu."/>
 <!--FAVICONS--><!-- generátor sem pri builde doplní favicon.ico, favicon.svg a apple-touch-icon.png s cestou od koreňa webu -->
@@ -1142,17 +1142,14 @@ function uid(){ return 'n'+Date.now()+Math.random().toString(36).slice(2,5); }
 // ============================================================
 // Od 26.10.2026 (bod 13 previerky): "pwKdf": {"salt", "iter", "hash"} =
 // PBKDF2-SHA-256 so soľou (16 bajtov hex), 600 000 opakovaní, 256 bitov (hex).
-// Rovnako ho vyrába nástroj nastav-heslo.html. Starý passwordHash (SHA-256
-// bez soli) sa ešte prijíma pri prihlásení, ale už sa nevyrába.
+// Rovnako ho vyrába nástroj nastav-heslo.html. Iný spôsob prihlásenia nie je
+// (staré passwordHash/password odstránené v Zadaní 22 — v dátach už nie sú).
 const PW_ITER = 600000;
 function bufHex(buf){ return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join(''); }
 function hexBytes(hex){
   const out = new Uint8Array((hex||'').length/2);
   for(let i=0;i<out.length;i++) out[i] = parseInt(hex.substr(i*2,2),16);
   return out;
-}
-async function sha256hex(str){
-  return bufHex(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str)));
 }
 async function pbkdf2hex(pw, saltHex, iter){
   const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(pw), 'PBKDF2', false, ['deriveBits']);
@@ -1165,27 +1162,14 @@ async function makePwKdf(pw){
   const salt = bufHex(crypto.getRandomValues(new Uint8Array(16)));
   return {salt:salt, iter:PW_ITER, hash:await pbkdf2hex(pw, salt, PW_ITER)};
 }
-// overenie hesla voči dátam d: pwKdf → starý passwordHash → čitateľné password
+// overenie hesla voči dátam d (len pwKdf)
 async function pwMatches(d, val){
   if(d.pwKdf && d.pwKdf.salt && d.pwKdf.hash){
     return (await pbkdf2hex(val, d.pwKdf.salt, d.pwKdf.iter||PW_ITER)) === String(d.pwKdf.hash).toLowerCase();
   }
-  if(d.passwordHash) return (await sha256hex(val)) === d.passwordHash; // prechodné obdobie
-  if(d.password) return val === d.password; // stará záloha bez hashu
   return false;
 }
-function hasPw(d){ return !!(d && (d.pwKdf || d.passwordHash || d.password)); }
-// Migrácia: staré dáta/zálohy majú heslo v čitateľnej podobe — preveď na pwKdf a plaintext zmaž.
-// Ukladá priamo do IndexedDB (bez save()), aby technická migrácia nenastavila príznak dirty.
-async function migratePw(){
-  if(!DB || !DB.password || isLiteDB()) return;
-  try{
-    if(!DB.pwKdf) DB.pwKdf = await makePwKdf(DB.password);
-    delete DB.password;
-    delete DB.passwordHash;
-    await idbPut(DB);
-  }catch(e){ /* crypto/IndexedDB nedostupné — nechaj tak, chkPw má záložnú vetvu */ }
-}
+function hasPw(d){ return !!(d && d.pwKdf); }
 
 // ============================================================
 // JAZYK — anglická verzia (sportlinking.com)
@@ -1246,6 +1230,24 @@ function tileKids(parentId){
 function emptyFolder(n){
   if(!n || n.type !== 'folder' || n.id === LIVE_ID) return false;
   return ((n._cnt !== undefined) ? n._cnt : countAll(n.id)) === 0;
+}
+// Zadanie 22: počet podpriečinkov pre text „X sekcií“ — len tie, ktoré návštevník
+// vidí (aspoň 1 linka v podstrome, viď emptyFolder; Aktuálne / LIVE_ID vždy).
+// Admin vidí ten istý počet. ROVNAKO ako sub_count() v generator.py
+// (_sub = predpočítané z balíka BOOT / mini-balíka).
+function subCount(n){
+  return (n._sub !== undefined) ? n._sub : getChildren(n.id).filter(c=>c.type==='folder' && !emptyFolder(c)).length;
+}
+// text počtov na karte priečinka: „3 sekcie · 120 liniek“; ak podpriečinky nie sú,
+// „sekcií“ sa vôbec neukáže (bod 29: predtým 2× v renderLevel)
+function folderCountText(n){
+  const total = (n._cnt !== undefined) ? n._cnt : countAll(n.id); // _cnt = z balíka BOOT
+  const sub   = subCount(n);
+  const sekTxt = `${sub} ${skl(sub,'sekcia','sekcie','sekcií')}`;
+  const linTxt = `${total} ${skl(total,'linka','linky','liniek')}`;
+  return sub>0 && total>0 ? `${sekTxt} · ${linTxt}`
+       : sub>0            ? sekTxt
+                          : linTxt;
 }
 // priečinok Aktuálne, ak na tomto webe existuje (SK: bez enOnly, EN: bez en:false), inak null
 function liveNode(){
@@ -1633,7 +1635,7 @@ function updateHead(){
     let d = (n && n.id===LIVE_ID) ? liveMetaDesc(n) : n ? nDesc(n) : '';
     if(n && !d){ // sekcia bez popisu — náhrada ako v generator.py, doplnená o kontext
       const kids = getChildren(n.id);
-      const nf = kids.filter(k=>k.type==='folder').length;
+      const nf = kids.filter(k=>k.type==='folder' && !emptyFolder(k)).length; // ako v generator.py (len priečinky so stránkou)
       const nl = kids.filter(k=>k.type==='link').length;
       const ctxD = ctx.length ? ' (' + ctx.join(' · ') + ')' : '';
       d = IS_EN ? nName(n)+ctxD+' — sports links: '+nf+' subcategories, '+nl+' links.'
@@ -1792,14 +1794,7 @@ function renderLevel(){
     if(folders.filter(n=>!noTile(n)).length <= 10){ // veľké dlaždice — admin s noTileSk priečinkom vyzerá ako návštevník
       html += `<div class="grid-root anim">`;
       folders.forEach((n,i) => {
-        const total = (n._cnt !== undefined) ? n._cnt : countAll(n.id); // _cnt = z balíka BOOT
-        // len skutočné podpriečinky; ak žiadne nie sú, "sekcií" sa vôbec neukáže
-        const sub   = (n._sub !== undefined) ? n._sub : getChildren(n.id).filter(c=>c.type==='folder').length;
-        const sekTxt = `${sub} ${skl(sub,'sekcia','sekcie','sekcií')}`;
-        const linTxt = `${total} ${skl(total,'linka','linky','liniek')}`;
-        const cnt   = sub>0 && total>0 ? `${sekTxt} · ${linTxt}`
-                    : sub>0            ? sekTxt
-                                       : linTxt;
+        const cnt = folderCountText(n);
         html += `
           <a class="card-root${noTile(n)?' no-tile':''}" href="${attrEsc(urlForId(n.id))}" onclick="return navClick(event,'${n.id}')"${noTile(n)?' title="Na SK webe bez dlaždice (noTileSk) — návštevník ju nevidí"':''}>
             <div class="card-admin-bar">
@@ -1818,11 +1813,7 @@ function renderLevel(){
     } else {
       html += `<div class="grid-deep anim">`;
       folders.forEach(n => {
-        const total = (n._cnt !== undefined) ? n._cnt : countAll(n.id); // _cnt = z balíka BOOT
-        const sub   = (n._sub !== undefined) ? n._sub : getChildren(n.id).filter(c=>c.type==='folder').length;
-        const cnt   = sub>0 && total>0 ? `${sub} ${skl(sub,'sekcia','sekcie','sekcií')} · ${total} ${skl(total,'linka','linky','liniek')}`
-                    : sub>0            ? `${sub} ${skl(sub,'sekcia','sekcie','sekcií')}`
-                                       : `${total} ${skl(total,'linka','linky','liniek')}`;
+        const cnt = folderCountText(n);
         html += `
           <a class="card-folder" href="${attrEsc(urlForId(n.id))}" onclick="return navClick(event,'${n.id}')">
             <div class="card-admin-bar">
@@ -1847,7 +1838,7 @@ function renderLevel(){
     if(folders.length > 0) html += `<div class="section-label" style="margin-top:24px">${IS_EN?'Links':'Linky'}</div>`;
     html += `<div class="grid-deep anim" data-folder="${curId||''}">`;
     links.forEach(n => {
-      const host = (() => { try { return new URL(n.url).hostname; } catch(e){ return ''; }})();
+      const host = colHost(n);
       // Live This Week: len ručne zadaná ikona športu, žiadny favicon webu
       const liveIcon = curId===LIVE_ID;
       const ligaTag = (n.tag||n.order===-1) ? `<span class="liga-tag">${n.tag?String(n.tag).toUpperCase():(IS_EN?'LEAGUE':'LIGA')}</span>` : ''; // tag:'scores' → SCORES (rýchle linky live výsledkov, 1.11.2026)
@@ -1928,10 +1919,11 @@ function setViewMode(m){
 }
 function colNode(id){ return DB.nodes.find(n=>n.id===id); }
 function colCnt(n){
-  const sub = n._sub!==undefined ? n._sub : getChildren(n.id).filter(c=>c.type==='folder').length;
+  const sub = subCount(n);
   const tot = n._cnt!==undefined ? n._cnt : countAll(n.id);
   return sub>0 ? `${sub} 📂` : (tot>0 ? `${tot} 🔗` : '');
 }
+// hostiteľ z adresy linky (stĺpce, dlaždice, hľadanie, stránka Aktuálne)
 function colHost(n){ try{ return new URL(n.url).hostname; }catch(e){ return ''; } }
 function renderColumns(main, promoHtml, fromHover){
   _colPromo = promoHtml || '';
@@ -2322,7 +2314,7 @@ function renderSearch(q){
         <div class="cf-arrow">›</div></a>`;
   };
   const linkCard = (n, snip)=>{
-    const host = (() => { try { return new URL(n.url).hostname; } catch(e){ return ''; }})();
+    const host = colHost(n);
     const path = attrEsc(pathOf(n.parentId).map(p=>nName(p)).join(' › '));
     const socs = socHtml(n, host);
     return `<div class="card-link${socs?' has-soc':''}">${(n.tag||n.order===-1)?`<span class="liga-tag">${n.tag?String(n.tag).toUpperCase():(IS_EN?'LEAGUE':'LIGA')}</span>`:''}
@@ -2486,7 +2478,6 @@ async function chkPw(){
       catch(e){ err.textContent = 'Úplné dáta sa nepodarilo stiahnuť ('+e.message+'). Admin sa nezapol.'; return; }
     }
     if(full){ DB = full; ensureSlugs(); }
-    await migratePw(); // ak dáta ešte obsahujú plaintext heslo, preveď na pwKdf
     err.textContent = '';
     enterAdmin();
   } finally {
@@ -2655,7 +2646,7 @@ async function saveSett(){
   DB.title    = document.getElementById('stTitle').value.trim()||DB.title;
   DB.subtitle = document.getElementById('stSub').value.trim();
   const pw    = document.getElementById('stPw').value;
-  if(pw){ DB.pwKdf = await makePwKdf(pw); delete DB.passwordHash; delete DB.password; }
+  if(pw){ DB.pwKdf = await makePwKdf(pw); }
   document.getElementById('siteSub').textContent = DB.subtitle;
   document.title = DB.title;
   save(); closeMo('settMo');
@@ -2706,7 +2697,6 @@ function importData(e){
       if(!confirm('Importovať? Nahradí všetky aktuálne dáta.')) return;
       DB=d;
       ensureSlugs(); // stará záloha nemusí mať slugy — doplň ich hneď
-      migratePw();   // stará záloha môže mať heslo v čitateľnej podobe — preveď na pwKdf
       save(true); render(); renderAktualne(); renderBannerSlot(); // force — import nahrádza dáta zámerne
       if(adminMode && Array.isArray(d.aktualne) && d.aktualne.length) setTimeout(()=>aktOfferImport(d.aktualne), 300); // prechod: staré Aktuálne z importu
       stopRotation(); startRotation(); // rotácia podľa nastavení z importu
@@ -3100,11 +3090,7 @@ const AKT_SPORTS = [
 ];
 function aktSport(code){ return AKT_SPORTS.find(s=>s[0]===code) || null; }
 
-// dnešok v MIESTNOM čase ako "YYYY-MM-DD" (nie UTC — po polnoci by sa posúval o deň)
-function aktToday(){
-  const d = new Date();
-  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
-}
+// dnešok v MIESTNOM čase: todayLocal() vyššie (bod 29 — predtým tu bola rovnaká todayLocal())
 function aktDayMs(ymd){ const p = String(ymd||'').split('-').map(Number); return new Date(p[0], p[1]-1, p[2]).getTime(); }
 function aktValidDate(ymd){
   if(!/^\d{4}-\d{2}-\d{2}$/.test(ymd)) return false;
@@ -3125,14 +3111,14 @@ function aktAll(){
 }
 // stav položky: on = vidí ju verejnosť, wait = čaká na dátum OD, ended = po dátume DO, off = vypnutá
 function aktState(a, today){
-  today = today || aktToday();
+  today = today || todayLocal();
   if(a.disabled === true) return 'off';
   if(a.endsAt && today > a.endsAt) return 'ended';
   if(a.startsAt && today < a.startsAt) return 'wait';
   return 'on';
 }
 function aktVisible(a, today){ return !!(a && a.url) && aktState(a, today) === 'on'; }
-function aktPublic(){ const t = aktToday(); return aktAll().filter(a=>aktVisible(a, t)); }
+function aktPublic(){ const t = todayLocal(); return aktAll().filter(a=>aktVisible(a, t)); }
 // kedy sa položka OBJAVILA verejnosti — od toho 24 h štítok NEW
 function aktShownAt(a){
   const added = parseInt(a.addedAt, 10) || 0;
@@ -3202,7 +3188,7 @@ function liveMetaDesc(node){
 }
 function liveCap(s){ return s ? s.charAt(0).toUpperCase() + s.slice(1) : s; }
 function liveCardHtml(n){
-  const host = (() => { try { return new URL(n.url).hostname; } catch(e){ return ''; }})();
+  const host = colHost(n);
   const d = nDesc(n);
   return `<div class="card-link">${n._new?'<span class="liga-tag">NEW</span>':''}
           <a href="${attrEsc(safeUrl(n.url))}" target="_blank" rel="noopener">
@@ -3302,7 +3288,7 @@ function aktFromOld(arr){
 // pri načítaní ho zoradí aktFromOld, presuny ho preskladajú)
 function aktRenumber(){ AKT.items.forEach((a,i)=>{ a.order = i; }); }
 // SKONČENÉ položky (nie vypnuté) staršie než 7 dní po dátume DO sa vyhodia. Vráti zmazané.
-function aktDaysAfterEnd(a){ return Math.round((aktDayMs(aktToday()) - aktDayMs(a.endsAt)) / AKT_DAY); }
+function aktDaysAfterEnd(a){ return Math.round((aktDayMs(todayLocal()) - aktDayMs(a.endsAt)) / AKT_DAY); }
 function aktPurge(){
   const gone = [];
   AKT.items = AKT.items.filter(a=>{
@@ -3419,7 +3405,7 @@ function renderAktList(){
     grid.innerHTML='<div style="font-size:0.82rem;color:var(--muted);padding:8px 0">Žiadne aktuálne linky.</div>';
     return;
   }
-  const today = aktToday();
+  const today = todayLocal();
   grid.innerHTML = aktSorted(AKT.items).map((a,i)=>{
     const st = aktState(a, today);
     let lbl;
@@ -3694,7 +3680,7 @@ async function aktOfferImport(arr){
 // AKTUÁLNE – RENDER
 // ============================================================
 function renderAktualne(){
-  const now = Date.now(), today = aktToday();
+  const now = Date.now(), today = todayLocal();
   // verejnosť: len viditeľné (aktVisible); admin vidí všetko, nezverejnené vysivené
   const items = adminMode ? aktAll() : aktPublic();
   const scroll = document.getElementById('aktualneScroll');
@@ -3776,7 +3762,6 @@ function initApp(){
   // návštevník videl okno o plnej pamäti. Doplnené slugy sú deterministické, takže
   // stačia v pamäti; admin ich uloží najbližšou úpravou, do data.json ich dáva skript.)
   ensureSlugs();
-  migratePw(); // migrácia: heslo v čitateľnej podobe → hash (staré localStorage)
   if(DB.title){
     document.getElementById('siteSub').textContent =
       (IS_EN ? (DB.subtitle_en||DB.subtitle) : DB.subtitle)||'';
@@ -3853,7 +3838,6 @@ function afterLoad(opakovanie){
   // sú zhodné) — tie sa NEPREKRESĽUJÚ, aby karty nepreblikli. Prekreslí sa len
   // hĺbka 2+ („Načítavam…“) a rozpísané hľadanie; hlavička/popis vždy.
   ensureSlugs();
-  migratePw();
   const cur = curId ? DB.nodes.find(x=>x.id===curId) : null;
   const q = document.getElementById('srch').value.trim();
   const hlboko = cur && cur.parentId !== null;
