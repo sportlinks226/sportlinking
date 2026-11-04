@@ -124,13 +124,15 @@ NO_EN_ALPHA = {"f_bas_sut_eu", "f_bas_sut_oc", "f_bas_sut_na", "f_bas_sut_ja", "
 # naplánované a skončené udalosti sa pri builde vynechajú.
 # Od Zadania 17 (3.11.2026) môže existovať na OBOCH weboch (SK /aktualne/,
 # EN /live-this-week/): na SK webe, keď v dátach nemá enOnly:true. Linky sú
-# na stránke zoskupené podľa športu (live_groups), titulok a meta popis sa
-# skladajú z aktívnych športov (live_title, live_meta_desc).
+# na stránke JEDEN zoznam v ručnom poradí "order" (Zadanie 27, bez skupín podľa
+# športu), pod nimi úvodný text; titulok a meta popis sa skladajú z aktívnych
+# športov (live_sport_list, live_title, live_meta_desc).
 # MUSÍ zostať zhodné s LIVE_ID v index.html.
 LIVE_ID = "f_ltw"
 
 # Športy Aktuálnych (kód → SK, EN, emoji) — MUSÍ byť zhodné s AKT_SPORTS
-# v index.html (poradie = poradie skupín na stránke Aktuálne).
+# v index.html (tam aj výber športu v admine). Na stránke Aktuálne sa z nich
+# berú len názvy športov do titulku a meta popisu.
 AKT_SPORTS = [
     ("tenis", "tenis", "tennis", "🎾"), ("badminton", "badminton", "badminton", "🏸"),
     ("squash", "squash", "squash", "🟡"), ("stolny-tenis", "stolný tenis", "table tennis", "🏓"),
@@ -357,10 +359,10 @@ def live_week_links(aktualne: list) -> list:
 
 
 # ------------------------------------------------------------
-# STRÁNKA AKTUÁLNE (Zadanie 17) — skupiny podľa športu, titulok, popis
+# STRÁNKA AKTUÁLNE (Zadanie 17, 27) — jeden zoznam, úvodný text pod ním, titulok, popis
 # ------------------------------------------------------------
-# VŠETKO ROVNAKO ako liveGroups(), liveTitle(), liveMetaDesc() v index.html,
-# aby titulok a obsah po prevzatí appkou ostali zhodné so statickou stránkou.
+# VŠETKO ROVNAKO ako liveSportList(), liveTitle(), liveMetaDesc() a livePageHtml()
+# v index.html, aby titulok a obsah po prevzatí appkou ostali zhodné so statickou stránkou.
 LIVE_TITLE_MAX = 65
 LIVE_DESC_MAX = 155
 LIVE_DESC_BASE = 100   # na toľko sa skráti dlhá prvá veta, aby sa do popisu zmestili športy
@@ -377,29 +379,26 @@ LIVE_TXT = {
 }[LANG]
 
 
-def live_groups(items: list) -> list:
-    """[(šport z AKT_SPORTS, [položky])] — skupiny v poradí AKT_SPORTS, položky
-    bez športu alebo s neznámym kódom do poslednej skupiny „Iné“ (kód ine).
-    Vnútri skupiny ostáva ručné poradie (items sú už zoradené podľa order)."""
-    idx = {sp[0]: i for i, sp in enumerate(AKT_SPORTS)}
-    ine = idx["ine"]
-    groups = {}
-    for a in items:
-        groups.setdefault(idx.get(a.get("sport") or "", ine), []).append(a)
-    keys = sorted(groups, key=lambda i: 10 ** 9 if i == ine else i)
-    return [(AKT_SPORTS[i], groups[i]) for i in keys]
-
-
 def live_sp_name(sp) -> str:
     return sp[2] if LANG == "en" else sp[1]
 
 
 def live_sport_list() -> list:
-    return [live_sp_name(sp) for sp, _ in live_groups(live_week_links(AKT_ITEMS)) if sp[0] != "ine"]
+    """Názvy športov v poradí PRVÉHO VÝSKYTU medzi aktívnymi položkami (ručné poradie
+    "order"), bez duplicít, bez „iné“ a bez prázdneho/neznámeho kódu."""
+    by_code = {sp[0]: sp for sp in AKT_SPORTS}
+    seen, out = set(), []
+    for a in live_week_links(AKT_ITEMS):
+        sp = by_code.get(a.get("sport") or "")
+        if not sp or sp[0] == "ine" or sp[0] in seen:
+            continue
+        seen.add(sp[0])
+        out.append(live_sp_name(sp))
+    return out
 
 
 def live_fit(head: str, lst: list, tail: str, mx: int) -> list:
-    """Športy v poradí skupín, kým sa zmestia do limitu (zvyšok sa vynechá)."""
+    """Športy v poradí zoznamu, kým sa zmestia do limitu (zvyšok sa vynechá)."""
     used = []
     for s in lst:
         if len(head + ", ".join(used + [s]) + tail) <= mx:
@@ -443,15 +442,14 @@ def live_meta_desc(node: dict) -> str:
     return lead + ", ".join(used) + "." if used else live_cut(base, LIVE_DESC_MAX)
 
 
-def live_static_html(items: list) -> str:
-    """Skupiny podľa športu pre statickú stránku (to isté, čo appka v livePageHtml)."""
-    if not items:
-        return f'<p class="desc">{escape(LIVE_TXT["none"])}</p>'
-    out = []
-    for sp, arr in live_groups(items):
-        nm = live_sp_name(sp)
+def live_static_html(items: list, node: dict) -> str:
+    """Statická stránka Aktuálne (to isté, čo appka v livePageHtml): JEDEN zoznam
+    kariet v ručnom poradí (items sú už zoradené podľa order), bez nadpisov so
+    športom; pod ním úvodný text priečinka (len tu — hore sa pre LIVE_ID nevypisuje).
+    Bez aktívnych položiek veta „Práve teraz nie je nič aktívne…“ a pod ňou úvod."""
+    if items:
         cards = []
-        for l in arr:
+        for l in items:
             d = escape(node_desc(l))
             ds = f'<div class="ds">{d}</div>' if d else ""
             url = escape(safe_url(l.get("url", "")), quote=True)
@@ -460,9 +458,11 @@ def live_static_html(items: list) -> str:
                 f'<a class="card" href="{url}" target="_blank" rel="noopener">'
                 f'<div class="nm">{escape(node_name(l))}</div>{ds}'
                 f'<div class="ur">{escape(host)}</div></a>')
-        out.append(f'<h2>{escape(sp[3])} {escape(nm[:1].upper() + nm[1:])}</h2>'
-                   f'<div class="grid">' + "".join(cards) + "</div>")
-    return "".join(out)
+        out = '<div class="grid live-grid">' + "".join(cards) + "</div>"
+    else:
+        out = f'<p class="desc">{escape(LIVE_TXT["none"])}</p>'
+    intro = node_desc(node)
+    return out + (f'<p class="live-intro">{escape(intro)}</p>' if intro else "")
 
 
 def load_data(path: str) -> dict:
@@ -776,7 +776,7 @@ def page_fingerprint(node: dict, children: dict) -> str:
     """Odtlačok stránky priečinka: vlastný názov/popis/ikona + PRIAME deti v poradí
     zobrazenia. Zmena hlbšie (vnútri podpriečinka) patrí stránke toho podpriečinka,
     takže nová linka v NHL zmení len /hokej/kluby/usa/nhl/, nie celú cestu nad ňou."""
-    live = node["id"] == LIVE_ID   # Aktuálne: aj šport (zoskupenie) — Zadanie 17
+    live = node["id"] == LIVE_ID   # Aktuálne: aj šport (titulok a meta popis) — Zadanie 17, 27
     rows = [_row(node)] + [_row(k) + ([k.get("sport") or ""] if live else [])
                            for k in children.get(node["id"], [])]
     return _fp(rows)
@@ -1016,6 +1016,7 @@ a{color:#e8edf2;text-decoration:none}
 h1{font-size:1.6rem;margin-bottom:6px}
 h1 .ic{margin-right:8px}
 .desc{color:#8fa3b3;margin-bottom:22px}
+.live-intro{color:#8fa3b3;font-size:.82rem;line-height:1.55;margin:18px 2px 6px;max-width:820px}
 .promo{display:flex;gap:22px;align-items:flex-start;background:#182430;border:1px solid #2a3642;border-radius:12px;padding:20px;margin-bottom:22px}
 .promo-ban{flex-shrink:0;width:300px;min-height:250px;display:flex;flex-direction:column;align-items:center}
 .promo-ban img{max-width:100%;display:block}
@@ -1577,9 +1578,10 @@ def render_page(node, path, children, by_id, paths, site_title, alt_url=None, pa
             )
         link_cards = f'<h2>{T["links"]}</h2><div class="grid">' + "".join(cards) + "</div>"
     if node["id"] == LIVE_ID:
-        # STRÁNKA AKTUÁLNE (Zadanie 17): linky zoskupené podľa športu, popis pod
-        # názvom; bez aktívnych položiek veta „Práve teraz nie je nič aktívne…“
-        link_cards = live_static_html(links)
+        # STRÁNKA AKTUÁLNE (Zadanie 17, 27): jeden zoznam v ručnom poradí, popis pod
+        # názvom; bez aktívnych položiek veta „Práve teraz nie je nič aktívne…“;
+        # úvodný text priečinka POD zoznamom (hore desc_html sa preto vynechá)
+        link_cards = live_static_html(links, node)
 
     # meta popis z NEescapovaného textu (escapuje sa až pri vložení do šablóny,
     # inak by apostrofy skončili dvojito escapované, napr. Europe&amp;#x27;s)
@@ -1686,7 +1688,7 @@ def render_page(node, path, children, by_id, paths, site_title, alt_url=None, pa
         crumbs=crumbs_html,
         icon=icon,
         name=name,
-        desc_html=f'<p class="desc">{desc}</p>' if desc else "",
+        desc_html=f'<p class="desc">{desc}</p>' if desc and node["id"] != LIVE_ID else "",
         promo_html=promo_html,
         promo_warn=promo_warn,
         folders_html=fold_cards,

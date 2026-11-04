@@ -27,7 +27,9 @@ web sa nemení) s naplánovanou, skončenou a vypnutou položkou — tie sa nesm
 
 Kontrola l) (3.11.2026, Zadanie 17): domov má presne toľko dlaždíc (a ikoniek v hlavičke),
 koľko koreňových priečinkov bez noTileSk; stránka Aktuálne (SK /aktualne/, EN /live-this-week/)
-má H1, úvodný text, skupiny podľa športu, popisy pod názvom, skrytú lištu, titulok so športom;
+má H1, jeden zoznam položiek v ručnom poradí z aktualne.json (Zadanie 27: bez skupín podľa
+športu — rovnaké poradie v appke aj v statickej stránke), úvodný text POD zoznamom, popisy pod
+názvom, skrytú lištu, titulok so športom;
 vyhľadávanie nájde položku Aktuálnych; odkaz v pätičke vedie na stránku. Kým priečinok f_ltw
 na SK webe nie je (enOnly:true v dátach), časť o stránke sa na SK webe preskočí.
 
@@ -86,6 +88,18 @@ CAKANIE_MS = 20_000         # max. čas na zobrazenie prvku (dlaždice, výsledk
 POMALA_S = 15               # stránka pomalšia ako toto = ⚠️ varovanie
 MIN_LINIEK = 10_000         # data.json musí mať aspoň toľko liniek
 AKT_MASTER = "https://sportlinky.sk/aktualne.json"   # hlavná kópia Aktuálnych (EN web ju číta zo SK webu)
+# kód športu → (SK, EN) — len na kontrolu titulku stránky Aktuálne; ROVNAKO ako AKT_SPORTS
+# v index.html a generator.py
+SPORT_NAZVY = {
+    "tenis": ("tenis", "tennis"), "badminton": ("badminton", "badminton"), "squash": ("squash", "squash"),
+    "stolny-tenis": ("stolný tenis", "table tennis"), "padel": ("padel", "padel"), "sipky": ("šípky", "darts"),
+    "snooker": ("snooker", "snooker"), "atletika": ("atletika", "athletics"), "cyklistika": ("cyklistika", "cycling"),
+    "plavanie": ("plávanie", "swimming"), "motosport": ("motošport", "motorsport"), "futbal": ("futbal", "football"),
+    "hokej": ("hokej", "ice hockey"), "basketbal": ("basketbal", "basketball"), "hadzana": ("hádzaná", "handball"),
+    "volejbal": ("volejbal", "volleyball"), "zimne": ("zimné športy", "winter sports"),
+    "bojove": ("bojové športy", "combat sports"), "golf": ("golf", "golf"), "sach": ("šach", "chess"),
+    "multisport": ("multišportové podujatie", "multi-sport event"),
+}
 DEPLOY_MAX_S = 600          # čakanie na obnovenie GitHub Pages (max. 10 min, potom ❌)
 DEPLOY_KROK_S = 20          # … skúšať každých 20 s
 
@@ -877,9 +891,10 @@ class Test:
     # ------------------------------------------------ l) stránka Aktuálne (Zadanie 17)
     def stranka_aktualne(self, pokus):
         """Domov má toľko dlaždíc, koľko koreňových priečinkov bez noTileSk (SK); stránka
-        Aktuálne (SK /aktualne/, EN /live-this-week/): H1, úvodný text, skupiny podľa
-        športu, popis pod názvom, skrytá lišta, titulok so športom, vyhľadávanie,
-        odkaz v pätičke. Kým priečinok f_ltw na SK webe nie je (enOnly:true), časť
+        Aktuálne (SK /aktualne/, EN /live-this-week/): H1, položky v ručnom poradí
+        (appka = statická stránka = aktualne.json, bez nadpisov so športom), úvodný
+        text pod zoznamom, popis pod názvom, skrytá lišta, titulok so športom,
+        vyhľadávanie, odkaz v pätičke. Kým priečinok f_ltw na SK webe nie je (enOnly:true), časť
         o stránke sa na SK webe PRESKOČÍ (kontrola dlaždíc a pätičky ostáva)."""
         if not self.data:
             raise Zlyhanie("data.json sa nepodarilo načítať (kontrola b)")
@@ -926,7 +941,7 @@ class Test:
             if hlav != odkaz:
                 raise Zlyhanie(f"nápis lišty Aktuálne nie je odkaz na stránku ({hlav!r} ≠ {odkaz!r})")
             page.click("#fLive")
-            page.wait_for_selector("#main .live-intro, #main .live-none, #main h2.live-h", state="attached")
+            page.wait_for_selector("#main .live-intro, #main .live-none, #main .card-link", state="attached")
             if not page.url.endswith(odkaz):
                 raise Zlyhanie(f"klik na odkaz v pätičke viedol na {page.url}, čakám {odkaz}")
             self.over_chyby(page, "domov (pätička → Aktuálne)")
@@ -944,19 +959,31 @@ class Test:
             if not h1 or nazov(live) not in html.unescape(re.sub(r"<[^>]+>", "", h1.group(1))):
                 raise Zlyhanie(f"statická stránka nemá nadpis H1 „{nazov(live)}“")
             uvod = popis_uzla(live)
-            if uvod and html.escape(uvod, quote=False) not in raw:
-                raise Zlyhanie("v surovom HTML chýba úvodný text (popis priečinka)")
-            h2_raw = [html.unescape(x) for x in re.findall(r"<h2>([^<]*)</h2>", raw)]
-            nm_raw = [html.unescape(x) for x in re.findall(r'<div class="nm">([^<]*)</div>', raw)]
-            if [meno(a) for a in vidno] and sorted(nm_raw) != sorted(meno(a) for a in vidno):
+            poradie = [meno(a) for a in vidno]       # ručné poradie z aktualne.json ("order")
+            telo = raw[raw.find("</h1>"):]
+            telo = telo[:telo.find('<a class="appbtn"')] if '<a class="appbtn"' in telo else telo
+            if re.search(r"<h2[ >]", telo):
+                raise Zlyhanie("statická stránka má nadpisy H2 (skupiny podľa športu majú byť zrušené — Zadanie 27)")
+            if uvod:
+                u_esc = html.escape(uvod, quote=False)
+                if f'<p class="live-intro">{u_esc}</p>' not in telo:
+                    raise Zlyhanie("v surovom HTML chýba úvodný text (popis priečinka) v <p class=\"live-intro\">")
+                if telo.count(u_esc) != 1:
+                    raise Zlyhanie(f"v surovom HTML je úvodný text {telo.count(u_esc)}× (má byť len raz, pod zoznamom)")
+                u_pos = telo.find('<p class="live-intro">')
+                if re.search(r'<div class="nm">', telo[u_pos:]) or ("nie je nič aktívne" in telo[u_pos:] or "Nothing is live" in telo[u_pos:]):
+                    raise Zlyhanie("v surovom HTML nie je úvodný text pod zoznamom položiek")
+            nm_raw = [html.unescape(x) for x in re.findall(r'<div class="nm">([^<]*)</div>', telo)]
+            if nm_raw != poradie:
                 stav = "warn"
-                info.append(f"⚠️ surové HTML má položky {nm_raw[:6]}, súbor dnes {[meno(a) for a in vidno][:6]} (obnoví nočný build)")
+                info.append(f"⚠️ surové HTML má položky {nm_raw[:6]}, súbor dnes v poradí {poradie[:6]} (obnoví nočný build)")
             for a in vidno:
                 if popis(a) and meno(a) in nm_raw and html.escape(popis(a), quote=False) not in raw:
                     raise Zlyhanie(f"v surovom HTML chýba popis pod názvom „{meno(a)}“")
             titulok = titulok_z_html(raw)
-            prvy = next((h.split(" ", 1)[-1].lower() for h in h2_raw
-                         if h.split(" ", 1)[-1].lower() not in ("iné", "other")), "")
+            # prvý šport v ručnom poradí (bez „iné“/prázdneho) musí byť v titulku
+            prvy_kod = next((a.get("sport") for a in vidno if a.get("sport") and a.get("sport") != "ine"), "")
+            prvy = SPORT_NAZVY.get(prvy_kod, ("", ""))[1 if en else 0]
             if prvy and prvy not in titulok.lower():
                 raise Zlyhanie(f"titulok „{titulok}“ neobsahuje prvý aktívny šport „{prvy}“")
             if not vidno and ("nie je nič aktívne" not in raw and "Nothing is live" not in raw):
@@ -964,12 +991,17 @@ class Test:
             # appka (po prevzatí)
             page = self.stranka(ctx, bez_ikonky)
             page.goto(url, wait_until="load")
-            page.wait_for_selector("#main .live-intro, #main .live-none, #main h2.live-h", state="attached")
+            page.wait_for_selector("#main .live-intro, #main .live-none, #main .card-link", state="attached")
             page.wait_for_timeout(2500)          # aktualne.json sa sťahuje zvlášť
             app = page.evaluate("""() => ({
                 h1: (document.querySelector('#breadcrumb h1') || {}).textContent || '',
                 intro: (document.querySelector('#main .live-intro') || {}).textContent || '',
-                h2: [...document.querySelectorAll('#main h2.live-h')].map(e => e.textContent.trim()),
+                h2: document.querySelectorAll('#main h2').length,
+                gridy: document.querySelectorAll('#main .grid-deep').length,
+                // úvodný text je za zoznamom: za ním už nie je žiadna karta ani veta „nič aktívne“
+                pod: (() => { const i = document.querySelector('#main .live-intro'); if(!i) return null;
+                  const z = document.querySelector('#main .grid-deep, #main .live-none');
+                  return !!z && !!(z.compareDocumentPosition(i) & Node.DOCUMENT_POSITION_FOLLOWING); })(),
                 names: [...document.querySelectorAll('#main .cl-name')].map(e => e.textContent.trim()),
                 descs: [...document.querySelectorAll('#main .cl-desc')].map(e => e.textContent.trim()),
                 lista: getComputedStyle(document.getElementById('aktualneWrap')).display,
@@ -979,16 +1011,22 @@ class Test:
                 raise Zlyhanie(f"appka: nadpis H1 „{app['h1']}“ neobsahuje „{nazov(live)}“")
             if uvod and app["intro"].strip() != uvod:
                 raise Zlyhanie("appka: úvodný text sa líši od popisu priečinka")
-            if sorted(app["names"]) != sorted(meno(a) for a in vidno):
-                raise Zlyhanie(f"appka: položky {app['names'][:6]} ≠ viditeľné položky {[meno(a) for a in vidno][:6]}")
+            if uvod and app["pod"] is not True:
+                raise Zlyhanie("appka: úvodný text nie je pod zoznamom položiek")
+            if app["h2"]:
+                raise Zlyhanie(f"appka: na stránke Aktuálne je {app['h2']} nadpisov H2 (skupiny podľa športu majú byť zrušené)")
+            if vidno and app["gridy"] != 1:
+                raise Zlyhanie(f"appka: položky majú byť v jednej mriežke, je ich {app['gridy']}")
+            if app["names"] != poradie:
+                raise Zlyhanie(f"appka: položky {app['names'][:6]} ≠ ručné poradie z aktualne.json {poradie[:6]}")
             for a in vidno:
                 if popis(a) and popis(a) not in app["descs"]:
                     raise Zlyhanie(f"appka: pod názvom „{meno(a)}“ chýba popis")
             if app["lista"] != "none":
                 raise Zlyhanie("appka: na stránke Aktuálne je viditeľná lišta Aktuálne")
-            if app["h2"] != h2_raw:
+            if app["names"] != nm_raw:
                 stav = "warn"
-                info.append(f"⚠️ skupiny v appke {app['h2']} ≠ statická {h2_raw} (obnoví nočný build)")
+                info.append(f"⚠️ poradie v appke {app['names'][:6]} ≠ statická {nm_raw[:6]} (obnoví nočný build)")
             if app["title"] != titulok:
                 stav = "warn"
                 info.append(f"⚠️ titulok v appke „{app['title']}“ ≠ statická „{titulok}“")
@@ -1004,7 +1042,7 @@ class Test:
                 info.append(f"hľadanie „{hladaj}“ OK")
         finally:
             ctx.close()
-        info.insert(1, f"{odkaz}: H1, úvod, skupiny {h2_raw}, {len(vidno)} položiek (zdroj {zdroj}), lišta skrytá, titulok „{titulok}“")
+        info.insert(1, f"{odkaz}: H1, poradie {poradie[:6]}, úvod pod zoznamom, {len(vidno)} položiek (zdroj {zdroj}), lišta skrytá, titulok „{titulok}“")
         return stav, "; ".join(info)
 
     # ------------------------------------------------ m) stĺpce (Zadanie 26b)
@@ -1150,7 +1188,7 @@ class Test:
                 self.kontrola("i) Vlajky z vlastného webu", self.vlajky)
                 self.kontrola("j) Reklama v uzavretom okienku + CSP", self.reklama_okienko)
                 self.kontrola("k) Aktuálne (aktualne.json)", self.aktualne)
-                self.kontrola("l) Stránka Aktuálne (dlaždice, skupiny, pätička)", self.stranka_aktualne)
+                self.kontrola("l) Stránka Aktuálne (dlaždice, poradie, pätička)", self.stranka_aktualne)
                 self.kontrola("m) Stĺpce (počítač, myš)", self.stlpce)
             finally:
                 self.browser.close()

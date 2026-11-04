@@ -238,10 +238,9 @@ footer{
 .f-live:hover{text-decoration:underline}
 a.akt-head[href]{cursor:pointer;text-decoration:none}
 a.akt-head[href]:hover #aktHeadTxt{text-decoration:underline}
-/* Stránka Aktuálne: úvodný text, nadpisy skupín podľa športu, prázdny stav */
-.live-intro{color:var(--muted);font-size:0.9rem;line-height:1.55;margin:4px 2px 6px;max-width:820px}
+/* Stránka Aktuálne: úvodný text (pod zoznamom liniek), prázdny stav */
+.live-intro{color:var(--muted);font-size:0.82rem;line-height:1.55;margin:18px 2px 6px;max-width:820px}
 .live-none{color:var(--muted);font-size:0.9rem;margin:18px 2px}
-h2.live-h{font-size:0.8rem}
 .live-admin{margin:14px 0}
 /* Admin: priečinok bez dlaždice na SK domove (noTileSk) — vidno ho len sivý */
 .card-root.no-tile{opacity:.45}
@@ -1456,7 +1455,8 @@ function liveWeekLinks(){
   // Aktuálne linky ako bežné uzly typu link. Nikde sa neukladajú — vznikajú
   // pri každom prekreslení, takže priečinok je vždy zhodný s lištou
   // (rovnaký zdroj aj pravidlá: aktPublic — aktualne.json, v prechode data.json).
-  // sport/_spName/_spIcon/_new — pre zoskupenie podľa športu a vyhľadávanie (Zadanie 17)
+  // sport — len pre titulok a meta popis stránky Aktuálne (Zadanie 27: bez skupín);
+  // _spName/_spIcon/_new — vyhľadávanie a štítok NEW (Zadanie 17)
   const now = Date.now();
   return aktPublic()
     .map((a,i)=>{
@@ -1772,7 +1772,7 @@ function renderLevel(){
   // STĹPCOVÉ ZOBRAZENIE — namiesto dlaždíc stĺpce; promo blok ostáva nad nimi (mimo pásu)
   if(viewMode==='cols' && colsAllowed()){ renderColumns(main, renderPromoBlock()); return; }
 
-  // STRÁNKA AKTUÁLNE (Zadanie 17): úvodný text + linky zoskupené podľa športu
+  // STRÁNKA AKTUÁLNE (Zadanie 17, 27): jeden zoznam liniek v ručnom poradí, pod ním úvodný text
   if(curId === LIVE_ID && !adminMode){
     const ph = renderPromoBlock();
     const lh = (ph||'') + livePageHtml() + (ph ? promoWarnHtml() : '');
@@ -1881,7 +1881,7 @@ function renderLevel(){
   }
   // Aktuálne v admine: vlastné linky sa sem nepridávajú — obsah je z Aktuálnych
   if(adminMode && curId === LIVE_ID){
-    html = `<div class="live-admin"><button class="btn btn-p" onclick="openAktualne()">📌 Upraviť Aktuálne</button> <span style="font-size:0.8rem;color:var(--muted)">Obsah tejto stránky sa skladá z Aktuálnych (zoskupené podľa športu). Vlastné linky sem nepridávaj.</span></div>` + html;
+    html = `<div class="live-admin"><button class="btn btn-p" onclick="openAktualne()">📌 Upraviť Aktuálne</button> <span style="font-size:0.8rem;color:var(--muted)">Obsah tejto stránky sa skladá z Aktuálnych (v ručnom poradí). Vlastné linky sem nepridávaj.</span></div>` + html;
   }
   if(promoHtml) html += promoWarnHtml();
 
@@ -3262,28 +3262,28 @@ function aktIsNew(a, now){ const t = aktShownAt(a); return t > 0 && now - t >= 0
 // ============================================================
 // STRÁNKA AKTUÁLNE (Zadanie 17) — SK /aktualne/, EN /live-this-week/
 // ============================================================
-// Úvodný text (popis priečinka f_ltw) + verejné položky Aktuálnych ZOSKUPENÉ PODĽA
-// ŠPORTU: skupiny v poradí AKT_SPORTS, bez športu / neznámy kód → posledná „Iné".
-// Titulok a meta popis sa skladajú z práve aktívnych športov. VŠETKO ROVNAKO ako
-// live_groups(), live_title(), live_meta_desc() a live_page_html() v generator.py.
+// Verejné položky Aktuálnych ako JEDEN zoznam v ručnom poradí "order" (ako lišta,
+// bez skupín podľa športu — Zadanie 27), pod ním úvodný text (popis priečinka f_ltw)
+// menším sivým písmom. Šport ("sport") sa na stránke neukazuje — skladá sa z neho
+// len titulok a meta popis (športy v poradí prvého výskytu medzi položkami).
+// VŠETKO ROVNAKO ako live_sport_list(), live_title(), live_meta_desc()
+// a live_static_html() v generator.py.
 const LIVE_TITLE_MAX = 65, LIVE_DESC_MAX = 155, LIVE_DESC_BASE = 100;
 const LIVE_SITE = IS_EN ? 'Sportlinking' : 'sportlinky.sk';
 function cpLen(s){ return Array.from(String(s)).length; }  // počet znakov ako v Pythone
-// [{sp:[kód,SK,EN,emoji], items:[uzly z liveWeekLinks]}]
-function liveGroups(items){
-  const idx = new Map(AKT_SPORTS.map((sp,i)=>[sp[0], i]));
-  const ine = idx.get('ine');
-  const g = new Map();
-  items.forEach(a=>{
-    const i = idx.has(a.sport) ? idx.get(a.sport) : ine;
-    if(!g.has(i)) g.set(i, []);
-    g.get(i).push(a);
-  });
-  return Array.from(g.keys()).sort((x,y)=>(x===ine?1e9:x)-(y===ine?1e9:y)).map(i=>({sp:AKT_SPORTS[i], items:g.get(i)}));
-}
 function liveSpName(sp){ return IS_EN ? sp[2] : sp[1]; }
-function liveSportList(){ return liveGroups(liveWeekLinks()).filter(g=>g.sp[0]!=='ine').map(g=>liveSpName(g.sp)); }
-// športy sa pridávajú v poradí skupín, kým sa zmestia do limitu (zvyšok sa vynechá)
+// názvy športov v poradí PRVÉHO VÝSKYTU medzi položkami (ručné poradie "order"),
+// bez duplicít, bez „iné“ a bez prázdneho/neznámeho kódu
+function liveSportList(){
+  const seen = new Set(), out = [];
+  liveWeekLinks().forEach(a=>{
+    const sp = aktSport(a.sport);
+    if(!sp || sp[0]==='ine' || seen.has(sp[0])) return;
+    seen.add(sp[0]); out.push(liveSpName(sp));
+  });
+  return out;
+}
+// športy sa pridávajú v tomto poradí, kým sa zmestia do limitu (zvyšok sa vynechá)
 function liveFit(head, list, tail, max){
   const used = [];
   for(const s of list){
@@ -3318,7 +3318,6 @@ function liveMetaDesc(node){
   }
   return used.length ? lead + used.join(', ') + '.' : liveCut(base, LIVE_DESC_MAX);
 }
-function liveCap(s){ return s ? s.charAt(0).toUpperCase() + s.slice(1) : s; }
 function liveCardHtml(n){
   const host = colHost(n);
   const d = nDesc(n);
@@ -3335,16 +3334,11 @@ function liveCardHtml(n){
 function livePageHtml(){
   const node = liveNode();
   const intro = node ? nDesc(node) : '';
-  let html = intro ? `<p class="live-intro">${attrEsc(intro)}</p>` : '';
   const items = liveWeekLinks();
-  if(!items.length){
-    return html + `<p class="live-none">${IS_EN ? 'Nothing is live right now — check back later.' : 'Práve teraz nie je nič aktívne, pozrite sa neskôr.'}</p>`;
-  }
-  liveGroups(items).forEach(g=>{
-    html += `<h2 class="section-label live-h">${attrEsc(g.sp[3])} ${attrEsc(liveCap(liveSpName(g.sp)))}</h2>`
-          + `<div class="grid-deep anim">` + g.items.map(liveCardHtml).join('') + `</div>`;
-  });
-  return html;
+  const html = items.length
+    ? `<div class="grid-deep anim">` + items.map(liveCardHtml).join('') + `</div>`
+    : `<p class="live-none">${IS_EN ? 'Nothing is live right now — check back later.' : 'Práve teraz nie je nič aktívne, pozrite sa neskôr.'}</p>`;
+  return html + (intro ? `<p class="live-intro">${attrEsc(intro)}</p>` : '');
 }
 // Nápis lišty „Aktuálne ›" a odkaz v pätičke — odkazy na stránku Aktuálne, keď
 // na tomto webe existuje (inak nápis bez odkazu, pätička bez odkazu). Generátor
