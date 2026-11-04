@@ -1007,6 +1007,114 @@ class Test:
         info.insert(1, f"{odkaz}: H1, úvod, skupiny {h2_raw}, {len(vidno)} položiek (zdroj {zdroj}), lišta skrytá, titulok „{titulok}“")
         return stav, "; ".join(info)
 
+    # ------------------------------------------------ m) stĺpce (Zadanie 26b)
+    def stlpce(self, pokus):
+        """Stĺpcové zobrazenie (počítač s myšou): priečinok sa otvorí len po skutočnom
+        pohybe myši, ktorý sa zastavil nad položkou. Posun obsahu pod NEHYBNOU myšou
+        (koliesko v stĺpci, posun stránky) nesmie nič otvoriť a zrolovaný stĺpec nesmie
+        skočiť na začiatok — chyby z analýzy stĺpcov (navrhy/stlpce-analyza-2026-11-04.md)."""
+        ctx = self.kontext()
+        try:
+            page = self.stranka(ctx)
+            page.goto(self.base, wait_until="load")
+            self.cakaj_na_appku(page)
+            # celé dáta v appke — bez wait_for_function so stringom (to potrebuje eval, ktorý
+            # CSP webu zakazuje — 'unsafe-eval' nie je povolený); page.evaluate eval nepotrebuje
+            koniec = time.time() + CAKANIE_MS / 1000
+            while not page.evaluate("typeof DB !== 'undefined' && !!DB.nodes && DB.nodes.length > 100 && !DB._partial"):
+                if time.time() > koniec:
+                    raise Zlyhanie("appka nenačítala celé dáta (data.json) do limitu")
+                page.wait_for_timeout(250)
+            page.click("#vSwitch button[data-mode=cols]")
+            page.wait_for_selector("#colsWrap .col[data-lv='0'] .cit[data-t='f']", state="visible")
+
+            def cesta():
+                # názvy v jazyku webu (nName) — porovnávajú sa s textom položiek na obrazovke (EN web: name_en)
+                return page.evaluate("colPath.map(id => { const n = DB.nodes.find(x => x.id === id); return n ? nName(n) : null; })")
+
+            def stred(loc):
+                b = loc.bounding_box()
+                if not b:
+                    raise Zlyhanie("položka stĺpca nemá rozmery (nie je vidno)")
+                return b["x"] + b["width"] / 2, b["y"] + b["height"] / 2
+
+            # hlavná sekcia s najviac podpriečinkami — aby bol stĺpec 1 dlhý (rolovateľný)
+            koren_id = page.evaluate(
+                "tileKids(null).filter(n => n.type === 'folder')"
+                ".sort((a, b) => tileKids(b.id).length - tileKids(a.id).length)[0].id")
+            koren = page.locator(f"#colsWrap .col[data-lv='0'] .cit[data-id='{koren_id}']")
+            meno_koren = koren.locator(".nm").inner_text().strip()
+            x, y = stred(koren)
+            page.mouse.move(x - 60, y, steps=5)
+            page.mouse.move(x, y, steps=6)        # skutočný pohyb, zastaví sa na položke
+            page.wait_for_timeout(700)
+            if cesta() != [meno_koren]:
+                raise Zlyhanie(f"po zastavení myši na „{meno_koren}“ je otvorené {cesta()}")
+            # 2. položka stĺpca 1 — otvorí sa (správne), myš na nej ostane stáť
+            druha = page.locator("#colsWrap .col[data-lv='1'] .cit[data-t='f']").nth(1)
+            meno_druha = druha.locator(".nm").inner_text().strip()
+            x, y = stred(druha)
+            page.mouse.move(x, y, steps=6)
+            page.wait_for_timeout(700)
+            otvorene = cesta()
+            if otvorene != [meno_koren, meno_druha]:
+                raise Zlyhanie(f"po zastavení myši na „{meno_druha}“ je otvorené {otvorene}")
+            # koliesko nad stĺpcom 1 (najprv posúva stránku, po prilepení pásu roluje stĺpec):
+            # položky sa posúvajú pod nehybnou myšou — nič sa nesmie otvoriť
+            stlpec = page.locator("#colsWrap .col[data-lv='1']")
+            roluje = page.evaluate("c => c.scrollHeight > c.clientHeight + 1", stlpec.element_handle())
+            posun = 0
+            for _ in range(14):
+                page.mouse.wheel(0, 150)
+                page.wait_for_timeout(120)
+                posun = page.evaluate("c => c.scrollTop", stlpec.element_handle())
+                if posun > 100:
+                    break
+            page.wait_for_timeout(700)
+            if cesta() != otvorene:
+                raise Zlyhanie(f"koliesko nad stĺpcom otvorilo iný priečinok: {cesta()} (bolo {otvorene})")
+            if roluje and posun <= 0:
+                raise Zlyhanie("koliesko nad dlhým stĺpcom ho nezrolovalo (ani stránku po prilepení)")
+            # malý pohyb myši (2 px) nad položkou, ktorá sa pod ňu dostala posunom → stále nič
+            page.mouse.move(x + 2, y + 1, steps=2)
+            page.wait_for_timeout(600)
+            po = page.evaluate("c => c.scrollTop", stlpec.element_handle())
+            if cesta() != otvorene:
+                raise Zlyhanie(f"po 2 px pohybe nad posunutým obsahom sa otvorilo {cesta()} (bolo {otvorene})")
+            if po != posun:
+                raise Zlyhanie(f"zrolovaný stĺpec skočil: posun {posun} → {po}")
+            # skutočný pohyb (10 px) po položke, ktorá je pod kurzorom → tá sa má otvoriť (nie „zaseknuté“)
+            pod = page.evaluate("([x, y]) => { const e = document.elementFromPoint(x, y); const a = e && e.closest('.cit[data-t=\"f\"]');"
+                                " return a ? a.querySelector('.nm').textContent.trim() : null; }", [x + 2, y + 1])
+            if pod:
+                page.mouse.move(x + 12, y + 1, steps=4)
+                page.wait_for_timeout(600)
+                if cesta() != [meno_koren, pod]:
+                    raise Zlyhanie(f"po 10 px pohybe po položke „{pod}“ sa neotvorila: {cesta()}")
+                otvorene = cesta()
+                x += 12
+            # posun stránky pod nehybnou myšou → nič
+            page.evaluate("window.scrollBy(0, -120)")
+            page.wait_for_timeout(700)
+            if cesta() != otvorene:
+                raise Zlyhanie(f"po posune stránky pod myšou sa otvorilo {cesta()} (bolo {otvorene})")
+            # poradie ako v dlaždiciach (Zadanie 26b2): v každom stĺpci priečinky pred linkami
+            zle = page.evaluate(
+                "[...document.querySelectorAll('#colsWrap .col')].map(c => {"
+                "  const t = [...c.querySelectorAll('.cit')].map(a => a.dataset.t);"
+                "  const prvaLinka = t.indexOf('l'); const poslednyPriecinok = t.lastIndexOf('f');"
+                "  return prvaLinka >= 0 && poslednyPriecinok > prvaLinka ? c.querySelector('.col-title').textContent : null;"
+                "}).filter(Boolean)")
+            if zle:
+                raise Zlyhanie(f"v stĺpci je linka pred priečinkom: {zle}")
+            self.snimka(page, "13-stlpce")
+            self.over_chyby(page, "stĺpce")
+        finally:
+            ctx.close()
+        return "ok", (f"„{meno_koren} › {meno_druha}“ otvorené myšou; koliesko (posun stĺpca {posun} px"
+                      f"{'' if roluje else ', stĺpec krátky'}), 2 px pohyb ani posun stránky nič neotvorili"
+                      f"{', 10 px pohyb otvoril „' + pod + '“' if pod else ''}")
+
     # ------------------------------------------------ hlavný beh
     def spusti(self, od):
         self.cakaj_na_nasadenie(od)
@@ -1043,6 +1151,7 @@ class Test:
                 self.kontrola("j) Reklama v uzavretom okienku + CSP", self.reklama_okienko)
                 self.kontrola("k) Aktuálne (aktualne.json)", self.aktualne)
                 self.kontrola("l) Stránka Aktuálne (dlaždice, skupiny, pätička)", self.stranka_aktualne)
+                self.kontrola("m) Stĺpce (počítač, myš)", self.stlpce)
             finally:
                 self.browser.close()
 
