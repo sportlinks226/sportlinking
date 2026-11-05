@@ -48,7 +48,7 @@ header{
 .h-left:hover .h-wordmark{opacity:.85}
 .h-wordmark{
   margin:0;font-style:italic;font-weight:800;font-size:1.45rem;
-  letter-spacing:1px;line-height:1.1;transition:.15s;white-space:nowrap;
+  letter-spacing:1px;line-height:1.1;transition:opacity .15s;white-space:nowrap; /* Zadanie 34: len opacity — veľkosť písma sa pri zbalení hlavičky mení naraz */
 }
 .h-wordmark .wm-w{color:#fff}
 .h-wordmark .wm-r{color:var(--accent)}
@@ -97,6 +97,8 @@ main.cols-mode{max-width:1800px;padding-bottom:0} /* pás si necháva miesto na 
 body.cols-on footer{margin-top:10px}
 .cols{display:flex;gap:8px;align-items:flex-start;overflow-x:auto;overflow-y:hidden;padding-bottom:6px;position:sticky;top:105px;scroll-behavior:smooth;overscroll-behavior:contain}
 @media (prefers-reduced-motion: reduce){.cols{scroll-behavior:auto}}
+@keyframes hdrIn{from{opacity:0}to{opacity:1}}
+@media (prefers-reduced-motion: reduce){.h-lupa{animation:none!important}}
 .col{flex:0 0 var(--colw,220px);width:var(--colw,220px);max-height:100%;min-height:140px;overflow-y:auto;overscroll-behavior:contain;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:6px}
 .col-title{font-size:.66rem;letter-spacing:1px;text-transform:uppercase;color:var(--muted);padding:6px 10px 4px;position:sticky;top:0;background:var(--surface);z-index:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .cit{display:flex;align-items:center;gap:7px;padding:7px 8px;border-radius:8px;cursor:pointer;font-size:.85rem;line-height:1.2;border:1px solid transparent;text-decoration:none;color:inherit}
@@ -333,7 +335,19 @@ a.akt-head[href]:hover #aktHeadTxt{text-decoration:underline}
 .card-link .socs a.si{font-size:10px;font-weight:800;line-height:15px;text-align:center;color:#fff;background:var(--surface2)}
 .card-link .socs a.si:has(img){background:none}
 .card-link .socs .ph{width:15px;height:15px;visibility:hidden}
-.card-link.has-soc>a{padding-right:16px}
+.card-link.has-soc>a{padding-right:18px}
+/* Zadanie 34 (bod 28 previerky 3): väčšia klikacia plocha ikonky, obrázok ostáva 15 px
+   na tom istom mieste. Samotný odkaz má priehľadný okraj 5 px (25×25 px — WCAG 2.2
+   meria odkaz) a neviditeľné ::before ho rozšíri na ~29×29 px. Karta s ikonkami má
+   aspoň 58 px: FB siaha od horného okraja po stred (0–29 px), IG od stredu po dolný
+   okraj, doľava len do prázdneho odsadenia hlavnej linky (padding-right 18 px) —
+   plochy sa neprekrývajú navzájom ani s textom linky. Mobil má vlastné hodnoty nižšie. */
+.card-link.has-soc{min-height:58px}
+.card-link .socs{padding:0}
+.card-link .socs a.si,.card-link .socs .ph{width:25px;height:25px;padding:5px;background-clip:content-box;position:relative}
+.card-link .socs a.si::before{content:'';position:absolute;left:-4px;right:0}
+.card-link .socs a.si:first-child::before{top:0;bottom:-4px}
+.card-link .socs a.si:last-child::before{top:-4px;bottom:0}
 .admin-mode .card-link .socs{display:none}
 
 /* ===== ANIMÁCIA KARIET — jemné vynorenie pri vstupe do sekcie ===== */
@@ -457,6 +471,13 @@ a.akt-head[href]:hover #aktHeadTxt{text-decoration:underline}
 .pw-x:hover,.pw-x:focus-visible{color:var(--text)}
 .pw-box h3{margin-bottom:16px}
 /* bod 13 (previerka 2): text len pre čítačku (oznam výsledkov hľadania) */
+.h-lupa{display:none}
+/* Zadanie 34 (bod 30): odkaz „Preskočiť na obsah“ — prvý prvok stránky, viditeľný len
+   pri presune klávesom Tab. #main má tabindex="-1" (odkaz naň presunie kurzor), ale
+   bez rámčeka — po kliknutí myšou ani po prekliku sa okolo obsahu nič neukáže. */
+.skip-link{position:absolute;left:8px;top:-60px;z-index:300;background:var(--accent-strong);color:#fff;font-weight:700;padding:10px 16px;border-radius:8px;text-decoration:none}
+.skip-link:focus{top:8px}
+#main:focus{outline:none}
 .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 /* nadpis, na ktorý appka presunie kurzor po zmene sekcie — bez rámika */
 [tabindex="-1"]:focus{outline:none}
@@ -549,22 +570,32 @@ button#aktMoreBadge{-webkit-appearance:none;appearance:none;margin:0;border:0;fo
   .h-subtitle{display:none}
   .h-count{font-size:.65rem}
   .h-count b{font-size:16px}
+  /* Zadanie 34 (bod 6 previerky 3): po posune nadol sa hlavička zbalí na jeden riadok
+     (menšie logo + lupa). Ušetrené miesto ostáva pod hlavičkou ako okraj (margin-bottom
+     nastaví skript), takže obsah stránky sa pri zbalení/rozbalení nepohne. */
+  body.hdr-min header{padding:4px 6px 4px 14px;flex-wrap:nowrap}
+  body.hdr-min .h-wordmark{font-size:1rem}
+  body.hdr-min .h-count,body.hdr-min .h-search{display:none}
+  body.hdr-min .h-lupa{display:flex;align-items:center;justify-content:center;position:relative;margin-left:auto;width:44px;height:44px;padding:0;border:0;border-radius:50%;background:transparent;color:var(--text);font-size:20px;line-height:1;cursor:pointer;animation:hdrIn .15s ease-out}
+  /* v hľadaní je text (kurzor už v ňom nie je) — červená bodka na lupe */
+  body.hdr-min .h-lupa.has-q::after{content:'';position:absolute;top:9px;right:8px;width:9px;height:9px;border-radius:50%;background:#e84242;box-shadow:0 0 0 2px #0f1923}
   main{padding:16px 12px 100px}
   .grid-root{gap:10px}
   .card-root{flex:0 1 150px;min-width:130px}
   /* ikonky FB/IG na mobile — väčšie na dotyk, nízka dlaždica dostane minimálnu výšku */
   .card-link .socs{width:24px;right:3px}
   .card-link .socs a.si,.card-link .socs a.si img,.card-link .socs .ph{width:20px;height:20px;line-height:20px;font-size:12px}
-  .card-link.has-soc{min-height:58px}
   .card-link.has-soc>a{padding-right:20px}
   /* bod 12: väčšia neviditeľná klikacia plocha okolo ikonky (obrázok ostáva 20 px).
      FB siaha nahor po okraj, IG nadol po okraj; medzi nimi ostáva hranica v strede
      (pri min. výške 58 px FB 0–29 px, IG 29–58 px), doľava len do prázdneho
      odsadenia hlavnej linky — plochy sa neprekrývajú navzájom ani s textom linky */
-  .card-link .socs a.si{position:relative}
-  .card-link .socs a.si::before{content:'';position:absolute;left:-8px;right:-5px}
-  .card-link .socs a.si:first-child::before{top:-5px;bottom:-4px}
-  .card-link .socs a.si:last-child::before{top:-4px;bottom:-5px}
+  /* Zadanie 34: odkaz 24×24 px (okraj 2 px) + ::before — plocha ostáva ako doteraz */
+  .card-link .socs{padding:3px 0}
+  .card-link .socs a.si,.card-link .socs .ph{width:24px;height:24px;padding:2px}
+  .card-link .socs a.si::before{left:-6px;right:-3px}
+  .card-link .socs a.si:first-child::before{top:-3px;bottom:-2px}
+  .card-link .socs a.si:last-child::before{top:-2px;bottom:-3px}
 
   /* Admin bar na mobile — 2 riadky, menšie tlačidlá */
   #adminBar{padding:8px 12px;gap:6px;flex-wrap:wrap}
@@ -607,6 +638,7 @@ button#aktMoreBadge{-webkit-appearance:none;appearance:none;margin:0;border:0;fo
 </style>
 </head>
 <body>
+<a class="skip-link" href="#main">Preskočiť na obsah</a>
 
 <!-- PW -->
 <div id="pwScreen" role="dialog" aria-modal="true" aria-label="Admin prístup">
@@ -630,16 +662,17 @@ button#aktMoreBadge{-webkit-appearance:none;appearance:none;margin:0;border:0;fo
     </div>
   </a>
   <nav class="h-sports" id="hSports" aria-label="Športy"></nav>
+  <button type="button" class="h-lupa" id="hLupa" aria-label="Hľadať" onclick="hdrOpenSearch()">🔍</button>
   <div class="h-search"><input type="search" id="srch" aria-label="Hľadaj v strome" placeholder="🔍  Hľadaj kdekoľvek v strome..." oninput="onSearch()"/></div>
   <div class="vswitch" id="vSwitch" role="group" aria-label="Zobrazenie"><button type="button" data-mode="tiles" class="on" aria-pressed="true" title="Dlaždice" onclick="setViewMode('tiles')">▦ Dlaždice</button><button type="button" data-mode="cols" aria-pressed="false" title="Stĺpce — priečinky sa otvárajú myšou" onclick="setViewMode('cols')">▥ Stĺpce</button></div>
   <button class="btn-admin-tog" id="adminTog" onclick="toggleAdmin()">⚙️ Admin</button>
 </header>
 
 <!-- BREADCRUMB -->
-<div id="breadcrumb"></div>
+<nav id="breadcrumb" aria-label="Kde som"></nav>
 
-<!-- BANNERY 2× 468x60 — slot 2 sa na mobile skrýva -->
-<div class="banner-wrap">
+<!-- BANNERY 2× 468x60 — slot 2 sa na mobile skrýva. Zadanie 34: <aside> = samostatná oblasť pre čítačku -->
+<aside class="banner-wrap" aria-label="Reklama">
   <div class="banner-slot" id="bannerSlot">
     <div class="banner-placeholder">📢 Banner 468 × 60</div>
   </div>
@@ -648,10 +681,10 @@ button#aktMoreBadge{-webkit-appearance:none;appearance:none;margin:0;border:0;fo
   </div>
   <button class="banner-edit-btn" onclick="openBannerFarm()">🖼️ Bannery</button>
   <button class="banner-edit-btn" onclick="openPromoList()">💰 Promo</button>
-</div>
+</aside>
 
 <!-- AKTUALNE -->
-<div id="aktualneWrap" style="padding:12px 24px 16px">
+<section id="aktualneWrap" aria-label="Aktuálne" style="padding:12px 24px 16px">
   <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
     <a id="aktHead" class="akt-head" style="display:flex;align-items:center;gap:6px;font-size:0.78rem;font-weight:700;color:var(--accent-text);text-transform:uppercase;letter-spacing:1px">
       <span class="akt-dot" style="width:8px;height:8px;border-radius:50%;background:#e84242;display:inline-block;animation:pulse 1.5s infinite"></span>
@@ -662,11 +695,11 @@ button#aktMoreBadge{-webkit-appearance:none;appearance:none;margin:0;border:0;fo
   <div id="aktualneScroll" style="display:flex;gap:8px;overflow-x:auto;padding:8px 0 6px;scrollbar-width:none">
   </div>
   <button type="button" id="aktMoreBadge" onclick="aktScrollMore()" aria-label="Zobraziť ďalšie linky">+0 ›</button>
-</div>
+</section>
 
 <!-- MAIN -->
 <p id="pathNote" class="path-note" role="status" hidden></p>
-<main id="main"></main>
+<main id="main" tabindex="-1"></main>
 <div id="srLive" class="sr-only" aria-live="polite" aria-atomic="true"></div>
 <script>
 // Bod 6 (2.11.2026): generator vkladá do #main dlaždice DOMOVA (pre roboty bez
@@ -1557,6 +1590,7 @@ window.addEventListener('pageshow', function(e){
 
 let NAVIGOVANE = false; // bod 5: už sa preklikalo v appke (hreflang zo statickej stránky neplatí)
 function navigate(id, fromPopState){
+  hdrSet(false); // Zadanie 34: po prekliku plná hlavička
   curId = id;
   NAVIGOVANE = true;
   if(!fromPopState) CESTA_CELA = true; // adresu teraz zapisuje appka — sedí s obrazovkou
@@ -2522,6 +2556,55 @@ function savePromoBanner(){
 // ============================================================
 // Debounce — hľadá sa až keď človek na chvíľu prestane písať (nie pri každom písmene)
 let _srchT = null;
+// Zadanie 34 (bod 6 previerky 3): zbaľovanie prilepenej hlavičky na mobile (do 560 px,
+// rovnako ako mobilné CSS hlavičky). Po posune NADOL za 150 px sa zbalí na jeden riadok
+// (logo + lupa), rozbalí sa až pri návrate k vrchu (pod 60 px) alebo ťuknutím na lupu —
+// medzi 60 a 150 px sa stav nemení (hysteréza, bez blikania). Pri posune nahor sa
+// nerozbaľuje. Ušetrená výška ostáva pod hlavičkou ako margin-bottom, takže sa obsah
+// stránky nepohne a výška stránky ostáva rovnaká (žiadna slučka zbal → posun → rozbaľ,
+// ani na krátkych stránkach). Nezbaľuje sa: v admin režime, kým je kurzor v hľadaní.
+// Text v hľadaní (bez kurzora) = zbalí sa, na lupe svieti červená bodka.
+var HDR_DOLE = 150, HDR_HORE = 60, hdrMin = false, hdrLastY = 0, hdrTick = false, HDR_MQ = null;
+function hdrMobil(){
+  try{ if(!HDR_MQ) HDR_MQ = window.matchMedia('(max-width:560px)'); return HDR_MQ.matches; }catch(e){ return false; }
+}
+function hdrSet(min){
+  min = !!min;
+  if(min === !!hdrMin) return;
+  const h = document.querySelector('header');
+  if(!h){ hdrMin = false; return; }
+  if(min){
+    const plna = h.offsetHeight;
+    document.body.classList.add('hdr-min');
+    h.style.marginBottom = Math.max(0, plna - h.offsetHeight) + 'px';
+  } else {
+    document.body.classList.remove('hdr-min');
+    h.style.marginBottom = '';
+  }
+  hdrMin = min;
+  hdrDot();
+}
+function hdrDot(){
+  const l = document.getElementById('hLupa'), s = document.getElementById('srch');
+  if(l && s) l.classList.toggle('has-q', !!s.value.trim());
+}
+function hdrCheck(){
+  hdrTick = false;
+  const y = window.scrollY || 0, dole = y > hdrLastY;
+  hdrLastY = y;
+  if(!hdrMobil() || adminMode){ hdrSet(false); return; }
+  if(hdrMin){ if(y < HDR_HORE) hdrSet(false); return; }
+  if(dole && y > HDR_DOLE && document.activeElement !== document.getElementById('srch')) hdrSet(true);
+}
+function hdrOpenSearch(){
+  hdrSet(false);
+  const s = document.getElementById('srch');
+  if(s){ try{ s.focus({preventScroll: true}); }catch(e){ s.focus(); } }
+}
+window.addEventListener('scroll', function(){ if(!hdrTick){ hdrTick = true; requestAnimationFrame(hdrCheck); } }, {passive: true});
+window.addEventListener('resize', function(){ if(hdrMin && !hdrMobil()) hdrSet(false); });
+try{ document.getElementById('srch').addEventListener('input', hdrDot); }catch(e){}
+
 function onSearch(){ clearTimeout(_srchT); _srchT = setTimeout(function(){ syncSearchUrl(); render(); }, 200); } // bod 10: dotaz aj do adresy (?q=)
 const SRCH_MAX = 200;
 const _srchCache = new WeakMap(); // max. počet zobrazených kariet v každej skupine
@@ -2843,6 +2926,7 @@ function enterAdmin(){
   document.getElementById('adminTog').textContent = '⚙️ Admin ✓';
   document.getElementById('adminBar').classList.add('on');
   document.body.classList.add('admin-mode');
+  hdrSet(false); // Zadanie 34: v admine sa hlavička nezbaľuje
   abhSet();
   render();
   renderAktualne();
@@ -3295,7 +3379,7 @@ function adFrame(h, auto){
     + 'if(h&&h!==p){p=h;parent.postMessage({sportlinkyAdH:h},"*")}}'
     + 'if(window.ResizeObserver)new ResizeObserver(s).observe(document.body);addEventListener("load",s);setTimeout(s,0);setTimeout(s,2000)})()<\/script>' : '';
   const doc = '<!DOCTYPE html><html><head><meta charset="utf-8"><base target="_blank">' + css + AD_FAIL_JS + '</head><body>' + h + vyska + '</body></html>';
-  return `<iframe class="adframe adframe-${auto ? 'auto' : 'slot'}" sandbox="${AD_SANDBOX}" srcdoc="${attrEsc(doc)}" title="${IS_EN ? 'Advertisement' : 'Reklama'}" scrolling="no"></iframe>`;
+  return `<iframe class="adframe adframe-${auto ? 'auto' : 'slot'}" sandbox="${AD_SANDBOX}" srcdoc="${attrEsc(doc)}" title="${IS_EN ? 'Advertisement' : 'Reklama'}" tabindex="-1" scrolling="no"></iframe>`;
 }
 // výška z okienka: len od NAŠEHO okienka (event.source) a len rozumné číslo
 window.addEventListener('message', e=>{
@@ -3329,6 +3413,27 @@ window.addEventListener('message', e=>{
 });
 
 // Vykreslí jeden slot — každý slot rotuje len svoje vlastné bannery
+// Zadanie 34 (bod 30 previerky 3): odkaz v banneri bez čitateľného textu (napr. EN banner
+// „Live This Week“ = <a href><svg> — čítačka ho ohlási len ako „odkaz“) dostane
+// aria-label: alt bannera → text nápisov v SVG → názov bannera. Dáta sa nemenia.
+// Rovnaké pravidlo má záložný skript statických stránok (generator.py, bannerA11y).
+function bannerA11y(el, banner){
+  try{
+    for(const a of el.querySelectorAll('a[href]')){
+      if((a.getAttribute('aria-label') || '').trim()) continue;
+      const c = a.cloneNode(true);
+      c.querySelectorAll('svg').forEach(x => x.remove());
+      let t = c.textContent.trim();
+      for(const i of a.querySelectorAll('img[alt]')) t += i.getAttribute('alt').trim();
+      for(const x of a.querySelectorAll('svg title')) t += x.textContent.trim();
+      if(t) continue;
+      const svg = [...a.querySelectorAll('svg text')].map(x => x.textContent.replace(/[▶►›]/g, '').replace(/\s+/g, ' ').trim())
+                    .filter(x => /[0-9A-Za-zÀ-ž]/.test(x)).join(', ');
+      const n = String(banner.alt || '').trim() || svg || String(banner.name || '').trim() || (IS_EN ? 'Advertisement' : 'Reklama');
+      a.setAttribute('aria-label', n.slice(0, 160));
+    }
+  }catch(e){}
+}
 function renderOneSlot(el, slotNum){
   const banners = eligibleBanners(slotNum);
   if(!banners.length){
@@ -3364,6 +3469,7 @@ function renderOneSlot(el, slotNum){
     // Zadanie 32: po zlyhaní reklamy partnera (AD_FAIL) ostáva jeho slot zbalený
     el.style.display = (AD_FAIL && adNeedsFrame(h)) ? 'none' : '';
     el.innerHTML = adNeedsFrame(h) ? adFrame(h, false) : h;
+    bannerA11y(el, banner);
   } else {
     el.style.display = '';
     el.innerHTML = `<a href="${attrEsc(safeUrl(banner.linkUrl))}" target="_blank" rel="noopener sponsored">

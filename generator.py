@@ -89,6 +89,8 @@ UI = {
         "meta_folder": "{name}{ctx} — športové linky: {nfold} podkategórií, {nlink} liniek.",
         "footer": "Prehľadný rozcestník športových webov. Databáza liniek je chránená právom na ochranu databáz (smernica 96/9/ES); jej kopírovanie alebo systematické vyťažovanie bez súhlasu prevádzkovateľa je zakázané.",
         "aktualne": "Aktuálne",
+        "skip": "Preskočiť na obsah",   # Zadanie 34 (bod 30): ako v index.html
+        "crumbs": "Kde som",
     },
     "en": {
         "home": "Home",
@@ -99,6 +101,8 @@ UI = {
         "meta_folder": "{name}{ctx} — sports links: {nfold} subcategories, {nlink} links.",
         "footer": "A clear directory of sports websites. The link database is protected by database rights (Directive 96/9/EC); copying or systematic extraction without the operator's consent is prohibited.",
         "aktualne": "Live this week",
+        "skip": "Skip to content",
+        "crumbs": "Breadcrumb",
     },
 }
 T = UI[LANG]
@@ -1083,7 +1087,7 @@ def inject_home(html: str, children: dict, paths: dict, lcnt: dict, total_links:
     """Do prázdneho #main vloží dlaždice hlavných sekcií a do prázdneho #hSports
     ikonky športov. Dovtedy ich kreslil len JavaScript, takže roboti bez neho
     nevideli na domove žiadny odkaz dovnútra webu. Rovnako ako inject_aktualne()."""
-    m = re.search(r'<main id="main"></main>', html)
+    m = re.search(r'<main id="main" tabindex="-1"></main>', html)
     v = re.search(r'(<nav class="h-sports" id="hSports"[^>]*>)</nav>', html)
     if not m or not v:
         print("UPOZORNENIE: v index.html nie je prázdny #main / #hSports — "
@@ -1091,7 +1095,7 @@ def inject_home(html: str, children: dict, paths: dict, lcnt: dict, total_links:
         return html
     main, nav = home_static_html(children, paths, lcnt)
     # #hSports je v HTML PRED #main — najprv zadný úsek, aby pozície sedeli
-    html = html[:m.start()] + '<main id="main">' + main + "</main>" + html[m.end():]
+    html = html[:m.start()] + '<main id="main" tabindex="-1">' + main + "</main>" + html[m.end():]
     html = html[:v.start()] + v.group(1) + nav + "</nav>" + html[v.end():]
     # Zadanie 33 (bod 29 previerky 3): počítadlo v hlavičke a drobček „🏠 Domov"
     # tiež priamo v HTML — inak ich dopíše až skript a všetko pod nimi poskočí
@@ -1107,11 +1111,14 @@ def inject_home(html: str, children: dict, paths: dict, lcnt: dict, total_links:
             print("UPOZORNENIE: v index.html nie je prázdny #linkCount — počítadlo dopíše až appka.")
     home = "Home" if LANG == "en" else "Domov"
     up = "Up" if LANG == "en" else "Vyššie"
-    bc = (f'<div id="breadcrumb"><button class="bc-back " onclick="navigate(null)">↑ {up}</button>'
-          f'<a class="bc-item active" href="{escape(SITE_ABS_ROOT, quote=True)}" '
-          f'onclick="return navClick(event,null)">🏠 {home}</a></div>')
-    if html.count('<div id="breadcrumb"></div>') == 1:
-        html = html.replace('<div id="breadcrumb"></div>', bc, 1)
+    # Zadanie 34 (bod 30): drobčeky sú <nav aria-label> — hľadá sa prázdna značka z index.html
+    # (aria-label môže byť ľubovoľný — na EN webe ho už preložili EN náhrady v main())
+    m_bc = re.search(r'<nav id="breadcrumb" aria-label="[^"]*"></nav>', html)
+    if m_bc and html.count('<nav id="breadcrumb"') == 1:
+        bc = (m_bc.group(0)[:-len('></nav>')] + f'><button class="bc-back " onclick="navigate(null)">↑ {up}</button>'
+              f'<a class="bc-item active" href="{escape(SITE_ABS_ROOT, quote=True)}" '
+              f'onclick="return navClick(event,null)">🏠 {home}</a></nav>')
+        html = html[:m_bc.start()] + bc + html[m_bc.end():]
     else:
         print("UPOZORNENIE: v index.html nie je prázdny #breadcrumb — drobček dopíše až appka.")
     return html
@@ -1162,6 +1169,9 @@ body{background:#0f1923;color:#e8edf2;font-family:'Segoe UI',Arial,sans-serif;li
 a{color:#e8edf2;text-decoration:none}
 .wrap{max-width:900px;margin:0 auto;padding:20px 16px 60px}
 .crumbs{font-size:.9rem;color:#8fa3b3;margin-bottom:18px}
+.skip-link{position:absolute;left:8px;top:-60px;z-index:300;background:__ACCENT_STRONG__;color:#fff;font-weight:700;padding:10px 16px;border-radius:8px}
+.skip-link:focus{top:8px}
+#main:focus{outline:none}
 .crumbs a{color:#8fa3b3}
 .crumbs a:hover{color:#e84242}
 h1{font-size:1.6rem;margin-bottom:6px}
@@ -1288,10 +1298,12 @@ PAGE = """<!DOCTYPE html>
 <style>{css}</style>
 </head>
 <body>
+<a class="skip-link" href="#main">{skip}</a>
 <div class="wrap">
-<nav class="crumbs">{crumbs}</nav>
+<nav class="crumbs" aria-label="{crumbs_label}">{crumbs}</nav>
 <div class="brow"><div id="bslot" class="bslot" hidden></div><div id="bslot2" class="bslot" hidden></div></div>
 <div id="akt" class="akt" hidden></div>
+<main id="main" tabindex="-1">
 <h1><span class="ic">{icon}</span>{name}</h1>
 {desc_html}
 {promo_html}
@@ -1300,6 +1312,7 @@ PAGE = """<!DOCTYPE html>
 {promo_warn}
 <a class="appbtn" id="appbtn" style="display:none" href="{app_href}">{open_app} →</a>
 <noscript><style>#appbtn{{display:inline-block!important}}</style></noscript>
+</main>
 {secnav}
 <footer>{site_title} — {footer}{footer_live}</footer>
 </div>
@@ -1372,8 +1385,29 @@ function __dyn(){
       var el=document.getElementById(elId);
       el.hidden=false;
       el.innerHTML=!b.html?'<a href="'+esc(safeUrl(b.linkUrl))+'" target="_blank" rel="noopener sponsored"><img src="'+esc(safeUrl(b.imageUrl))+'" alt="'+esc(b.alt||"__ADTXT__")+'"></a>'
-        :/<(script|iframe)\\b/i.test(b.html)?'<iframe class="adframe adframe-slot" sandbox="'+AF[2]+'" srcdoc="'+esc(AF[0]+b.html+AF[1])+'" title="__ADTXT__" scrolling="no"></iframe>'
+        :/<(script|iframe)\\b/i.test(b.html)?'<iframe class="adframe adframe-slot" sandbox="'+AF[2]+'" srcdoc="'+esc(AF[0]+b.html+AF[1])+'" title="__ADTXT__" tabindex="-1" scrolling="no"></iframe>'
         :b.html;
+      bannerA11y(el,b);
+    }
+    // Zadanie 34 (bod 30): odkaz bez čitateľného textu (<a><svg>) dostane aria-label —
+    // ROVNAKO ako bannerA11y v index.html (alt → nápisy v SVG → názov bannera)
+    function bannerA11y(el,b){
+      try{
+        var as=el.querySelectorAll("a[href]");
+        for(var i=0;i<as.length;i++){
+          var a=as[i];if((a.getAttribute("aria-label")||"").trim())continue;
+          var c=a.cloneNode(true),sv=c.querySelectorAll("svg"),j,t;
+          for(j=0;j<sv.length;j++)sv[j].parentNode.removeChild(sv[j]);
+          t=c.textContent.trim();
+          var im=a.querySelectorAll("img[alt]");for(j=0;j<im.length;j++)t+=im[j].getAttribute("alt").trim();
+          var ti=a.querySelectorAll("svg title");for(j=0;j<ti.length;j++)t+=ti[j].textContent.trim();
+          if(t)continue;
+          var tx=a.querySelectorAll("svg text"),p=[];
+          for(j=0;j<tx.length;j++){var x=tx[j].textContent.replace(/[▶►›]/g,"").replace(/\\s+/g," ").trim();if(/[0-9A-Za-zÀ-ž]/.test(x))p.push(x)}
+          var n=String(b.alt||"").trim()||p.join(", ")||String(b.name||"").trim()||"__ADTXT__";
+          a.setAttribute("aria-label",n.slice(0,160));
+        }
+      }catch(e){}
     }
     showSlot("bslot",1);
     showSlot("bslot2",2);
@@ -1382,7 +1416,7 @@ function __dyn(){
     var pbe=document.getElementById("pban"),pb=d.promoBanner;
     if(pbe&&pb&&typeof pb==="object"&&pb.active!==false&&String(pb.html||"").trim()
        &&!(pb.startsAt&&today<pb.startsAt)&&!(pb.endsAt&&today>pb.endsAt)){
-      pbe.innerHTML=/<(script|iframe)\\b/i.test(pb.html)?'<iframe class="adframe adframe-auto" sandbox="'+AF[2]+'" srcdoc="'+esc(AF[3]+pb.html+AF[4])+'" title="__ADTXT__" scrolling="no"></iframe>'
+      pbe.innerHTML=/<(script|iframe)\\b/i.test(pb.html)?'<iframe class="adframe adframe-auto" sandbox="'+AF[2]+'" srcdoc="'+esc(AF[3]+pb.html+AF[4])+'" title="__ADTXT__" tabindex="-1" scrolling="no"></iframe>'
         :pb.html;
       pbe.hidden=false;
     }
@@ -1891,6 +1925,8 @@ def render_page(node, path, children, by_id, paths, site_title, alt_url=None, pa
         jsonld=jsonld,
         css=CSS,
         crumbs=crumbs_html,
+        skip=T["skip"],
+        crumbs_label=T["crumbs"],
         icon=icon,
         name=name,
         desc_html=f'<p class="desc">{desc}</p>' if desc and node["id"] != LIVE_ID else "",
@@ -2184,6 +2220,13 @@ def main():
                     ('id="pwClose" aria-label="Zavrieť" title="Zavrieť"',
                      'id="pwClose" aria-label="Close" title="Close"'),
                     ('aria-label="Zobraziť ďalšie linky"', 'aria-label="Show more links"'),
+                    # Zadanie 34 (bod 30, bod 6): celé atribúty/značky, nie samotné slová
+                    ('<a class="skip-link" href="#main">Preskočiť na obsah</a>',
+                     '<a class="skip-link" href="#main">Skip to content</a>'),
+                    ('<nav id="breadcrumb" aria-label="Kde som">', '<nav id="breadcrumb" aria-label="Breadcrumb">'),
+                    ('<section id="aktualneWrap" aria-label="Aktuálne"', '<section id="aktualneWrap" aria-label="Live This Week"'),
+                    ('id="hLupa" aria-label="Hľadať"', 'id="hLupa" aria-label="Search"'),
+                    ('<aside class="banner-wrap" aria-label="Reklama">', '<aside class="banner-wrap" aria-label="Advertisement">'),
                     ('<span id="aktHeadTxt">Aktuálne</span>', '<span id="aktHeadTxt">Live This Week</span>'),
                     ('<a class="f-live" id="fLive" hidden>Aktuálne – live výsledky</a>',
                      '<a class="f-live" id="fLive" hidden>Live This Week</a>'),

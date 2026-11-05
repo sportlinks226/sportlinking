@@ -39,6 +39,12 @@ a test by inak skúšal starý web. Všetky adresy, ktoré test prečíta z webu
 odkazy v stránkach), sa prepíšu na zadanú --url (schéma + doména), takže skúška na inej
 adrese (napr. http://localhost:8000/) testuje tú adresu, nie ostrý web.
 
+Kontroly n) – p) (5.11.2026, Zadanie 34 — previerka 3, body 6, 28, 30): n) odkaz „Preskočiť na
+obsah“ je prvý prvok a prvý Tab (→ #main), drobčeky sú <nav>, lišta Aktuálne <section>, reklamné
+okienka Tab preskočí, odkazy v banneroch majú čitateľný názov; o) ikonky FB/IG na karte klubu
+majú klikaciu plochu aspoň 24×24 px na počítači aj mobile a názov klubu ostáva hlavnou linkou;
+p) na mobile sa hlavička po posune nadol zbalí (lupa ≥ 44×44 px, obsah neposkočí) a hore rozbalí.
+
 Spustenie (lokálne):  python testy/test_webu.py --url https://sportlinky.sk/
 Voliteľne:  --od 2026-11-02T02:30:00Z  (počkaj, kým živý web nemá novšiu verziu)
             --vystup test-vystup        (priečinok na snímky a zoznam chýb)
@@ -316,7 +322,7 @@ class Test:
         if not self.nazov_webu or self.nazov_webu not in titulok:
             raise Zlyhanie(f"titulok „{titulok}“ neobsahuje názov webu „{self.nazov_webu}“")
         # dlaždice sekcií v surovom HTML (pre roboty): odkazy na koreňové sekcie /futbal/…
-        main = re.search(r'<main id="main">(.*?)</main>', text, re.S)
+        main = re.search(r'<main id="main"[^>]*>(.*?)</main>', text, re.S)
         root_path = urllib.parse.urlsplit(self.base).path
         sekcie = set(re.findall(r'<a[^>]+href="(%s[a-z0-9-]+/)"' % re.escape(root_path),
                                 main.group(1) if main else ""))
@@ -1153,6 +1159,190 @@ class Test:
                       f"{'' if roluje else ', stĺpec krátky'}), 2 px pohyb ani posun stránky nič neotvorili"
                       f"{', 10 px pohyb otvoril „' + pod + '“' if pod else ''}")
 
+    # ------------------------------------------------ n) – p) Zadanie 34 (previerka 3, body 6, 28, 30)
+    def pristupnost(self, pokus):
+        """Odkaz „Preskočiť na obsah“ je prvý prvok a prvý Tab; vedie na #main (tabindex -1);
+        drobčeky sú <nav aria-label>, lišta Aktuálne <section aria-label>; reklamné okienka
+        Tab preskočí; každý odkaz v banneri má čitateľný názov (text, alt alebo aria-label)."""
+        ctx = self.kontext()
+        try:
+            page = self.stranka(ctx)
+            page.goto(self.base, wait_until="load")
+            self.cakaj_na_appku(page)
+            page.wait_for_timeout(1500)
+            prvy = page.evaluate("""() => { const a = document.body.firstElementChild;
+                return a ? [a.tagName, a.className, a.getAttribute('href'), a.textContent.trim()] : null; }""")
+            if not prvy or prvy[1] != "skip-link" or prvy[2] != "#main" or not prvy[3]:
+                raise Zlyhanie(f"prvý prvok v <body> nie je odkaz „Preskočiť na obsah“ (#main): {prvy}")
+            page.keyboard.press("Tab")
+            fokus = page.evaluate("""() => { const a = document.activeElement, r = a.getBoundingClientRect();
+                return [a.className, Math.round(r.top), Math.round(r.height)]; }""")
+            if fokus[0] != "skip-link" or fokus[1] < 0 or fokus[2] < 10:
+                raise Zlyhanie(f"prvý Tab nie je na viditeľnom odkaze „Preskočiť na obsah“: {fokus}")
+            page.keyboard.press("Enter")
+            page.wait_for_timeout(300)
+            if page.evaluate("document.activeElement.id") != "main":
+                raise Zlyhanie("Enter na „Preskočiť na obsah“ nepresunul kurzor na #main")
+            stav = page.evaluate("""() => {
+                const m = document.getElementById('main'), b = document.getElementById('breadcrumb'),
+                      w = document.getElementById('aktualneWrap');
+                const bez = [...document.querySelectorAll('.banner-slot a[href]')].filter(a =>
+                    !(a.getAttribute('aria-label') || '').trim() && !a.textContent.trim()
+                    && ![...a.querySelectorAll('img[alt]')].some(i => i.alt.trim()));
+                return {mainTab: m && m.getAttribute('tabindex'),
+                        bc: b && b.tagName, bcLabel: b && b.getAttribute('aria-label'),
+                        akt: w && w.tagName, aktLabel: w && w.getAttribute('aria-label'),
+                        iframy: document.querySelectorAll('iframe.adframe').length,
+                        iframyTab: [...document.querySelectorAll('iframe.adframe')].filter(f => f.getAttribute('tabindex') !== '-1').length,
+                        bannerBezNazvu: bez.length}; }""")
+            chyby = []
+            if stav["mainTab"] != "-1":
+                chyby.append("#main nemá tabindex=-1")
+            if stav["bc"] != "NAV" or not stav["bcLabel"]:
+                chyby.append(f"#breadcrumb nie je <nav aria-label> ({stav['bc']})")
+            if stav["akt"] != "SECTION" or not stav["aktLabel"]:
+                chyby.append(f"#aktualneWrap nie je <section aria-label> ({stav['akt']})")
+            if stav["iframyTab"]:
+                chyby.append(f"{stav['iframyTab']} reklamných okienok nemá tabindex=-1")
+            if stav["bannerBezNazvu"]:
+                chyby.append(f"{stav['bannerBezNazvu']} odkazov v banneri bez čitateľného názvu")
+            if chyby:
+                raise Zlyhanie("; ".join(chyby))
+            self.over_chyby(page, "prístupnosť")
+        finally:
+            ctx.close()
+        return "ok", (f"skip-link „{prvy[3]}“ = prvý Tab → #main; drobčeky <nav „{stav['bcLabel']}“>, "
+                      f"Aktuálne <section „{stav['aktLabel']}“>; okienok bez Tabu: {stav['iframy']}")
+
+    def vyber_klub_so_socs(self):
+        """Názvy liniek (klubov), ktoré majú aj Facebook, aj Instagram (polia fb, ig) a jedinečný
+        názov — v appke ich nájde hľadanie a karta výsledku má ikonky FB/IG."""
+        uzly = self.data.get("nodes", [])
+        def meno(n):
+            return (n.get("name_en") or n.get("name") or "") if self.lang == "en" else (n.get("name") or "")
+        pocet = {}
+        for n in uzly:
+            pocet[meno(n)] = pocet.get(meno(n), 0) + 1
+        nevid = "enOnly" if self.lang == "sk" else None
+        kand = [meno(n) for n in uzly if n.get("type") == "link" and n.get("fb") and n.get("ig")
+                and 6 <= len(meno(n)) <= 30 and pocet[meno(n)] == 1 and re.fullmatch(r"[\w .'-]+", meno(n))
+                and not (nevid and n.get(nevid)) and not (self.lang == "en" and n.get("en") is False)]
+        random.shuffle(kand)
+        return kand[:3]
+
+    # JavaScript: klikacia plocha ikoniek (elementFromPoint po 1 px okolo ikonky) a kontrola,
+    # že každý viditeľný bod názvu klubu otvorí hlavnú linku (nie FB/IG)
+    SOCS_JS = """() => {
+        const out = [];
+        for (const card of [...document.querySelectorAll('#main .card-link.has-soc')].slice(0, 4)) {
+            card.scrollIntoView({block: 'center'});
+            const main = card.querySelector(':scope > a');
+            for (const a of card.querySelectorAll('.socs a.si')) {
+                const r = a.getBoundingClientRect();
+                let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
+                for (let y = Math.floor(r.top - 20); y <= r.bottom + 20; y++)
+                    for (let x = Math.floor(r.left - 20); x <= r.right + 20; x++) {
+                        const e = document.elementFromPoint(x + 0.5, y + 0.5);
+                        if (e && e.closest('a.si') === a) { x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x); y1 = Math.max(y1, y); }
+                    }
+                out.push([x1 - x0 + 1, y1 - y0 + 1]);
+            }
+            let textOk = true;
+            const n = main && main.querySelector('.cl-name');
+            if (n) { const b = n.getBoundingClientRect();
+                for (let y = b.top + 2; y < b.bottom - 2; y += 3) for (let x = b.left + 2; x < b.right - 2; x += 3) {
+                    const e = document.elementFromPoint(x, y); if (!e || e.closest('.card-link > a') !== main) textOk = false; } }
+            if (!textOk) out.push('text');
+        }
+        return out; }"""
+
+    def socs_plocha(self, pokus):
+        if not self.data:
+            raise Zlyhanie("bez data.json sa nedá vybrať klub s ikonkami FB/IG")
+        mena = self.vyber_klub_so_socs()
+        if not mena:
+            return "warn", "v dátach nie je klub s Facebookom aj Instagramom — kontrola preskočená"
+        popis = []
+        for mobil in (False, True):
+            ctx = self.kontext(mobil=mobil)
+            try:
+                page = self.stranka(ctx)
+                page.goto(self.base, wait_until="load")
+                self.cakaj_na_appku(page)
+                plochy = None
+                for meno in mena:
+                    page.fill("#srch", meno)
+                    try:
+                        page.wait_for_selector("#main .card-link.has-soc .socs a.si", state="visible", timeout=8000)
+                    except Exception:
+                        continue
+                    page.wait_for_timeout(500)
+                    plochy = page.evaluate(self.SOCS_JS)
+                    break
+                kde = "mobil 390 px" if mobil else "počítač 1366 px"
+                if not plochy:
+                    self.snimka(page, "o-socs-chyba")
+                    raise Zlyhanie(f"{kde}: hľadanie {mena} neukázalo kartu s ikonkami FB/IG")
+                if "text" in plochy:
+                    raise Zlyhanie(f"{kde}: ťuknutie na názov klubu by trafilo ikonku FB/IG, nie web klubu")
+                male = [p for p in plochy if p[0] < 24 or p[1] < 24]
+                if male:
+                    raise Zlyhanie(f"{kde}: klikacia plocha ikonky FB/IG pod 24×24 px: {male}")
+                self.over_chyby(page, f"FB/IG ({kde})")
+                popis.append(f"{kde}: najmenšia {min(p[0] for p in plochy)}×{min(p[1] for p in plochy)} px "
+                             f"({len(plochy)} ikoniek, „{meno}“)")
+            finally:
+                ctx.close()
+        return "ok", "; ".join(popis)
+
+    def hlavicka_mobil(self, pokus):
+        """Mobil (390 px): po posune nadol o viac než 150 px sa hlavička zbalí na jeden riadok
+        (logo + lupa ≥ 44×44), obsah pod ňou sa nepohne; pri návrate hore (< 60 px) sa rozbalí."""
+        adresy = [self.base] + list(self.ligy)
+        ctx = self.kontext(mobil=True)
+        try:
+            page = self.stranka(ctx)
+            for url in adresy:
+                page.goto(url, wait_until="load")
+                self.cakaj_na_appku(page)
+                page.wait_for_timeout(1200)
+                if page.evaluate("document.documentElement.scrollHeight - innerHeight") > 450:
+                    break
+            else:
+                return "warn", "žiadna z testovaných stránok nie je na mobile dosť dlhá — kontrola preskočená"
+            STAV = """() => { const h = document.querySelector('header'), b = document.getElementById('breadcrumb'),
+                l = document.getElementById('hLupa').getBoundingClientRect();
+                return {min: document.body.classList.contains('hdr-min'), h: h.offsetHeight,
+                        bc: Math.round(b.getBoundingClientRect().top + scrollY), lupa: [Math.round(l.width), Math.round(l.height)]}; }"""
+            s0 = page.evaluate(STAV)
+            if s0["min"]:
+                raise Zlyhanie("hlavička je zbalená už na vrchu stránky")
+            for y in range(0, 401, 50):          # posun nadol po krokoch ako prstom
+                page.evaluate("y => scrollTo(0, y)", y)
+                page.wait_for_timeout(60)
+            s1 = page.evaluate(STAV)
+            self.snimka(page, "p-mobil-hlavicka-zbalena")
+            if not s1["min"] or s1["h"] >= s0["h"]:
+                raise Zlyhanie(f"po posune o 400 px sa hlavička nezbalila (výška {s0['h']} → {s1['h']} px)")
+            if s1["lupa"][0] < 44 or s1["lupa"][1] < 44:
+                raise Zlyhanie(f"tlačidlo lupy je menšie než 44×44 px: {s1['lupa']}")
+            if abs(s1["bc"] - s0["bc"]) > 1:
+                raise Zlyhanie(f"obsah pod hlavičkou poskočil pri zbalení ({s0['bc']} → {s1['bc']} px)")
+            page.evaluate("scrollTo(0, 100)")    # medzi 60 a 150 px sa stav nemení
+            page.wait_for_timeout(150)
+            if not page.evaluate(STAV)["min"]:
+                raise Zlyhanie("hlavička sa rozbalila už na 100 px (má až pod 60 px)")
+            page.evaluate("scrollTo(0, 0)")
+            page.wait_for_timeout(150)
+            s2 = page.evaluate(STAV)
+            if s2["min"] or s2["h"] != s0["h"]:
+                raise Zlyhanie(f"pri návrate hore sa hlavička nerozbalila (výška {s2['h']} px)")
+            self.over_chyby(page, "hlavička na mobile")
+            cesta = urllib.parse.urlsplit(page.url).path
+        finally:
+            ctx.close()
+        return "ok", f"{cesta}: plná {s0['h']} px → zbalená {s1['h']} px (lupa {s1['lupa'][0]}×{s1['lupa'][1]}) → hore {s2['h']} px, obsah bez skoku"
+
     # ------------------------------------------------ hlavný beh
     def spusti(self, od):
         self.cakaj_na_nasadenie(od)
@@ -1190,6 +1380,9 @@ class Test:
                 self.kontrola("k) Aktuálne (aktualne.json)", self.aktualne)
                 self.kontrola("l) Stránka Aktuálne (dlaždice, poradie, pätička)", self.stranka_aktualne)
                 self.kontrola("m) Stĺpce (počítač, myš)", self.stlpce)
+                self.kontrola("n) Prístupnosť: klávesnica a oblasti stránky", self.pristupnost)
+                self.kontrola("o) Ikonky FB/IG: klikacia plocha ≥ 24×24 px", self.socs_plocha)
+                self.kontrola("p) Mobil: hlavička sa pri posune zbalí a hore rozbalí", self.hlavicka_mobil)
             finally:
                 self.browser.close()
 
