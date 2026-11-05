@@ -75,16 +75,11 @@ from datetime import datetime, timezone
 from playwright.sync_api import sync_playwright
 
 # ---------------------------------------------------------------- nastavenia
-UA_PC = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-         "(KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36")
+# UA_PC, X_TEST, BLOKOVANE (štatistiky a reklamy sa v teste BLOKUJÚ — žiadne falošné
+# návštevy ani zobrazenia reklám), Zlyhanie, titulok_z_html, meta_z_html: testy/_spolocne.py
+from _spolocne import BLOKOVANE, UA_PC, X_TEST, Zlyhanie, meta_z_html, titulok_z_html   # spoločné (Zadanie 36)
 UA_MOBIL = ("Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 "
             "(KHTML, like Gecko) Chrome/130.0.0.0 Mobile Safari/537.36")
-X_TEST = {"X-Test": "sportlinky-test"}   # podľa tejto hlavičky sa dá test odlíšiť od návštevníkov
-
-# Štatistiky a reklamy sa v teste BLOKUJÚ — test nesmie robiť falošné návštevy
-# ani falošné zobrazenia reklám.
-BLOKOVANE = ("goatcounter.com", "zgo.at", "googletagmanager.com",
-             "google-analytics.com", "ban.tipsport.sk")
 
 # bod 16: uzavreté okienko pre reklamu — tieto práva NESMIE mať (videl by stránku /
 # presmeroval hlavné okno); a tieto MUSÍ mať (skript beží, klik otvorí novú kartu)
@@ -117,10 +112,6 @@ DEPLOY_KROK_S = 20          # … skúšať každých 20 s
 AKT_CAKANIE_S = 15          # k) max. čakanie, kým appka stiahne (podstrčený) aktualne.json
 
 
-class Zlyhanie(Exception):
-    """Kontrola neprešla (text = vysvetlenie pre zhrnutie)."""
-
-
 # ---------------------------------------------------------------- pomocníci
 def stiahni(url, cache_bust=True, timeout=30):
     """Stiahne adresu bez prehliadača. Vráti (HTTP kód, hlavičky, text)."""
@@ -133,16 +124,6 @@ def stiahni(url, cache_bust=True, timeout=30):
             return r.status, r.headers, r.read().decode("utf-8", "replace")
     except urllib.error.HTTPError as e:
         return e.code, e.headers, e.read().decode("utf-8", "replace")
-
-
-def titulok_z_html(text):
-    m = re.search(r"<title[^>]*>(.*?)</title>", text, re.S | re.I)
-    return html.unescape(m.group(1)).strip() if m else ""
-
-
-def meta_z_html(text, prop):
-    m = re.search(r'<meta[^>]+property="%s"[^>]+content="([^"]*)"' % re.escape(prop), text)
-    return html.unescape(m.group(1)).strip() if m else ""
 
 
 class Test:

@@ -28,7 +28,7 @@ ANGLIČTINA (sportlinking.com):
 DYNAMICKÉ ČASTI (banner + Aktuálne) — každá vygenerovaná stránka obsahuje
 malý skript, ktorý ich načíta z data.json pri otvorení stránky. Denná
 aktualizácia Aktuálnych a bannerov teda NEVYŽADUJE prebudovanie webu.
-Logika zrkadlí sport-strom.html vrátane cielenia bannerov na sekcie,
+Logika zrkadlí index.html (appka) vrátane cielenia bannerov na sekcie,
 kampaní od–do a váh rotácie.
 
 SEO (od 2.10.2026):
@@ -51,7 +51,7 @@ import time
 import shutil
 import sys
 import unicodedata
-from datetime import date, datetime, timedelta
+from datetime import date, datetime
 from zoneinfo import ZoneInfo
 from html import escape
 from urllib.parse import unquote, urlsplit
@@ -151,8 +151,7 @@ NO_EN_ALPHA = {"f_bas_sut_eu", "f_bas_sut_oc", "f_bas_sut_na", "f_bas_sut_ja", "
                "f_had_sut_ja", "f_had_sut_na"}
 
 # Stránka Aktuálne / "Live This Week" (priečinok f_ltw) — nemá vlastné linky:
-# napĺňa sa naživo z Aktuálnych (aktualne.json, v prechode pole "aktualne"
-# z data.json — tie isté linky, aké sú v lište na domovskej stránke). Vypnuté,
+# napĺňa sa naživo z Aktuálnych (aktualne.json — tie isté linky, aké sú v lište na domovskej stránke). Vypnuté,
 # naplánované a skončené udalosti sa pri builde vynechajú.
 # Od Zadania 17 (3.11.2026) môže existovať na OBOCH weboch (SK /aktualne/,
 # EN /live-this-week/): na SK webe, keď v dátach nemá enOnly:true. Linky sú
@@ -190,9 +189,10 @@ GOAT = os.environ.get("GOAT_CODE", "sportlinky" if LANG == "sk" else "sportlinki
 # ------------------------------------------------------------
 
 def slugify(name: str) -> str:
-    """Musí sa správať ROVNAKO ako slugify() v sport-strom.html (hash routing)."""
+    """Musí sa správať ROVNAKO ako slugify() v index.html. Diakritika = všetky
+    kombinujúce znaky (kategória M: Mn, Mc, Me) — v JS /\\p{M}/gu (Zadanie 36, bod 45)."""
     s = unicodedata.normalize("NFD", name or "")
-    s = "".join(c for c in s if not unicodedata.combining(c))
+    s = "".join(c for c in s if not unicodedata.category(c).startswith("M"))
     s = s.lower()
     s = re.sub(r"[^a-z0-9]+", "-", s)
     return s.strip("-")
@@ -257,10 +257,13 @@ def visible(node: dict, lang: str = None) -> bool:
 # PRAVIDLÁ ZOBRAZENIA (rovnaké v appke = aktVisible() v index.html a v DYN_JS):
 #   verejnosť vidí položku, len ak NIE je disabled, startsAt je prázdne alebo
 #   <= dnes a endsAt je prázdne alebo >= dnes; poradie ručné podľa "order".
-# PRECHOD: kým aktualne.json neexistuje, berie sa staré pole "aktualne" z data.json.
+# Keď aktualne.json nie je alebo je pokazený, Aktuálne sú prázdne (pole "aktualne"
+# v data.json od 3.11.2026 nie je — vetva pre neho vypustená v Zadaní 36).
 # EN web (sportlinking): build si pred generátorom stiahne aktualne.json zo SK
-# webu (AKT_MASTER_URL); keď sa to nepodarí, súbor nevznikne a použije sa pole
-# z data.json (alebo nič). Cestu k súboru možno zmeniť premennou AKTUALNE_FILE.
+# webu (AKT_MASTER_URL); keď sa to nepodarí, súbor nevznikne a Aktuálne sú
+# prázdne. Cestu k súboru možno zmeniť premennou AKTUALNE_FILE.
+# Generátor sám vkladá položky ako pole "aktualne" do odľahčeného data.json
+# a BOOT (lite_data, build_boot) — záloha pre appku, keď aktualne.json nestiahne.
 AKTUALNE_FILE = os.environ.get("AKTUALNE_FILE", "aktualne.json")
 # Hlavná kópia na webe (EN appka si ju sťahuje priamo odtiaľto). MUSÍ sedieť
 # s AKT_MASTER v index.html. Bez www — web beží na sportlinky.sk bez www.
@@ -306,17 +309,17 @@ def akt_norm(items) -> list:
 
 def load_aktualne(data: dict):
     """Vráti (položky, zdroj). Zdroj: aktualne.json, ak existuje a je platný;
-    inak staré pole "aktualne" z data.json (prechodné obdobie)."""
+    inak prázdny zoznam (zdroj "nič")."""
     if os.path.exists(AKTUALNE_FILE):
         try:
             with open(AKTUALNE_FILE, encoding="utf-8") as f:
                 d = json.load(f)
             if isinstance(d, dict) and isinstance(d.get("items"), list):
                 return akt_norm(d["items"]), AKTUALNE_FILE
-            print(f"UPOZORNENIE: {AKTUALNE_FILE} nemá pole \"items\" — beriem Aktuálne z data.json.")
+            print(f"UPOZORNENIE: {AKTUALNE_FILE} nemá pole \"items\" — Aktuálne budú prázdne.")
         except (OSError, ValueError) as e:
-            print(f"UPOZORNENIE: {AKTUALNE_FILE} sa nedá prečítať ({e}) — beriem Aktuálne z data.json.")
-    return akt_norm(data.get("aktualne")), "data.json"
+            print(f"UPOZORNENIE: {AKTUALNE_FILE} sa nedá prečítať ({e}) — Aktuálne budú prázdne.")
+    return [], "nič"
 
 
 def akt_visible(a: dict, today: str = None) -> bool:
@@ -407,7 +410,7 @@ def live_week_links(aktualne: list) -> list:
 # ------------------------------------------------------------
 # VŠETKO ROVNAKO ako liveSportList(), liveTitle(), liveMetaDesc() a livePageHtml()
 # v index.html, aby titulok a obsah po prevzatí appkou ostali zhodné so statickou stránkou.
-LIVE_TITLE_MAX = 65
+LIVE_TITLE_MAX = 65    # limit titulku stránky Aktuálne (iný ako TITLE_MAX nižšie = titulky priečinkov)
 LIVE_DESC_MAX = 155
 LIVE_DESC_BASE = 100   # na toľko sa skráti dlhá prvá veta, aby sa do popisu zmestili športy
 LIVE_SITE = "Sportlinking" if LANG == "en" else "sportlinky.sk"
@@ -630,8 +633,9 @@ def folder_paths(children: dict, lang: str = None):
     Prednosť má TRVALÝ slug uložený v dátach (pole "slug" — priraďuje ho
     aplikácia pri vytvorení priečinka / migrácii ensureSlugs). Fallback na
     slugify(názov) je len pre dáta, ktoré migráciou ešte neprešli.
-    Algoritmus (poradie podľa order + dedupe) je IDENTICKÝ s ensureSlugs()
-    v sport-strom.html — obe strany musia vyrobiť rovnaké adresy.
+    Základný slug je ROVNAKÝ ako nodeSlugBase() v index.html (tu slug_base()),
+    riešenie duplicít ako nodeSlug() v index.html (appka navyše dostane hotové
+    výsledky v mape _slugFix) — obe strany musia vyrobiť rovnaké adresy.
     """
     lang = lang or LANG
     paths = {}  # folder id -> [slug, slug, ...]
@@ -655,15 +659,41 @@ def folder_paths(children: dict, lang: str = None):
     return paths
 
 
+# POISTKA (Zadanie 36, postreh zo Zadania 35): slug z dát sa použije, len ak je to
+# neprázdny text bez nebezpečných znakov (/ \ ? # & % < > " ' medzera, riadiace znaky,
+# „..", samotná „.") — inak náhradný slug z názvu (ako keď slug chýba) + VAROVANIE.
+# Písmená s diakritikou sú DOVOLENÉ (jemenská-liga… — adresy sa nesmú zmeniť).
+# ROVNAKO ako slugOk() v index.html.
+SLUG_ZLE_ZNAKY = re.compile(r"""[/\\?#&%<>"' \x00-\x1f\x7f-\x9f]""")
+_SLUG_VAROVANE = set()
+
+
+def slug_ok(s) -> bool:
+    return (isinstance(s, str) and s != "" and s != "." and ".." not in s
+            and not SLUG_ZLE_ZNAKY.search(s))
+
+
+def slug_z_dat(n: dict, kluc: str) -> str:
+    """Pole slug/slug_en z dát, ak je bezpečné; inak "" (= použije sa náhradný slug)."""
+    s = n.get(kluc)
+    if s is None or slug_ok(s):
+        return s or ""
+    if (n.get("id"), kluc) not in _SLUG_VAROVANE:
+        _SLUG_VAROVANE.add((n.get("id"), kluc))
+        print(f"VAROVANIE: priečinok {n.get('id')!r} má v poli {kluc} nebezpečný slug "
+              f"{str(s)[:80]!r} — použijem náhradný slug z názvu (oprav v dátach).")
+    return ""
+
+
 def slug_base(n: dict, lang: str = None) -> str:
     """Slug priečinka PRED riešením duplicít medzi súrodencami.
     ROVNAKÉ ako nodeSlugBase() v index.html."""
     lang = lang or LANG
     if lang == "en":
-        return (n.get("slug_en")
+        return (slug_z_dat(n, "slug_en")
                 or slug_cut(slugify(node_name(n, lang)))
                 or "cat-" + slugify(n["id"]))
-    return (n.get("slug")
+    return (slug_z_dat(n, "slug")
             or slug_cut(slugify(n.get("name", "")))
             or "kat-" + slugify(n["id"]))
 
@@ -739,7 +769,7 @@ def build_boot(data: dict, children: dict, lcnt: dict) -> dict:
     if LANG != "en":
         # SK appka anglické polia nepoužíva (bod 3 previerky)
         boot = strip_en(boot)
-    # Aktuálne z aktualne.json (alebo z data.json v prechodnom období) — viď
+    # Aktuálne z aktualne.json — viď
     # load_aktualne(). Appka si aj tak hneď stiahne čerstvý aktualne.json.
     boot["aktualne"] = akt_for_web(AKT_ITEMS)
     boot.update(gen_meta(n["id"] for n in nodes))   # bod 21 + 23 (viď SLUG_FIX, TITLE_NOSPORT)
@@ -847,7 +877,7 @@ def strip_en(data: dict) -> dict:
     d = {k: v for k, v in data.items() if k not in EN_ROOT_KEYS}
     d["nodes"] = [{k: v for k, v in n.items() if k not in EN_NODE_KEYS}
                   for n in data.get("nodes", [])]
-    for key in ("aktualne", "banners", "promos"):
+    for key in ("banners", "promos"):
         if isinstance(data.get(key), list):
             d[key] = [({k: v for k, v in a.items() if k != "name_en"}
                        if isinstance(a, dict) else a) for a in data[key]]
@@ -869,7 +899,7 @@ def lite_data(data: dict) -> dict:
         d = strip_en(data)
     for k in ("passwordHash", "password"):
         d.pop(k, None)
-    # Aktuálne: tie isté ako v BOOT (zdroj aktualne.json alebo data.json) —
+    # Aktuálne: tie isté ako v BOOT (zdroj aktualne.json) —
     # záloha pre appku, keby sa aktualne.json nepodarilo stiahnuť
     d["aktualne"] = akt_for_web(AKT_ITEMS)
     d["_lite"] = True
@@ -1015,6 +1045,28 @@ def skl(n: int, jedna: str, dvestyri: str, vela: str) -> str:
     return jedna if n == 1 else (dvestyri if 2 <= n <= 4 else vela)
 
 
+# Najviac toľko priečinkov = veľké dlaždice, viac = zoznam. ROVNAKÝ prah je
+# v index.html (VELKE_DLAZDICE_MAX v renderLevel) — meň oba.
+VELKE_DLAZDICE_MAX = 10
+
+
+# Admin lišta karty ▲▼✏️🗑 (Zadanie 36, bod 44) — v statickom HTML je skrytá
+# (CSS ju ukáže len v admin režime appky). ZRKADLO adminBarHtml() v index.html —
+# výstup musí ostať znak po znaku rovnaký, ako ho vyrába appka.
+def admin_bar_html(i: str, titulky: bool) -> str:
+    ind = "            "
+    riadky = []
+    for trieda, titulok, volanie, ikona in (
+            ("ibtn", "Hore", f"moveNode('{i}',-1)", "▲"),
+            ("ibtn", "Dole", f"moveNode('{i}',1)", "▼"),
+            ("ibtn", "Upraviť", f"openEdit('{i}')", "✏️"),
+            ("ibtn d", "Zmazať", f"delNode('{i}')", "🗑")):
+        t = f' title="{titulok}"' if titulky else ""
+        riadky.append(f'{ind}  <button class="{trieda}"{t} onclick="event.stopPropagation();'
+                      f'event.preventDefault();{volanie}">{ikona}</button>\n')
+    return '<div class="card-admin-bar">\n' + "".join(riadky) + f"{ind}</div>"
+
+
 def home_static_html(children: dict, paths: dict, lcnt: dict):
     """Vráti (HTML do #main, HTML do #hSports) PRESNE v značkovaní renderLevel()
     (domov, bežný režim — vrátane skrytej admin lišty, aby bol obsah zhodný
@@ -1034,7 +1086,7 @@ def home_static_html(children: dict, paths: dict, lcnt: dict):
     if folders:
         if has_links:
             main += '<div class="section-label">' + ("Categories" if LANG == "en" else "Kategórie") + "</div>"
-        big = len(folders) <= 10
+        big = len(folders) <= VELKE_DLAZDICE_MAX
         main += '<div class="grid-root anim">' if big else '<div class="grid-deep anim">'
         for n in folders:
             i = n["id"]
@@ -1047,12 +1099,7 @@ def home_static_html(children: dict, paths: dict, lcnt: dict):
             if big:
                 main += f"""
           <a class="card-root" href="{href(i)}" onclick="return navClick(event,'{i}')">
-            <div class="card-admin-bar">
-              <button class="ibtn" title="Hore" onclick="event.stopPropagation();event.preventDefault();moveNode('{i}',-1)">▲</button>
-              <button class="ibtn" title="Dole" onclick="event.stopPropagation();event.preventDefault();moveNode('{i}',1)">▼</button>
-              <button class="ibtn" title="Upraviť" onclick="event.stopPropagation();event.preventDefault();openEdit('{i}')">✏️</button>
-              <button class="ibtn d" title="Zmazať" onclick="event.stopPropagation();event.preventDefault();delNode('{i}')">🗑</button>
-            </div>
+            {admin_bar_html(i, True)}
             <div class="c-icon">{icon_html(n.get("icon", ""), "40x30")}</div>
             <div class="c-name">{name}</div>
             <div class="c-count">{c}</div>
@@ -1061,12 +1108,7 @@ def home_static_html(children: dict, paths: dict, lcnt: dict):
             else:
                 main += f"""
           <a class="card-folder" href="{href(i)}" onclick="return navClick(event,'{i}')">
-            <div class="card-admin-bar">
-              <button class="ibtn" onclick="event.stopPropagation();event.preventDefault();moveNode('{i}',-1)">▲</button>
-              <button class="ibtn" onclick="event.stopPropagation();event.preventDefault();moveNode('{i}',1)">▼</button>
-              <button class="ibtn" onclick="event.stopPropagation();event.preventDefault();openEdit('{i}')">✏️</button>
-              <button class="ibtn d" onclick="event.stopPropagation();event.preventDefault();delNode('{i}')">🗑</button>
-            </div>
+            {admin_bar_html(i, False)}
             <div class="cf-icon">{icon_html(n.get("icon", ""), "24x18")}</div>
             <div class="cf-info">
               <div class="cf-name">{name}</div>
@@ -1687,7 +1729,7 @@ def home_title(n: int) -> str:
 # stále dlhší ako TITLE_MAX, skúsi sa „{názov} — {web}" (bez rodiča aj športu) —
 # opäť len ak je na celom webe jedinečný. Zoznam takých priečinkov (TITLE_NAMEONLY)
 # dostane appka ako kľúč "_titleNameOnly" (rovnako ako _titleNoSport).
-TITLE_MAX = 65
+TITLE_MAX = 65          # titulky priečinkov (Google ich ukáže ~65 znakov); Aktuálne majú LIVE_TITLE_MAX
 TITLES = {}             # id priečinka -> titulok (bez HTML escapovania)
 TITLE_NOSPORT = set()   # id priečinkov, ktorým sa šport z titulku vynechal
 TITLE_NAMEONLY = set()  # id priečinkov s titulkom len „{názov} — {web}"
@@ -2027,7 +2069,7 @@ def main():
         out = os.path.join(out, OUT_PREFIX)
 
     data = load_data("data.json")
-    # Aktuálne z aktualne.json (prechod: z data.json) — viď load_aktualne()
+    # Aktuálne z aktualne.json — viď load_aktualne()
     global AKT_ITEMS
     AKT_ITEMS, akt_zdroj = load_aktualne(data)
     print(f"Aktuálne: {len(AKT_ITEMS)} položiek z {akt_zdroj}, verejnosti viditeľných dnes: "

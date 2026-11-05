@@ -54,6 +54,10 @@ TIMEOUT_S = 20
 VLAKNA = 8
 
 
+# SPOLOČNÉ S ikony.py (Zadanie 36, bod 44): log(), png_1x1_priehladny() a git_uloz()
+# sú v oboch skriptoch takmer rovnaké (git_uloz sa líši len textami v logu).
+# Zámerne NIE sú v spoločnom module: skúšobné workflowy (ikony-vzorka.yml,
+# vlajky-skuska.yml) sa spúšťajú len pri zmene „svojho“ skriptu. Opravu urob v OBOCH.
 def log(*a):
     print(*a, flush=True)
 

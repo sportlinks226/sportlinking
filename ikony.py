@@ -22,11 +22,15 @@ Ukladanie (priečinok ikony/):
   ikony/stav.json   — pre každý host: dátum stiahnutia, výsledok, zdroj;
                       pri chybách počet pokusov; pri webe, ktorý z dát zmizol,
                       dátum „nevideny_od" (kedy ho v dátach prvýkrát nebolo).
+                      Navyše kľúč "obnova" = denné počítadlo obnovy:
+                      {"den": "2026-11-05", "obnovene": 123} (deň podľa Europe/Bratislava).
 
 Pri každom builde:
   - dotiahne weby, ktoré ešte výsledok nemajú (nové weby, chyby z minula),
   - obnoví LEN ikonky, ktoré majú v stav.json dátum starší ako 30 dní (najstaršie
-    prvé, najviac --obnov = 300 za jeden build; bod 9 previerky 2, 4.11.2026).
+    prvé, najviac --obnov = 300 ZA DEŇ podľa času v Bratislave — počíta sa
+    v stav.json (kľúč "obnova"), súčet za všetky buildy v ten deň; bod 9 previerky 2,
+    bod 21a previerky 3). Prvé stiahnutie nových webov limit NEMÁ.
     Keď sa obnovená ikonka nezmenila, súbor .png sa neprepisuje,
   - keď sa v build nič nestiahlo ani nezmenilo, stav.json sa neprepíše (žiadny commit),
   - web, ktorý chýba v dátach 30+ dní, zmaže (súbor aj záznam). Poistka: ak sa
@@ -85,6 +89,10 @@ OBNOV_PO_DNOCH = 30      # ikonka staršia ako toľko dní sa stiahne znova (bod
 POISTKA_PODIEL = 0.80
 
 
+# SPOLOČNÉ S vlajky.py (Zadanie 36, bod 44): log(), png_1x1_priehladny() a git_uloz()
+# sú v oboch skriptoch takmer rovnaké (git_uloz sa líši len textami v logu).
+# Zámerne NIE sú v spoločnom module: skúšobné workflowy (ikony-vzorka.yml,
+# vlajky-skuska.yml) sa spúšťajú len pri zmene „svojho“ skriptu. Opravu urob v OBOCH.
 def log(*a):
     print(*a, flush=True)
 
@@ -302,6 +310,34 @@ def spracuj_host(host, predosly, brzda, timeout, koniec):
     return {"vysledok": "ok", "zdroj": "yandex", "data": y, "sirka": yw}
 
 
+# --- denné počítadlo obnovy (kľúč "obnova" v stav.json) ----------------------------
+# --obnov je limit NA DEŇ (predtým na build — pri ~10 buildoch denne až 3 000 obnov).
+# Deň sa ráta podľa Bratislavy, aby sa počítadlo nulovalo o našej polnoci.
+def den_bratislava(teraz=None):
+    """Dátum (YYYY-MM-DD) v Europe/Bratislava pre čas `teraz` (predvolene teraz);
+    keby v systéme chýbali časové pásma, použije sa UTC."""
+    try:
+        from zoneinfo import ZoneInfo
+        tz = ZoneInfo("Europe/Bratislava")
+    except Exception:
+        tz = dt.timezone.utc
+    teraz = teraz or dt.datetime.now(dt.timezone.utc)
+    return teraz.astimezone(tz).date().isoformat()
+
+
+def nacitaj_obnovu(cesta, den):
+    """Koľko ikoniek sa už v deň `den` obnovilo (kľúč "obnova" v stav.json).
+    Iný deň, chýbajúci kľúč alebo pokazený súbor = 0."""
+    try:
+        with open(cesta, encoding="utf-8") as f:
+            d = json.load(f).get("obnova")
+        if isinstance(d, dict) and d.get("den") == den:
+            return max(0, int(d.get("obnovene", 0)))
+    except (OSError, ValueError, TypeError, AttributeError):
+        pass
+    return 0
+
+
 # --- stav.json -------------------------------------------------------------------
 def nacitaj_stav(cesta):
     try:
@@ -316,12 +352,14 @@ def nacitaj_stav(cesta):
     return {}
 
 
-def uloz_stav(cesta, hosty):
-    """Jeden host = jeden riadok, zoradené → malé rozdiely v gite."""
+def uloz_stav(cesta, hosty, obnova=None):
+    """Jeden host = jeden riadok, zoradené → malé rozdiely v gite.
+    obnova = {"den", "obnovene"} — denné počítadlo obnovy (bod 21a), None = bez neho."""
     riadky = [f"  {json.dumps(h, ensure_ascii=True)}: {json.dumps(hosty[h], ensure_ascii=False, sort_keys=True)}"
               for h in sorted(hosty)]
+    obn = f' "obnova": {json.dumps(obnova, sort_keys=True)},\n' if obnova else ""
     obsah = ('{\n "info": "Stav ikoniek webov (ikony.py). Generuje GitHub Actions — ručne nemeniť.",\n'
-             ' "hosty": {\n' + ",\n".join(riadky) + "\n }\n}\n")
+             + obn + ' "hosty": {\n' + ",\n".join(riadky) + "\n }\n}\n")
     zapis_atomicky(cesta, obsah.encode("utf-8"))
 
 
@@ -378,7 +416,8 @@ def main():
     ap.add_argument("--naraz", type=int, default=12, help="max. súbežných požiadaviek")
     ap.add_argument("--timeout", type=float, default=10.0)
     ap.add_argument("--obnov", type=int, default=300,
-                    help=f"max. počet ikoniek starších ako {OBNOV_PO_DNOCH} dní, ktoré sa obnovia v jednom builde")
+                    help=f"max. počet ikoniek starších ako {OBNOV_PO_DNOCH} dní, ktoré sa obnovia ZA DEŇ "
+                         "(súčet všetkých buildov v ten deň, Europe/Bratislava; nové weby limit nemajú)")
     ap.add_argument("--git", action="store_true", help="priebežne commitovať a pushovať ikony/")
     ap.add_argument("--git-kazdych", type=float, default=180.0, help="sekúnd medzi priebežnými commitmi")
     ap.add_argument("--vzorka", type=int, default=0, help="skúška: len N náhodných hostov (nič nemaže)")
@@ -394,8 +433,11 @@ def main():
     stav = nacitaj_stav(stav_cesta)
     # bod 9: obsah stav.json pri poslednom uložení — zapisuje sa len pri skutočnej zmene
     ulozeny_stav = json.dumps(stav, sort_keys=True)
+    # bod 21a: denné počítadlo obnovy (kľúč "obnova" v stav.json)
+    den_obnovy = den_bratislava()
+    obnovene_dnes = nacitaj_obnovu(stav_cesta, den_obnovy)
+    ulozene_obnovene = obnovene_dnes
 
-    data_ok = True
     try:
         with open(a.data, encoding="utf-8") as f:
             data = json.load(f)
@@ -448,13 +490,16 @@ def main():
         # chyby z minula až za úplne novými
         nove.sort(key=lambda h: stav.get(h, {}).get("chyby", 0))
         hotove = [h for h in hosty if stav.get(h, {}).get("vysledok")]
-        # bod 9: obnova LEN ikoniek starších ako OBNOV_PO_DNOCH dní, najstaršie prvé, max. --obnov
+        # bod 9: obnova LEN ikoniek starších ako OBNOV_PO_DNOCH dní, najstaršie prvé;
+        # bod 21a: najviac --obnov ZA DEŇ (mínus to, čo už dnes obnovili skoršie buildy)
         hranica = (dt.date.fromisoformat(dnes) - dt.timedelta(days=OBNOV_PO_DNOCH)).isoformat()
         hotove.sort(key=lambda h: (stav[h].get("datum", ""), h))
-        stare = [h for h in hotove if stav[h].get("datum", "") < hranica][:max(0, a.obnov)]
+        zvysok_dnes = max(0, a.obnov - obnovene_dnes)
+        stare = [h for h in hotove if stav[h].get("datum", "") < hranica][:zvysok_dnes]
         na_rad = [(h, "nový") for h in nove] + [(h, "obnova") for h in stare]
         log(f"Webov v dátach: {len(hosty)} | v stav.json s výsledkom: {len(hotove)} | "
-            f"na stiahnutie nových: {len(nove)} | na obnovu: {len(stare)}")
+            f"na stiahnutie nových: {len(nove)} | na obnovu: {len(stare)} "
+            f"(dnes {den_obnovy} už obnovených {obnovene_dnes} z denného limitu {a.obnov})")
 
     brzda = Brzda(a.naraz)
     pocty = {"ok": 0, "none": 0, "chyba": 0}
@@ -463,14 +508,16 @@ def main():
     zmena_od_ulozenia = False
 
     def priebezne_uloz(final=False):
-        nonlocal posledny_git, zmena_od_ulozenia, ulozeny_stav
+        nonlocal posledny_git, zmena_od_ulozenia, ulozeny_stav, ulozene_obnovene
         if skuska:
             return
         # bod 9: stav.json sa prepíše len pri skutočnej zmene (inak žiadny zbytočný commit)
+        # bod 21a: aj zmena denného počítadla obnovy je dôvod na zápis
         teraz = json.dumps(stav, sort_keys=True)
-        if teraz != ulozeny_stav:
-            uloz_stav(stav_cesta, stav)
+        if teraz != ulozeny_stav or obnovene_dnes != ulozene_obnovene:
+            uloz_stav(stav_cesta, stav, {"den": den_obnovy, "obnovene": obnovene_dnes})
             ulozeny_stav = teraz
+            ulozene_obnovene = obnovene_dnes
         if a.git and (zmena_od_ulozenia or final):
             git_uloz(a.dir, f"ikony: {pocty['ok']} ok, {pocty['none']} bez ikonky"
                      + (" (priebežne)" if not final else ""))
@@ -478,8 +525,10 @@ def main():
         posledny_git = time.monotonic()
 
     def zapis(host, dovod, r):
-        nonlocal zmena_od_ulozenia
+        nonlocal zmena_od_ulozenia, obnovene_dnes
         vysledky[host] = {k: v for k, v in r.items() if k != "data"}
+        if dovod == "obnova" and not skuska:
+            obnovene_dnes += 1        # bod 21a: ráta sa každý pokus (aj neúspešný = požiadavka)
         if "chyba" in r:
             pocty["chyba"] += 1
             if skuska:

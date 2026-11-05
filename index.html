@@ -20,7 +20,7 @@
 <meta property="og:site_name" content="Športové Linky"/>
 <meta property="og:locale" content="sk_SK"/>
 <!--OG_DYNAMIC--><!-- generátor sem pri builde doplní og:url a og:image s absolútnou adresou webu -->
-<!-- Posledná úprava kostry: 2026-07-15 — soc. linky ukazujú vlajku/emoji; ochrana pred starým oknom (save guard) + odznak verzie v admin lište -->
+<!-- Kostra appky: HTML + CSS + JS v jednom súbore. generator.py do nej pri builde vloží dáta (BOOT), Aktuálne a SEO hlavičky. Históriu zmien ukazuje git. -->
 
 
 <style>
@@ -87,6 +87,7 @@ header{
 .vswitch button.on{background:var(--surface2);color:#fff}
 .vswitch button:hover{color:var(--text)}
 .admin-mode .vswitch{display:none}
+/* 700px MUSÍ sedieť s COLS_MIN_W v JS (colsAllowed) */
 @media(max-width:700px),(hover:none){.vswitch{display:none}}
 /* ===== STĹPCOVÉ ZOBRAZENIE (prepis 4.11.2026, Zadanie 26b): priečinky sa otvárajú myšou
    do ďalšieho stĺpca vpravo, linka ukáže popis v paneli. Pás stĺpcov je prilepený pod
@@ -95,7 +96,7 @@ header{
    (ako Finder) — bez pásikov, bez samoposunu stránky, bez auto-rolovania. ===== */
 main.cols-mode{max-width:1800px;padding-bottom:0} /* pás si necháva miesto na pätičku (colsLayout) — stránka sa nedá posunúť ďalej, než kde sa pás prilepí */
 body.cols-on footer{margin-top:10px}
-.cols{display:flex;gap:8px;align-items:flex-start;overflow-x:auto;overflow-y:hidden;padding-bottom:6px;position:sticky;top:105px;scroll-behavior:smooth;overscroll-behavior:contain}
+.cols{display:flex;gap:8px;align-items:flex-start;overflow-x:auto;overflow-y:hidden;padding-bottom:6px;position:sticky;scroll-behavior:smooth;overscroll-behavior:contain}
 @media (prefers-reduced-motion: reduce){.cols{scroll-behavior:auto}}
 @keyframes hdrIn{from{opacity:0}to{opacity:1}}
 @media (prefers-reduced-motion: reduce){.h-lupa{animation:none!important}}
@@ -387,7 +388,7 @@ a.akt-head[href]:hover #aktHeadTxt{text-decoration:underline}
 
 /* Admin na mobile a dotykových zariadeniach (Zadanie 31, bod 15) — na počítači
    s myšou sa nič nemení. Lišta ▲▼✏️🗑 ide POD text karty (neprekrýva názov
-   ani popis), tlačidlá 38 px (pohodlné na prst). */
+   ani popis), tlačidlá 38 px (pohodlné na prst). 700px = COLS_MIN_W v JS. */
 @media(max-width:700px),(hover:none){
   .admin-mode .card-link,.admin-mode .card-folder{flex-wrap:wrap}
   .admin-mode .card-admin-bar{position:static;order:99;flex:0 0 100%;justify-content:flex-end;gap:6px;margin-top:6px}
@@ -489,7 +490,6 @@ a.akt-head[href]:hover #aktHeadTxt{text-decoration:underline}
 }
 .pw-box input:focus{border-color:var(--accent)}
 .pw-err{color:var(--red);font-size:0.78rem;margin-top:5px;min-height:16px}
-.pw-hint{color:var(--muted);font-size:0.7rem;margin-top:8px}
 
 /* ===== EMPTY STATE ===== */
 .empty{
@@ -497,9 +497,6 @@ a.akt-head[href]:hover #aktHeadTxt{text-decoration:underline}
 }
 .empty .e-icon{font-size:3rem;margin-bottom:12px}
 .empty p{font-size:0.9rem}
-
-/* ===== SEARCH RESULTS ===== */
-.search-results .sr-path{font-size:0.78rem;color:var(--muted);margin-top:2px}
 
 /* ===== SCROLLBAR ===== */
 /* PULSE ANIMÁCIA */
@@ -1023,15 +1020,14 @@ function idbDel(){ return idbRun('readwrite', st=>st.delete(IDB_KEY)); }
 function lsGet(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }
 function lsSet(k, v){ try{ localStorage.setItem(k, v); }catch(e){} }
 function lsDel(k){ try{ localStorage.removeItem(k); }catch(e){} }
-function lsVer(){ return parseInt(lsGet('sportStromVer') || '0', 10) || 0; }
-// Jednorazové upratanie po starom spôsobe (celé dáta v localStorage). Ak tam
-// ešte niečo je (lokálny súbor s malými dátami), vráti to na migráciu do IndexedDB.
-function lsLegacyTake(){
-  const s = lsGet('sportStrom');
-  lsDel('sportStrom');
-  if(!s) return null;
-  try{ return JSON.parse(s); }catch(e){ return null; }
+// Stiahnutie JSON súboru do počítača (záloha, Publikovať, Aktuálne) — jediné miesto.
+// odsadenie: 2 = dáta (data.json, zálohy), 1 = aktualne.json (aktDownload).
+function stiahniJson(obj, meno, odsadenie){
+  const blob = new Blob([JSON.stringify(obj, null, odsadenie || 2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = meno; a.click();
 }
+function lsVer(){ return parseInt(lsGet('sportStromVer') || '0', 10) || 0; }
 
 async function load(){
   // 1) Na webe: skús načítať publikované dáta zo súboru data.json
@@ -1068,12 +1064,16 @@ async function load(){
     }
     return null;
   };
+  // VER_TIMEOUT_MS: version.txt je pár bajtov — keď nepríde do 2,5 s, nečaká sa naň
+  // (pokračuje sa s DATA_VER). BOOT_WAIT_MS: najdlhšie čakanie na udalosť load pri
+  // rýchlom štarte z BOOT, kým sa začne sťahovať data.json (bannery majú prednosť).
+  const VER_TIMEOUT_MS = 2500, BOOT_WAIT_MS = 2500;
   let verPromise = Promise.resolve(DATA_VER);
   if(DATA_VER){
     verPromise = (async ()=>{
       try{
         const ctrl = new AbortController();
-        const stopka = setTimeout(()=>ctrl.abort(), 2500);
+        const stopka = setTimeout(()=>ctrl.abort(), VER_TIMEOUT_MS);
         const rv = await fetch(SITE_ROOT + 'version.txt', {cache:'no-store', signal:ctrl.signal});
         clearTimeout(stopka);
         if(rv.ok){
@@ -1090,7 +1090,7 @@ async function load(){
   // najväčším prvkom (LCP 9,4 s v PageSpeed 2.10.2026 aj po zrýchlení).
   if(typeof bootShown !== 'undefined' && bootShown){
     await new Promise(r=>{
-      const stopka = setTimeout(r, 2500);
+      const stopka = setTimeout(r, BOOT_WAIT_MS);
       if(document.readyState === 'complete'){ clearTimeout(stopka); r(); return; }
       window.addEventListener('load', ()=>{ clearTimeout(stopka); r(); }, {once:true});
     });
@@ -1110,7 +1110,6 @@ async function load(){
     published = await d0p;
   }
   if(published){
-    lsLegacyTake(); // upratanie: staré celé dáta v localStorage už nepotrebujeme
     const dirty = lsGet('sportStromDirty') === '1';
     let storedW = null;
     // rozpracované úpravy z IndexedDB čítame LEN keď je nastavený príznak dirty
@@ -1143,13 +1142,7 @@ async function load(){
         'V prehliadači máš rozpracované staršie úpravy z admin režimu (v'+(storedW.version||'?')+'), ktoré sa teraz nahradia.\n\n' +
         'Chceš si NAJPRV stiahnuť zálohu svojich úprav (JSON súbor)?'
       );
-      if(chce){
-        const blob = new Blob([JSON.stringify(storedW,null,2)],{type:'application/json'});
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        a.download = 'sport-strom-zaloha-stare-upravy.json';
-        a.click();
-      }
+      if(chce) stiahniJson(storedW, 'sport-strom-zaloha-stare-upravy.json');
     }
     // prevzatie publikovaných dát (nič rozpracované, alebo web je novší)
     DB = published;
@@ -1167,11 +1160,6 @@ async function load(){
   if(DB && DB._partial) return; // na webe ostáva štartovací balík (BOOT), nie prázdne DEFAULT
   let stored = null;
   try{ stored = await idbGet(); }catch(e){ stored = null; }
-  if(!stored){
-    // migrácia zo starého localStorage (celé dáta) do IndexedDB
-    stored = lsLegacyTake();
-    if(stored){ try{ await idbPut(stored); }catch(e){} }
-  }
   if(stored){
     if(stored.version === DEFAULT.version){
       DB = stored;
@@ -1183,13 +1171,7 @@ async function load(){
         'V prehliadači máš uložené staršie úpravy z admin režimu (v'+(stored.version||'?')+'), ktoré sa teraz nahradia novými dátami.\n\n' +
         'Chceš si NAJPRV stiahnuť zálohu svojich úprav (JSON súbor)?'
       );
-      if(chce){
-        const blob = new Blob([JSON.stringify(stored,null,2)],{type:'application/json'});
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        a.download = 'sport-strom-zaloha-stare-upravy.json';
-        a.click();
-      }
+      if(chce) stiahniJson(stored, 'sport-strom-zaloha-stare-upravy.json');
       DB = JSON.parse(JSON.stringify(DEFAULT));
       try{ await idbPut(DB); }catch(e){} // poznač si novú verziu — okno sa už nezobrazí
     }
@@ -1246,7 +1228,8 @@ function uid(){ return 'n'+Date.now()+Math.random().toString(36).slice(2,5); }
 // ============================================================
 // Od 26.10.2026 (bod 13 previerky): "pwKdf": {"salt", "iter", "hash"} =
 // PBKDF2-SHA-256 so soľou (16 bajtov hex), 600 000 opakovaní, 256 bitov (hex).
-// Rovnako ho vyrába nástroj nastav-heslo.html. Iný spôsob prihlásenia nie je
+// Rovnako ho vyrába nástroj nastav-heslo.html (nie je v repozitári — je na Mirovom PC
+// v CLAUDEWORK/sportlinky/). Iný spôsob prihlásenia nie je
 // (staré passwordHash/password odstránené v Zadaní 22 — v dátach už nie sú).
 const PW_ITER = 600000;
 function bufHex(buf){ return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join(''); }
@@ -1379,8 +1362,10 @@ function liveNode(){
 // NAVIGATION
 // ============================================================
 // --- HASH ROUTING: zdieľateľné adresy typu #/hokej/sutaze ---
+// Musí sa správať ROVNAKO ako slugify() v generator.py. Diakritika = všetky
+// kombinujúce znaky (\p{M}: Mn, Mc, Me), nielen rozsah U+0300–036F (Zadanie 36, bod 45).
 function slugify(name){
-  return (name||'').normalize('NFD').replace(/[̀-ͯ]/g,'') // odstráni diakritiku
+  return (name||'').normalize('NFD').replace(/\p{M}/gu,'') // odstráni diakritiku
     .toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'');
 }
 // TRVALÝ SLUG: adresa priečinka sa priradí raz a pri premenovaní sa NEMENÍ
@@ -1390,9 +1375,16 @@ function slugify(name){
 // v generator.py (veľmi dlhý názov by generátoru zhodil build „File name too long").
 const SLUG_MAX = 80;
 function slugCut(s){ return s.length > SLUG_MAX ? s.slice(0, SLUG_MAX).replace(/-+$/,'') : s; }
+// POISTKA (Zadanie 36, postreh zo Zadania 35): slug z dát sa použije, len ak je to
+// neprázdny text bez nebezpečných znakov (/ \ ? # & % < > " ' medzera, riadiace znaky,
+// „..“, samotná „.“) — inak náhradný slug z názvu, ako keď slug chýba.
+// Písmená s diakritikou sú DOVOLENÉ (jemenská-liga… — adresy sa nesmú zmeniť).
+// ROVNAKO ako slug_ok() v generator.py.
+const SLUG_ZLE_ZNAKY = /[\/\\?#&%<>"' \x00-\x1f\x7f-\x9f]/;
+function slugOk(s){ return typeof s === 'string' && s !== '' && s !== '.' && s.indexOf('..') < 0 && !SLUG_ZLE_ZNAKY.test(s); }
 function nodeSlugBase(n){
-  if(IS_EN) return n.slug_en || slugCut(slugify(String(n.name_en||'').trim() || String(n.name||'').trim())) || 'cat-'+slugify(n.id);
-  return n.slug || slugCut(slugify(n.name)) || 'kat-'+slugify(n.id);
+  if(IS_EN) return (slugOk(n.slug_en) && n.slug_en) || slugCut(slugify(String(n.name_en||'').trim() || String(n.name||'').trim())) || 'cat-'+slugify(n.id);
+  return (slugOk(n.slug) && n.slug) || slugCut(slugify(n.name)) || 'kat-'+slugify(n.id);
 }
 // DUPLICITNÉ SLUGY SÚRODENCOV (bod 21 previerky, 2.11.2026): generátor dá druhému
 // priečinku s rovnakým slugom „-2", tretiemu „-3"… Výsledné slugy, ktoré sa líšia
@@ -1744,7 +1736,21 @@ function countAll(id){
   });
   return count;
 }
-function childCount(id){ return getChildren(id).length; }
+// Admin lišta karty ▲▼✏️🗑 (Zadanie 36, bod 44) — jediné miesto pre všetky tri druhy kariet.
+// ind = odsadenie riadkov (HTML ostáva znak po znaku také isté ako predtým);
+// titulky = bublinky Hore/Dole/…; zastav = klik nesmie otvoriť kartu (karta je odkaz <a>).
+// Rovnakú lištu vyrába aj generator.py (admin_bar_html) — mení sa na oboch miestach.
+function adminBarHtml(id, ind, titulky, zastav){
+  const st = zastav ? 'event.stopPropagation();event.preventDefault();' : '';
+  const b = (trieda, titulok, volanie, ikona) =>
+    `${ind}  <button class="${trieda}"${titulky ? ` title="${titulok}"` : ''} onclick="${st}${volanie}">${ikona}</button>\n`;
+  return `<div class="card-admin-bar">\n`
+    + b('ibtn', 'Hore', `moveNode('${id}',-1)`, '▲')
+    + b('ibtn', 'Dole', `moveNode('${id}',1)`, '▼')
+    + b('ibtn', 'Upraviť', `openEdit('${id}')`, '✏️')
+    + b('ibtn d', 'Zmazať', `delNode('${id}')`, '🗑')
+    + `${ind}</div>`;
+}
 // Slovenské skloňovanie: skl(1,'sekcia','sekcie','sekcií') → "sekcia"
 // V EN verzii sa slovenské tvary automaticky mapujú na section/sections, link/links.
 const SKL_EN = {'sekcia':'section','sekcie':'sections','sekcií':'sections',
@@ -1808,11 +1814,14 @@ function iconText(iconHtml, textHtml){
 // nadradeného priečinka, ktorý má kód krajiny. Vďaka tomu netreba pri každej
 // novej lige dopĺňať vlajku ručne. Ak je najbližšia ikona emoji (sekcie ako
 // Médiá, Ostatné športy), nededí sa nič — zostane pôvodný vzhľad.
+// Poistka proti zacykleniu pri chôdzi stromom nahor (pokazené parentId v dátach).
+// Dnes je strom hlboký najviac 6 úrovní (5 krokov nahor), 15 je veľká rezerva.
+const MAX_HLBKA = 15;
 function nodeIcon(n){
   if(!n) return '';
   if(n.icon) return n.icon;
   let p = DB.nodes.find(x => x.id === n.parentId), guard = 0;
-  while(p && guard++ < 12){
+  while(p && guard++ < MAX_HLBKA){
     if(p.icon) return /^[a-z]{2}(-[a-z]{2,4})?$/.test(p.icon) ? p.icon : '';
     p = DB.nodes.find(x => x.id === p.parentId);
   }
@@ -1827,7 +1836,7 @@ function nodeIcon(n){
 // („Plážový futbal — Športové Linky"), nie všeobecný názov webu.
 let ORIG_DESC = null;
 function updateHead(){
-  const site = (IS_EN ? (DB.title_en||DB.title) : DB.title) || '';
+  const site = nazovWebu();
   const n = curId ? DB.nodes.find(x=>x.id===curId) : null;
   // Titulok S KONTEXTOM, rovnako ako ho skladá generator.py:
   // „{názov} — {rodič} · {šport} — {web}", napr. „Turecko — Európa · Hokej — Športové Linky".
@@ -1977,6 +1986,9 @@ function setLogoTag(tag){
   el.replaceWith(nw);
 }
 
+// Najviac toľko priečinkov = veľké dlaždice (card-root), viac = zoznam (card-folder).
+// ROVNAKÝ prah je v generator.py (VELKE_DLAZDICE_MAX v home_static_html) — meň oba.
+const VELKE_DLAZDICE_MAX = 10;
 let prvyRenderLevel = true; // bod 6 — viď koniec renderLevel()
 // Bod 2 (2.11.2026): po príchode celých dát sa obsah NEPREPÍŠE, ak je zhodný
 // s tým, čo sa vykreslilo z balíka — inak by dlaždice preblikli (animácia odznova).
@@ -2027,18 +2039,13 @@ function renderLevel(){
 
   if(folders.length > 0){
     if(links.length > 0) html += `<div class="section-label">${IS_EN?'Categories':'Kategórie'}</div>`;
-    if(folders.filter(n=>!noTile(n)).length <= 10){ // veľké dlaždice — admin s noTileSk priečinkom vyzerá ako návštevník
+    if(folders.filter(n=>!noTile(n)).length <= VELKE_DLAZDICE_MAX){ // veľké dlaždice — admin s noTileSk priečinkom vyzerá ako návštevník
       html += `<div class="grid-root anim">`;
       folders.forEach((n,i) => {
         const cnt = folderCountText(n);
         html += `
           <a class="card-root${noTile(n)?' no-tile':''}" href="${attrEsc(urlForId(n.id))}" onclick="return navClick(event,'${n.id}')"${noTile(n)?' title="Na SK webe bez dlaždice (noTileSk) — návštevník ju nevidí"':''}>
-            <div class="card-admin-bar">
-              <button class="ibtn" title="Hore" onclick="event.stopPropagation();event.preventDefault();moveNode('${n.id}',-1)">▲</button>
-              <button class="ibtn" title="Dole" onclick="event.stopPropagation();event.preventDefault();moveNode('${n.id}',1)">▼</button>
-              <button class="ibtn" title="Upraviť" onclick="event.stopPropagation();event.preventDefault();openEdit('${n.id}')">✏️</button>
-              <button class="ibtn d" title="Zmazať" onclick="event.stopPropagation();event.preventDefault();delNode('${n.id}')">🗑</button>
-            </div>
+            ${adminBarHtml(n.id, '            ', true, true)}
             <div class="c-icon">${renderIcon(nodeIcon(n),'40x30')||''}</div>
             <div class="c-name">${attrEsc(nName(n))}</div>
             <div class="c-count">${cnt}</div>
@@ -2052,12 +2059,7 @@ function renderLevel(){
         const cnt = folderCountText(n);
         html += `
           <a class="card-folder" href="${attrEsc(urlForId(n.id))}" onclick="return navClick(event,'${n.id}')">
-            <div class="card-admin-bar">
-              <button class="ibtn" onclick="event.stopPropagation();event.preventDefault();moveNode('${n.id}',-1)">▲</button>
-              <button class="ibtn" onclick="event.stopPropagation();event.preventDefault();moveNode('${n.id}',1)">▼</button>
-              <button class="ibtn" onclick="event.stopPropagation();event.preventDefault();openEdit('${n.id}')">✏️</button>
-              <button class="ibtn d" onclick="event.stopPropagation();event.preventDefault();delNode('${n.id}')">🗑</button>
-            </div>
+            ${adminBarHtml(n.id, '            ', false, true)}
             <div class="cf-icon">${renderIcon(nodeIcon(n),'24x18')||''}</div>
             <div class="cf-info">
               <div class="cf-name">${attrEsc(nName(n))}</div>
@@ -2081,12 +2083,7 @@ function renderLevel(){
       const socs = socHtml(n, host);
       html += `
         <div class="card-link${socs?' has-soc':''}">${ligaTag}
-          <div class="card-admin-bar">
-            <button class="ibtn" onclick="moveNode('${n.id}',-1)">▲</button>
-            <button class="ibtn" onclick="moveNode('${n.id}',1)">▼</button>
-            <button class="ibtn" onclick="openEdit('${n.id}')">✏️</button>
-            <button class="ibtn d" onclick="delNode('${n.id}')">🗑</button>
-          </div>
+          ${adminBarHtml(n.id, '          ', false, false)}
           <a href="${attrEsc(safeUrl(n.url))}" target="_blank" rel="noopener" title="${attrEsc(nDesc(n))}" ${adminMode?'onclick="return false"':''}>
             ${liveIcon ? `<span class="fav-fb" aria-hidden="true">${attrEsc(n.icon||'🔗')}</span>` : favHtml(n, host)}
             <div>
@@ -2143,7 +2140,8 @@ var _promoEl = null, _promoSrc = '';   // promo blok práve v #main (viď vyšš
 // Priečinok sa otvorí prechodom myši do ďalšieho stĺpca vpravo, klik ho „pripne"
 // (navigate → mení adresu, breadcrumbs aj cielenie bannerov). Linka: prechod myši
 // = popis v pravom paneli, klik = otvorí web.
-// ZÁSADY (z analýzy navrhy/stlpce-analyza-2026-11-04.md):
+// ZÁSADY (z analýzy stlpce-analyza-2026-11-04.md — PR #27, vetva stlpce-analyza, nezlúčená;
+// v main je len navrhy/stlpce-prepis-2026-11-04.md):
 //  1. Priečinok sa otvorí LEN po skutočnom pohybe myši, ktorý sa zastavil nad položkou
 //     (COL_DELAY). Prechod, ktorý vznikol pohybom OBSAHU pod nehybnou myšou (koliesko,
 //     posun stránky, prekreslenie, vodorovný posun pásu, klik, Späť/Vpred), neotvára nič:
@@ -2172,7 +2170,10 @@ let colPath  = null;   // id priečinkov otvorených myšou (po úrovniach); nul
 let colHover = null;   // id linky, ktorej popis je v paneli
 let _colPromo = '';    // naposledy vykreslený promo blok (HTML)
 let _colPathCur;        // curId, pre ktorý bola colPath naposledy nastavená
-function colsAllowed(){ return !adminMode && window.innerWidth > 700 && window.matchMedia('(hover:hover)').matches; }
+// MUSÍ sedieť s @media(max-width:700px) v CSS (prepínač .vswitch a admin na mobile) —
+// pri zmene uprav aj tie dve pravidlá v <style>.
+const COLS_MIN_W = 700;
+function colsAllowed(){ return !adminMode && window.innerWidth > COLS_MIN_W && window.matchMedia('(hover:hover)').matches; }
 function initViewMode(){
   viewMode = lsGet('sportStromView')==='cols' ? 'cols' : 'tiles';
   if(IS_EN){ const vs = document.getElementById('vSwitch'); if(vs) vs.setAttribute('aria-label', 'View'); const t = {tiles:'▦ Tiles', cols:'▥ Columns'}; document.querySelectorAll('#vSwitch button').forEach(b=>{ b.textContent = t[b.dataset.mode]; b.title = b.dataset.mode==='cols' ? 'Columns — folders open on mouse hover' : 'Tiles'; }); }
@@ -2605,8 +2606,11 @@ window.addEventListener('scroll', function(){ if(!hdrTick){ hdrTick = true; requ
 window.addEventListener('resize', function(){ if(hdrMin && !hdrMobil()) hdrSet(false); });
 try{ document.getElementById('srch').addEventListener('input', hdrDot); }catch(e){}
 
-function onSearch(){ clearTimeout(_srchT); _srchT = setTimeout(function(){ syncSearchUrl(); render(); }, 200); } // bod 10: dotaz aj do adresy (?q=)
-const SRCH_MAX = 200;
+// SRCH_DEBOUNCE_MS = čas od posledného stlačenia klávesu po spustenie hľadania (ms);
+// SRCH_MAX nižšie = najviac zobrazených výsledkov (počet). Zhodné číslo 200 je náhoda.
+const SRCH_DEBOUNCE_MS = 200;
+function onSearch(){ clearTimeout(_srchT); _srchT = setTimeout(function(){ syncSearchUrl(); render(); }, SRCH_DEBOUNCE_MS); } // bod 10: dotaz aj do adresy (?q=)
+const SRCH_MAX = 200;   // najviac výsledkov na obrazovke (potom „spresni hľadanie")
 const _srchCache = new WeakMap(); // max. počet zobrazených kariet v každej skupine
 
 // Normalizácia — odstráni diakritiku, aby "spravy" našlo aj "Správy"
@@ -2796,12 +2800,12 @@ function socHtml(n, host){
 // farbu dostane pri prejdení myšou; tá istá značka aj keď sa ikona nedá načítať.
 // Web bez ikonky (1×1 px v /ikony/) alebo bez stiahnutej ikonky = tiež ikona športu
 // (vlajka, ak má linka ako ikonu kód krajiny). (2.–5.10. boli vľavo logá
-// sietí — Mirovi to pôsobilo rozhádzane; záloha index-2026-10-05-pred-tlmeny-sport.html)
+// sietí — Mirovi to pôsobilo rozhádzane)
 const _sportCache = new Map();
 function sportIcon(parentId){
   if(_sportCache.has(parentId)) return _sportCache.get(parentId);
   let p = DB.nodes.find(x => x.id === parentId), last = null, guard = 0;
-  while(p && guard++ < 15){ last = p; p = p.parentId ? DB.nodes.find(x => x.id === p.parentId) : null; }
+  while(p && guard++ < MAX_HLBKA){ last = p; p = p.parentId ? DB.nodes.find(x => x.id === p.parentId) : null; }
   const ic = (last && last.icon && !/^[a-z]{2}(-[a-z]{2,4})?$/.test(last.icon)) ? last.icon : '🔗';
   if(!DB._partial) _sportCache.set(parentId, ic);
   return ic;
@@ -3125,14 +3129,19 @@ function moveNode(id, dir){
 // ============================================================
 // SETTINGS
 // ============================================================
-// Podnadpis v hlavičke a titulok karty z DB (na EN z title_en/subtitle_en) —
-// rovnako ako pri štarte (initApp). Zadanie 31, bod 15.
-// stranka=true: titulok podľa otvorenej stránky (updateHead), inak názov webu
-// (Nastavenia, Import — tak ako doteraz, len v správnom jazyku).
-function setHeadFromDB(stranka){
+// NÁZOV WEBU A PODNADPIS Z DB — jediné miesto (Zadanie 36, bod 44c; predtým 2× pri
+// štarte + setHeadFromDB v admine). Na EN webe vždy title_en/subtitle_en (fallback SK).
+function nazovWebu(){ return (IS_EN ? (DB.title_en||DB.title) : DB.title) || ''; }
+// rezim: 'start'   = štart appky (initApp, balík BOOT): len keď DB má title; titulok
+//                    karty = HOME_TITLE zo statickej stránky (Google), inak názov webu;
+//        'stranka' = titulok podľa otvorenej stránky (updateHead) — dáta z úložiska;
+//        inak      = názov webu (⚙️ Nastavenia, Import).
+function nastavTitulok(rezim){
+  if(rezim === 'start' && !DB.title) return;
   document.getElementById('siteSub').textContent = (IS_EN ? (DB.subtitle_en||DB.subtitle) : DB.subtitle)||'';
-  if(stranka) updateHead();
-  else document.title = (IS_EN ? (DB.title_en||DB.title) : DB.title)||document.title;
+  if(rezim === 'start') document.title = HOME_TITLE || nazovWebu();
+  else if(rezim === 'stranka') updateHead();
+  else document.title = nazovWebu() || document.title;
 }
 function openSettings(){
   document.getElementById('stTitle').value = DB.title;
@@ -3145,7 +3154,7 @@ async function saveSett(){
   DB.subtitle = document.getElementById('stSub').value.trim();
   const pw    = document.getElementById('stPw').value;
   if(pw){ DB.pwKdf = await makePwKdf(pw); }
-  setHeadFromDB(); // bod 15: na EN z title_en/subtitle_en
+  nastavTitulok(); // bod 15: na EN z title_en/subtitle_en
   save(); closeMo('settMo');
 }
 
@@ -3158,11 +3167,7 @@ function downloadJSON(filename){
   // Aktuálne) — do data.json ani do zálohy sa už NEBALIA.
   const out = Object.assign({}, DB);
   delete out.aktualne;
-  const blob = new Blob([JSON.stringify(out,null,2)],{type:'application/json'});
-  const a=document.createElement('a');
-  a.href=URL.createObjectURL(blob);
-  a.download=filename;
-  a.click();
+  stiahniJson(out, filename);
   return true;
 }
 function exportData(){
@@ -3174,11 +3179,6 @@ function publishData(){
   // stiahne data.json — pripravený na nahratie na GitHub
   // zvýši verziu dát, aby web aj ostatné prehliadače nové dáta automaticky prevzali
   if(isLiteDB()){ alertLite(); return; } // odľahčené dáta webu — verziu ani nezvyšuj
-  if(Array.isArray(DB.aktualne) && DB.aktualne.length && !(AKT_ADMIN && AKT && AKT.version > 0)){
-    if(!confirm('POZOR: Aktuálne sa už do data.json NEukladajú (sú vo vlastnom súbore aktualne.json).\n'+
-                'aktualne.json ešte nebol publikovaný — najprv klikni 📌 Aktuálne → 🚀 Publikovať Aktuálne a nahraj ho, inak lišta Aktuálne na webe zmizne.\n\n'+
-                'Publikovať data.json aj tak?')) return;
-  }
   // Zadanie 31 (bod 12): staré okno sa odhalí ešte PRED zvýšením verzie
   // (inak by ho max(...) nižšie prekrylo a staré dáta by sa stiahli).
   const lv = lsVer(), oldVer = DB.version||0;
@@ -3215,9 +3215,8 @@ function importData(e){
       DB=d;
       ensureSlugs(); // stará záloha nemusí mať slugy — doplň ich hneď
       save(true); render(); renderAktualne(); renderBannerSlot(); // force — import nahrádza dáta zámerne
-      if(adminMode && Array.isArray(d.aktualne) && d.aktualne.length) setTimeout(()=>aktOfferImport(d.aktualne), 300); // prechod: staré Aktuálne z importu
       stopRotation(); startRotation(); // rotácia podľa nastavení z importu
-      setHeadFromDB(); // bod 15: na EN z title_en/subtitle_en
+      nastavTitulok(); // bod 15: na EN z title_en/subtitle_en
       alert('Import úspešný ✅');
     }catch(err){alert('Chyba: '+err.message);}
   };
@@ -3643,7 +3642,7 @@ function saveBanner(){
     if(!DB.bannerSettings.activeId) DB.bannerSettings.activeId=newB.id;
   }
   closeMo('bannerEditMo');
-  save();               // ulož do localStorage — predtým sa banner pri obnovení stránky stratil
+  save();               // ulož do IndexedDB — predtým sa banner pri obnovení stránky stratil
   renderBannerFarmGrid();
   renderBannerSlot();   // hneď prekresli sloty, nech je banner vidno bez čakania
 }
@@ -3670,8 +3669,9 @@ function saveBannerSettings(){
 // data.json, vždy čerstvý (no-store + ?t=). EN web ho berie priamo zo SK webu
 // (AKT_MASTER), keď to zlyhá, z kópie, ktorú si stiahol nočný EN build.
 // Kým súbor nepríde, ostáva na lište to, čo do HTML vložil generátor.
-// PRECHOD: keď aktualne.json na webe nie je, použije sa staré pole
-// "aktualne" z data.json (DB.aktualne), resp. z BOOT.
+// ZÁLOHA: keď aktualne.json nepríde, použije sa pole "aktualne", ktoré do
+// odľahčeného data.json (DB.aktualne) a do BOOT vkladá generator.py (lite_data,
+// boot_data). V data.json z PC (data-full.json) toto pole nie je.
 // PRAVIDLÁ ZOBRAZENIA — ROVNAKÉ ako akt_visible() v generator.py a v DYN_JS.
 const AKT_MASTER = "https://sportlinky.sk/aktualne.json"; // MUSÍ sedieť s AKT_MASTER_URL v generator.py
 const AKT_DAY = 86400000;
@@ -3714,7 +3714,7 @@ function aktSorted(arr){
 // všetky položky (aj vypnuté/naplánované) z aktuálneho zdroja
 function aktAll(){
   if(AKT) return aktSorted(AKT.items);
-  if(DB && Array.isArray(DB.aktualne)) return aktSorted(DB.aktualne); // prechod / odľahčený data.json / BOOT
+  if(DB && Array.isArray(DB.aktualne)) return aktSorted(DB.aktualne); // záloha od generátora: odľahčený data.json / BOOT
   return aktSorted(BOOT_AKT || []);
 }
 // stav položky: on = vidí ju verejnosť, wait = čaká na dátum OD, ended = po dátume DO, off = vypnutá
@@ -3745,6 +3745,8 @@ function aktIsNew(a, now){ const t = aktShownAt(a); return t > 0 && now - t >= 0
 // len titulok a meta popis (športy v poradí prvého výskytu medzi položkami).
 // VŠETKO ROVNAKO ako live_sport_list(), live_title(), live_meta_desc()
 // a live_static_html() v generator.py.
+// LIVE_TITLE_MAX = limit titulku stránky Aktuálne (generátor: LIVE_TITLE_MAX); iný ako
+// TITLE_MAX v generátore (titulky priečinkov) — obe 65 znakov, lebo Google ukáže ~65.
 const LIVE_TITLE_MAX = 65, LIVE_DESC_MAX = 155, LIVE_DESC_BASE = 100;
 const LIVE_SITE = IS_EN ? 'Sportlinking' : 'sportlinky.sk';
 function cpLen(s){ return Array.from(String(s)).length; }  // počet znakov ako v Pythone
@@ -3869,13 +3871,15 @@ function renderLiveLinks(){
 
 // stiahne čerstvý aktualne.json → {status:'ok', version, items} | {status:'missing'} | {status:'error'}
 function aktUrls(){ return (IS_EN ? [AKT_MASTER] : []).concat([SITE_ROOT + 'aktualne.json']); }
+// aktualne.json je malý — keď zdroj neodpovie do 8 s, skúsi sa ďalší (EN: SK web → kópia z buildu)
+const AKT_TIMEOUT_MS = 8000;
 async function fetchAktualne(){
   let missing = 0;
   const urls = aktUrls();
   for(const u of urls){
     try{
       const ctrl = new AbortController();
-      const stopka = setTimeout(()=>ctrl.abort(), 8000);
+      const stopka = setTimeout(()=>ctrl.abort(), AKT_TIMEOUT_MS);
       const r = await fetch(u + '?t=' + Date.now(), {cache:'no-store', signal:ctrl.signal});
       clearTimeout(stopka);
       if(r.status === 404){ missing++; continue; }
@@ -3934,11 +3938,8 @@ function aktPurge(){
   if(gone.length) aktRenumber();
   return gone;
 }
-function aktDownload(obj, name){
-  const blob = new Blob([JSON.stringify(obj, null, 1)], {type:'application/json'});
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob); a.download = name; a.click();
-}
+// Aktuálne sa sťahujú s odsadením 1 (menší súbor) — tak ako doteraz.
+function aktDownload(obj, name){ stiahniJson(obj, name, 1); }
 // Pri prihlásení: VŽDY čerstvý aktualne.json zo servera (nie z pamäte prehliadača),
 // aby sa neprepísalo, čo bolo zadané inde (napr. z mobilu).
 function aktAdminLoad(){
@@ -3971,7 +3972,7 @@ function aktAdminLoad(){
         ? 'aktualne.json na webe zatiaľ nie je — pracuješ s kópiou z tohto prehliadača (v'+draft.version+').'
         : '<span class="warn">⚠️ aktualne.json sa nepodarilo stiahnuť z webu</span> — pracuješ s kópiou z tohto prehliadača (v'+draft.version+').');
     } else {
-      // PRECHOD: súbor ešte neexistuje → prevezmi staré pole "aktualne" z data.json
+      // súbor nie je / nestiahol sa → prevezmi zálohu "aktualne", ktorú do data.json/BOOT vložil generátor
       const old = (DB && Array.isArray(DB.aktualne)) ? DB.aktualne : (BOOT_AKT || []);
       take = {version:0, items:aktFromOld(old), rev:Date.now(), dirty:old.length>0};
       notes.push(srv.status === 'missing'
@@ -4298,18 +4299,6 @@ async function publishAkt(){
     renderAktualne(); renderAktList();
   } finally { _aktPubBusy = false; }
 }
-// Import starého data.json/zálohy s poľom "aktualne" → ponuka prevziať do Aktuálnych
-async function aktOfferImport(arr){
-  if(!Array.isArray(arr) || !arr.length) return;
-  await (AKT_ADMIN_P || aktAdminLoad());
-  const nove = aktFromOld(arr).filter(a=>!AKT.items.some(x=>x.id===a.id || x.url===a.url));
-  if(!nove.length || !aktCanEdit()) return;
-  if(!confirm('Importovaný súbor obsahuje staré pole „aktualne“ — '+nove.length+' položiek, ktoré v Aktuálnych ešte nie sú.\n\nPrevziať ich do Aktuálnych (pridajú sa na koniec)?\nPotom klikni 🚀 Publikovať Aktuálne.')) return;
-  const arr2 = aktSorted(AKT.items);
-  nove.forEach(a=>arr2.push(a));
-  AKT.items = arr2;
-  aktSave();
-}
 
 // ============================================================
 // AKTUÁLNE – RENDER
@@ -4398,11 +4387,7 @@ function initApp(){
   // návštevník videl okno o plnej pamäti. Doplnené slugy sú deterministické, takže
   // stačia v pamäti; admin ich uloží najbližšou úpravou, do data.json ich dáva skript.)
   ensureSlugs();
-  if(DB.title){
-    document.getElementById('siteSub').textContent =
-      (IS_EN ? (DB.subtitle_en||DB.subtitle) : DB.subtitle)||'';
-    document.title = HOME_TITLE || (IS_EN ? (DB.title_en||DB.title) : DB.title);
-  }
+  nastavTitulok('start');
   initFromUrl(); // otvor priečinok podľa adresy (/hokej/sutaze/ alebo staré #/hokej/sutaze)
   render();
   renderAktualne();
@@ -4439,11 +4424,7 @@ if(BOOT && BOOT.nodes && PATH_ROUTING && !(location.hash && location.hash.indexO
     DB = BOOT; DB._partial = true;
     idForPath(); // nastaví CESTA_CELA
     if(CESTA_CELA){
-      if(DB.title){
-        document.getElementById('siteSub').textContent =
-          (IS_EN ? (DB.subtitle_en||DB.subtitle) : DB.subtitle)||'';
-        document.title = HOME_TITLE || (IS_EN ? (DB.title_en||DB.title) : DB.title);
-      }
+      nastavTitulok('start');
       initFromUrl();
       render();
       renderAktualne();
@@ -4479,7 +4460,7 @@ function afterLoad(opakovanie){
   ensureSlugs();
   // bod 15 (Zadanie 31): dáta prevzaté z úložiska prehliadača (rozpracované úpravy
   // admina) môžu mať iný podnadpis/názov než balík BOOT — hlavičku nastav z DB
-  if(FROM_STORE) setHeadFromDB(true);
+  if(FROM_STORE) nastavTitulok('stranka');
   const cur = curId ? DB.nodes.find(x=>x.id===curId) : null;
   const q = document.getElementById('srch').value.trim();
   const hlboko = cur && cur.parentId !== null;
