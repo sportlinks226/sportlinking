@@ -45,6 +45,12 @@ okienka Tab preskočí, odkazy v banneroch majú čitateľný názov; o) ikonky 
 majú klikaciu plochu aspoň 24×24 px na počítači aj mobile a názov klubu ostáva hlavnou linkou;
 p) na mobile sa hlavička po posune nadol zbalí (lupa ≥ 44×44 px, obsah neposkočí) a hore rozbalí.
 
+Zadanie 35 (5.11.2026, previerka 3, bod 41): f) Banner overí aj obsah slotov — reklama partnera
+(okienko s kódom ban.tipsport.sk) sa len označí (v teste blokovaná, žiadne falošné zobrazenie),
+VLASTNÝ banner musí mať odkaz (nie „#") a obrázok (načítaný) alebo text. k) čaká na stiahnutie
+aktualne.json až 15 s; appka, ktorá kód pre aktualne.json má, ale súbor nestiahne = ❌ (lišta
+Aktuálne by chýbala); stará appka bez aktualne.json = ✅ s poznámkou (nie je to chyba webu).
+
 Spustenie (lokálne):  python testy/test_webu.py --url https://sportlinky.sk/
 Voliteľne:  --od 2026-11-02T02:30:00Z  (počkaj, kým živý web nemá novšiu verziu)
             --vystup test-vystup        (priečinok na snímky a zoznam chýb)
@@ -108,6 +114,7 @@ SPORT_NAZVY = {
 }
 DEPLOY_MAX_S = 600          # čakanie na obnovenie GitHub Pages (max. 10 min, potom ❌)
 DEPLOY_KROK_S = 20          # … skúšať každých 20 s
+AKT_CAKANIE_S = 15          # k) max. čakanie, kým appka stiahne (podstrčený) aktualne.json
 
 
 class Zlyhanie(Exception):
@@ -360,7 +367,7 @@ class Test:
         try:
             data = json.loads(text)
         except ValueError as e:
-            raise Zlyhanie(f"data.json nie je platný JSON ({e})")
+            raise Zlyhanie(f"data.json nie je platný JSON ({e})") from e
         verzia = data.get("version")
         if not isinstance(verzia, int) or verzia <= 0:
             raise Zlyhanie(f"data.json nemá platnú verziu ({verzia!r})")
@@ -490,7 +497,7 @@ class Test:
                 vysledok.wait_for(state="visible")
             except Exception:
                 self.snimka(page, "4-hladanie-chyba")
-                raise Zlyhanie(f"hľadanie „{hladany}“ neukázalo výsledok s týmto názvom")
+                raise Zlyhanie(f"hľadanie „{hladany}“ neukázalo výsledok s týmto názvom") from None
             self.snimka(page, "4-hladanie-vysledky")
             ciel = urllib.parse.urlsplit(vysledok.get_attribute("href") or "").path
             vysledok.click()
@@ -533,6 +540,21 @@ class Test:
         return "ok", "390×844: " + ", ".join(popis)
 
     # ------------------------------------------------ f) banner
+    # Zadanie 35 (previerka 3, bod 41): okrem kontajnera aj obsah slotov. Reklama partnera
+    # (okienko <iframe> s kódom ban.tipsport.sk) sa NEnačíta — doména je blokovaná, takže
+    # žiadne falošné zobrazenie; len sa označí. VLASTNÝ banner (obrázok alebo HTML bez
+    # skriptu, napr. EN „Live This Week") musí mať odkaz (nie „#") a obrázok alebo text.
+    BANNER_JS = """() => [1, 2].map(n => {
+      const el = document.getElementById(n === 1 ? 'bannerSlot' : 'bannerSlot2');
+      if(!el) return {n: n, chyba: true};
+      const a = el.querySelector('a[href]'), img = el.querySelector('img');
+      return {n: n, bid: el.dataset.bid || '', partner: !!el.querySelector('iframe'),
+              prazdny: !!el.querySelector('.banner-placeholder'), skryty: getComputedStyle(el).display === 'none',
+              href: a ? a.getAttribute('href') : null,
+              img: img ? {src: img.getAttribute('src') || '', ok: img.complete && img.naturalWidth > 0} : null,
+              svg: !!el.querySelector('svg'), text: (el.innerText || '').trim().slice(0, 60)};
+    })"""
+
     def banner(self, pokus):
         ctx = self.kontext()
         try:
@@ -541,9 +563,39 @@ class Test:
             self.cakaj_na_appku(page)
             if page.locator("#bannerSlot").count() == 0:
                 raise Zlyhanie("na domove chýba kontajner pre banner (#bannerSlot)")
+            try:   # obrázok vlastného bannera sa môže ešte sťahovať
+                page.wait_for_function("() => [...document.querySelectorAll('#bannerSlot img, #bannerSlot2 img')]"
+                                       ".every(i => i.complete)", timeout=10_000)
+            except Exception:
+                pass
+            sloty = page.evaluate(self.BANNER_JS)
         finally:
             ctx.close()
-        return "ok", "kontajner pre banner je na stránke (reklamy v teste blokované)"
+        popis, zle = [], []
+        for s in sloty:
+            meno = f"slot {s['n']}"
+            if s.get("chyba"):
+                popis.append(f"{meno}: kontajner chýba")
+            elif s["partner"]:
+                popis.append(f"{meno}: reklama partnera v okienku (v teste blokovaná)")
+            elif s["prazdny"] or not s["bid"]:
+                popis.append(f"{meno}: bez bannera")
+            else:
+                ch = []
+                if not s["href"] or s["href"].strip() == "#":
+                    ch.append(f"odkaz {s['href']!r}")
+                if s["img"] is not None and not s["img"]["ok"]:
+                    ch.append(f"obrázok {s['img']['src']!r} sa nenačítal")
+                if s["img"] is None and not s["svg"] and not s["text"]:
+                    ch.append("nemá obrázok ani text")
+                if ch:
+                    zle.append(f"{meno} (vlastný banner {s['bid']}): " + ", ".join(ch))
+                else:
+                    popis.append(f"{meno}: vlastný banner {s['bid']} — odkaz {s['href']}, "
+                                 + ("obrázok OK" if s["img"] else "obsah OK"))
+        if zle:
+            raise Zlyhanie("; ".join(zle))
+        return "ok", "; ".join(popis) + " (reklamy partnera v teste blokované)"
 
     # ------------------------------------------------ g) admin
     def admin(self, pokus):
@@ -555,7 +607,7 @@ class Test:
                 page.wait_for_selector("#pwScreen.open #pwIn", state="visible")
             except Exception:
                 self.snimka(page, "6-admin-chyba")
-                raise Zlyhanie("/#admin neotvoril prihlasovacie okno")
+                raise Zlyhanie("/#admin neotvoril prihlasovacie okno") from None
             self.snimka(page, "6-admin")
             self.over_chyby(page, "admin")
         finally:
@@ -785,7 +837,7 @@ class Test:
                 try:
                     d = json.loads(text)
                 except ValueError as e:
-                    raise Zlyhanie(f"{u} nie je platný JSON ({e})")
+                    raise Zlyhanie(f"{u} nie je platný JSON ({e})") from e
                 if not isinstance(d, dict) or not isinstance(d.get("items"), list):
                     raise Zlyhanie(f"{u} nemá pole \"items\"")
                 return d["items"], f"{u} (verzia {d.get('version')})"
@@ -830,7 +882,7 @@ class Test:
             zle = [h for h in hrefy if h in skryte]
             if zle:
                 raise Zlyhanie(f"na lište je skrytá položka (vypnutá/naplánovaná/skončená): {zle}")
-            for a, k in zip(vid, karty):
+            for a, k in zip(vid, karty, strict=True):   # dĺžky sedia (hrefy == cakane vyššie)
                 if popis(a) and k["title"] != popis(a):
                     raise Zlyhanie(f"karta {k['text']}: bublina „{k['title']}“ ≠ popis „{popis(a)}“")
             if any(re.search(r"\bLIVE\b", k["text"]) for k in karty):
@@ -865,13 +917,24 @@ class Test:
             page.route("**/aktualne.json*", podstrc)
             page.goto(self.base, wait_until="load")
             self.cakaj_na_appku(page)
-            page.wait_for_timeout(3000)
+            # Zadanie 35 (previerka 3, bod 41): namiesto pevných 3 s čaká na stiahnutie
+            # aktualne.json až AKT_CAKANIE_S (pomalý web / sieť nesmie dať falošný výsledok)
+            koniec = time.time() + AKT_CAKANIE_S
+            while not ziadosti and time.time() < koniec:
+                page.wait_for_timeout(250)
             if not ziadosti:
+                if "aktualne.json" in text:
+                    # appka kód pre aktualne.json MÁ, ale súbor nestiahla → lišta Aktuálne
+                    # by na webe chýbala (skutočná chyba; kontrola sa ešte raz zopakuje)
+                    raise Zlyhanie(f"appka do {AKT_CAKANIE_S} s nestiahla aktualne.json (podstrčený súbor) — "
+                                   "lišta Aktuálne by na webe chýbala")
                 # stará appka (pred Zadaním 16a) aktualne.json ešte nesťahuje — napr. test
-                # pull requestu proti živému webu pred zlúčením
+                # pull requestu proti staršiemu živému webu. Nie je to chyba webu → bez ⚠️.
                 popis_info.insert(0, f"zdroj {zdroj}: {len(items)} položiek, viditeľných {len(cakane)}, na lište {len(cakane)}")
-                popis_info.append("⚠️ appka na webe ešte nesťahuje aktualne.json (stará verzia) — test s podstrčeným súborom preskočený")
-                return "warn", "; ".join(popis_info)
+                popis_info.append("appka na webe je staršia verzia bez aktualne.json — test s podstrčeným súborom "
+                                  "preskočený (nie je to chyba)")
+                return stav, "; ".join(popis_info)
+            page.wait_for_timeout(500)
             page.wait_for_function("() => [...document.querySelectorAll('#aktualneScroll .akt-card')]"
                                    ".some(e => (e.getAttribute('href')||'').indexOf('test.invalid') >= 0)")
             page.wait_for_timeout(500)

@@ -1,0 +1,47 @@
+# RÝCHLE TESTY KÓDU — bez prehliadača a bez živého webu (pár desiatok sekúnd).
+#   - testy/test_escapovanie.py: vygeneruje web zo ZLÝCH dát (XSS skúška, previerka 3,
+#     bod 41) pre SK aj EN a overí, že výstup je escapovaný a zlé adresy sú „#".
+#     Dáta: data.json z repozitára; kde nie je (EN repozitár), stiahne sa zo sportlinky.sk.
+#   - testy/test_strazca.py: test strážcu liniek (len ak je v repozitári strazca_liniek.py).
+# Beží pri pull requeste alebo pushi do main, ktorý mení generátor, appku alebo testy,
+# a ručne (Actions → „Rýchle testy" → Run workflow). Nič nemení ani necommituje.
+# Súbor je ROVNAKÝ v sport-linky aj sportlinking.
+name: Rýchle testy
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths: [generator.py, index.html, strazca_liniek.py, testy/**, .github/workflows/test-rychle.yml]
+  push:
+    branches: [main]
+    paths: [generator.py, index.html, strazca_liniek.py, testy/**, .github/workflows/test-rychle.yml]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: test-rychle-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Test escapovania (XSS) generátora — SK aj EN
+        run: python testy/test_escapovanie.py
+
+      - name: Test strážcu liniek
+        if: ${{ !cancelled() }}     # beží, aj keď test escapovania zlyhal
+        run: |
+          if [ -f strazca_liniek.py ] && [ -f testy/test_strazca.py ]; then
+            python testy/test_strazca.py
+          else
+            echo "Strážca liniek v tomto repozitári nie je — test preskočený."
+          fi
