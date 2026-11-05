@@ -6,8 +6,8 @@ Spúšťa ho .github/workflows/test-hlbkovy.yml každé ráno (05:30 UTC, po no�
 buildoch) alebo ručne. Na rozdiel od testu po nasadení (testy/test_webu.py, skúša
 pár stránok v prehliadači) prejde CELÝ web: všetky adresy zo sitemap.xml, ich
 titulky, canonical a hreflang, páry SK ↔ EN, robots.txt, verziu dát, presmerovania,
-ikonky a vlajky — a porovná adresy a titulky, ktoré vyrába appka (index.html),
-s tými od generátora (generator.py). Nič nemení — web ani súbory v repozitári.
+ikonky a vlajky — a porovná adresy, titulky a obsah stránok (karty v poradí), ktoré
+vyrába appka (index.html), s tými od generátora (generator.py). Nič nemení — web ani súbory v repozitári.
 
 Jazyk webu sa nezisťuje z textov, ale zo štruktúry (<html lang>, hreflang),
 takže ten istý súbor funguje na SK aj EN webe (Zadanie 24, body 20 a 15).
@@ -40,6 +40,19 @@ KONTROLY
      porovnanie so sitemap.xml a <title> statických stránok — rozdiel = ❌.
      Stránky, ktoré generátor zámerne vynecháva (prázdne priečinky, enOnly /
      en:false, Aktuálne bez položiek), sa nehlásia — len ich počet.
+  h) Obsah stránok appka ↔ statika (previerka 3, bod 41): pre VŠETKY stránky priečinkov
+     zoznam a PORADIE kariet — appka (tileKids: priečinky, potom linky — tak ich kreslí
+     renderLevel) proti kartám statickej stránky. Statické karty nemajú id, párujú sa
+     podľa poradia: karta priečinka = adresa jeho stránky, karta linky = adresa linky
+     (safeUrl / safe_url). Porovnáva sa ZOZNAM v poradí (nie množina), takže duplicitné
+     linky v jednom priečinku nič nepokazia. Stránky sa znova nesťahujú (berú sa
+     z kontroly a). Pri odhade nad 10 min len náhodná vzorka 200 stránok. Rozdiel = ❌;
+     výnimka: stránka Aktuálne (Live This Week) — statické HTML je z nočného buildu,
+     appka počíta s dnešným dátumom (položka mohla medzitým začať/skončiť) → len ⚠️.
+     Zámerné rozdiely sa nehlásia, lebo ich robia obe strany rovnako: enOnly / en:false
+     (skryté v danom jazyku), prázdne priečinky (bez karty aj bez stránky), Aktuálne bez
+     položiek (stránka nie je). Domov sa neporovnáva (dlaždice, lišta Aktuálne s „+N ›",
+     bannery) — ten kontroluje test_webu.py.
 
 Spustenie (lokálne):  python testy/test_hlbkovy.py --url https://sportlinky.sk/
 Voliteľne:  --vystup test-hlbkovy-vystup   (priečinok na zoznam chýb)
@@ -49,6 +62,7 @@ z premennej GITHUB_STEP_SUMMARY (stránka behu v Actions).
 """
 
 import argparse
+import collections
 import html
 import json
 import os
@@ -78,6 +92,9 @@ TIMEOUT_S = 30              # max. čas na jednu adresu
 MAX_VYPIS = 30              # v zhrnutí sa vypíše najviac toľko chýb jednej kontroly
 PARY_MAX_S = 600            # páry SK ↔ EN: ak by trvali dlhšie (odhad), len vzorka …
 PARY_VZORKA = 200           # … s toľkými stránkami
+OBSAH_MAX_S = 600           # h) obsah appka ↔ statika: ak by trval dlhšie (odhad), len vzorka …
+OBSAH_VZORKA = 200          # … s toľkými stránkami
+OBSAH_DAVKA = 100           # h) toľko stránok naraz vypočíta appka v prehliadači
 IKONY_VZORKA = 200          # náhodných webov (hostov) pre kontrolu ikoniek
 VLAJKY_VZORKA = 30          # náhodných vlajok
 SK_MASTER = "https://sportlinky.sk/"    # hlavná kópia dát (EN web si berie data-full.json odtiaľto)
@@ -195,6 +212,22 @@ def id_stranky(text):
         return None
 
 
+def karty_stranky(text, url):
+    """h) Karty statickej stránky v poradí: ("f", cesta stránky priečinka) alebo
+    ("l", adresa linky). Bez obsahu <script> (tam sú len texty kódu)."""
+    bez = re.sub(r"<script\b.*?</script>", "", text, flags=re.S | re.I)
+    karty = []
+    for tag in re.findall(r'<a class="card"[^>]*>', bez):
+        a = atributy(tag)
+        href = a.get("href", "")
+        if a.get("target") == "_blank":
+            karty.append(("l", href))
+        else:
+            karty.append(("f", urllib.parse.unquote(urllib.parse.urlsplit(
+                urllib.parse.urljoin(url, href)).path)))
+    return karty
+
+
 def pekne(n):
     return f"{n:,}".replace(",", " ")
 
@@ -282,7 +315,7 @@ class Test:
         canonical, hreflang = hlavicka_stranky(text)
         return {"kod": 200, "title": titulok_z_html(text), "canonical": canonical,
                 "hreflang": hreflang, "id": id_stranky(text),
-                "vlajky": set(VLAJKA_RE.findall(text))}
+                "vlajky": set(VLAJKA_RE.findall(text)), "karty": karty_stranky(text, url)}
 
     def sitemap(self, pokus):
         kod, _, text = stiahni(self.base + "sitemap.xml", cache_bust=True)
@@ -291,7 +324,7 @@ class Test:
         try:
             koren = ET.fromstring(text.encode("utf-8"))
         except ET.ParseError as e:
-            raise Zlyhanie(f"sitemap.xml nie je platné XML ({e})")
+            raise Zlyhanie(f"sitemap.xml nie je platné XML ({e})") from e
         if koren.tag != SM_NS + "urlset":
             raise Zlyhanie(f"sitemap.xml nemá koreň <urlset> ({koren.tag})")
         adresy = [(e.text or "").strip() for e in koren.iter(SM_NS + "loc")]
@@ -315,13 +348,13 @@ class Test:
             self.zoznam("a) Adresy s diakritikou v sitemap.xml (slug v data.json — len upozornenie)", diakritika)
         # všetky adresy — 8 naraz; neúspešná ešte raz (po krátkej pauze)
         t0 = time.time()
-        vysl = dict(zip(adresy, self.paralelne(self.nacitaj_stranku, adresy)))
+        vysl = dict(zip(adresy, self.paralelne(self.nacitaj_stranku, adresy), strict=True))
         trvanie = time.time() - t0
         self.cas_stranky = trvanie / max(1, len(adresy))
         zle = [u for u, v in vysl.items() if v["kod"] != 200]
         if zle:
             time.sleep(10)
-            vysl.update(zip(zle, self.paralelne(self.nacitaj_stranku, zle)))
+            vysl.update(zip(zle, self.paralelne(self.nacitaj_stranku, zle), strict=True))
         self.stranky = {u: v for u, v in vysl.items() if v["kod"] == 200}
         chybaju = [f"{self.cesta(u)} → " + (f"HTTP {v['kod']}" if v["kod"] else v.get("chyba", "chyba"))
                    for u, v in vysl.items() if v["kod"] != 200]
@@ -450,14 +483,14 @@ class Test:
             try:
                 return json.loads(text).get("version")
             except ValueError as e:
-                raise Zlyhanie(f"{url} nie je platný JSON ({e})")
+                raise Zlyhanie(f"{url} nie je platný JSON ({e})") from e
         if self.lang == "sk":
             cesta = os.environ.get("REPO_DATA_JSON") or "data.json"
             try:
                 with open(cesta, encoding="utf-8") as f:
                     v_repo = json.load(f).get("version")
             except (OSError, ValueError) as e:
-                raise Zlyhanie(f"data.json z repozitára ({cesta}) sa nedá prečítať: {e}")
+                raise Zlyhanie(f"data.json z repozitára ({cesta}) sa nedá prečítať: {e}") from e
             v_web = ver_z_webu(self.base + "data-full.json")
             if v_web != v_repo:
                 return "fail", (f"data-full.json na webe má verziu {v_web}, data.json v repozitári (main) "
@@ -544,12 +577,12 @@ class Test:
                 time.sleep(2)
             return 0, 0
 
-        ik = dict(zip(vyber, self.paralelne(lambda h: skus(f"{self.base}ikony/{h}.png"), vyber)))
+        ik = dict(zip(vyber, self.paralelne(lambda h: skus(f"{self.base}ikony/{h}.png"), vyber), strict=True))
         chybaju = sorted(h for h, (k, _) in ik.items() if k != 200)
         # vlajky: tie, na ktoré odkazujú statické stránky (src aj srcset)
         vsetky = sorted({v for s in self.stranky.values() for v in s.get("vlajky", ())})
         vl_vyber = random.sample(vsetky, min(VLAJKY_VZORKA, len(vsetky)))
-        vl = dict(zip(vl_vyber, self.paralelne(lambda p: skus(urllib.parse.urljoin(self.base, p)), vl_vyber)))
+        vl = dict(zip(vl_vyber, self.paralelne(lambda p: skus(urllib.parse.urljoin(self.base, p)), vl_vyber), strict=True))
         vl_zle = sorted(f"{p} → HTTP {k}" for p, (k, _) in vl.items() if k != 200)
         vl_nahr = sorted(p for p, (k, d) in vl.items() if k == 200 and d < 100)   # priehľadný 1×1
         pct = 100 * len(chybaju) / max(1, len(ik))
@@ -600,9 +633,9 @@ class Test:
       return {nodes: out, mamFix: !!fix, akt: akt, base: BASE_PATH};
     }"""
 
-    def zrkadlo(self, pokus):
-        if not self.stranky:
-            raise Zlyhanie("bez stránok zo sitemap.xml (kontrola a) sa nedá porovnať")
+    def v_appke(self, fn):
+        """Otvorí domov v prehliadači, počká na CELÉ dáta a aktualne.json a zavolá fn(page).
+        Štatistiky a reklamy sú blokované (BLOKOVANE). Vráti výsledok fn."""
         from playwright.sync_api import sync_playwright
         with sync_playwright() as p:
             spustit = {}
@@ -622,15 +655,20 @@ class Test:
                                            " && DB.nodes.length > 100 && !DB._partial", timeout=90_000)
                 except Exception:
                     raise Zlyhanie("appka do 90 s nestiahla celý data.json" +
-                                   (f" (chyby JS: {' | '.join(chyby_js[:3])})" if chyby_js else ""))
-                try:   # aktualne.json (titulok stránky Aktuálne) sa sťahuje zvlášť
+                                   (f" (chyby JS: {' | '.join(chyby_js[:3])})" if chyby_js else "")) from None
+                try:   # aktualne.json (titulok a obsah stránky Aktuálne) sa sťahuje zvlášť
                     page.wait_for_load_state("networkidle", timeout=20_000)
                 except Exception:
                     pass
                 page.wait_for_timeout(1500)
-                app = page.evaluate(self.APP_JS)
+                return fn(page)
             finally:
                 browser.close()
+
+    def zrkadlo(self, pokus):
+        if not self.stranky:
+            raise Zlyhanie("bez stránok zo sitemap.xml (kontrola a) sa nedá porovnať")
+        app = self.v_appke(lambda page: page.evaluate(self.APP_JS))
         # generátor: stránky zo sitemapy — id priečinka (pageBoot), adresa, statický titulok
         domov = self.base
         gen = {}            # id → (cesta, titulok)
@@ -695,6 +733,104 @@ class Test:
             return "warn", detail + f"; ⚠️ bez mapy _slugFix by appka mala inú adresu pri {len(bezfix)} priečinkoch"
         return "ok", detail
 
+    # ------------------------------------------------ h) obsah stránok appka ↔ statika
+    # Beží V PREHLIADAČI pre dávku id priečinkov: karty tak, ako ich appka ukáže návštevníkovi
+    # (tileKids → renderLevel: najprv priečinky, potom linky; Aktuálne = liveWeekLinks).
+    # Kľúč karty: priečinok = urlForId (adresa jeho stránky), linka = safeUrl(url).
+    OBSAH_JS = """(ids) => {
+      const out = {};
+      for(const id of ids){
+        const n = nodeById(id);
+        if(!n){ out[id] = null; continue; }
+        const kids = tileKids(id);
+        const k = kids.filter(x => x.type === 'folder').concat(kids.filter(x => x.type === 'link'));
+        out[id] = {name: nName(n), live: id === LIVE_ID,
+                   karty: k.map(x => [x.type === 'folder' ? 'f' : 'l', x.id, nName(x),
+                                      x.type === 'folder' ? urlForId(x.id) : safeUrl(x.url)])};
+      }
+      return out;
+    }"""
+
+    def obsah(self, pokus):
+        if not self.stranky:
+            raise Zlyhanie("bez stránok zo sitemap.xml (kontrola a) sa nedá porovnať")
+        # statika: stránky so známym id priečinka (pageBoot) — adresa, karty
+        stat = {}
+        for u in self.adresy:
+            s = self.stranky.get(u)
+            if s and u != self.base and s.get("id") and s.get("karty") is not None:
+                stat.setdefault(s["id"], (self.cesta(u), s["karty"]))
+        ids = list(stat)
+        info = {}
+
+        def porovnaj(page):
+            t0 = time.time()
+            prva = page.evaluate(self.OBSAH_JS, ids[:OBSAH_DAVKA])
+            trv = time.time() - t0
+            odhad = trv * len(ids) / max(1, min(len(ids), OBSAH_DAVKA))
+            vzorka = len(ids) > OBSAH_VZORKA and odhad > OBSAH_MAX_S
+            zvysok = ids[OBSAH_DAVKA:]
+            if vzorka:
+                zvysok = random.sample(zvysok, max(0, OBSAH_VZORKA - len(prva)))
+            app = dict(prva)
+            for i in range(0, len(zvysok), OBSAH_DAVKA):
+                app.update(page.evaluate(self.OBSAH_JS, zvysok[i:i + OBSAH_DAVKA]))
+            info.update(odhad=odhad, vzorka=vzorka, cas=time.time() - t0)
+            return app
+
+        app = self.v_appke(porovnaj)
+        rozdiely, live_rozdiely, zhoda, kariet = [], [], 0, 0
+        for fid, a in app.items():
+            cesta, karty_s = stat[fid]
+            if a is None:
+                rozdiely.append(f"{fid} {cesta}: statická stránka je, appka taký priečinok nepozná")
+                continue
+            # adresy v appke aj statike porovnávať v rovnakom tvare (diakritika, %C3%A1…)
+            karty_a = [(t, urllib.parse.unquote(k) if t == "f" else k) for t, _, _, k in a["karty"]]
+            kariet += len(karty_a)
+            if karty_a == karty_s:
+                zhoda += 1
+                continue
+            ciel = live_rozdiely if a["live"] else rozdiely
+            ciel.append(f"{fid} „{a['name']}“ {cesta}: " + self.rozdiel_kariet(a["karty"], karty_a, karty_s))
+        self.zoznam("h) Obsah stránok: karty appky ≠ karty statickej stránky", rozdiely)
+        self.zoznam("h) Stránka Aktuálne: karty appky ≠ statika (statika je z nočného buildu) — len upozornenie",
+                    live_rozdiely)
+        rozsah = (f"náhodná vzorka {len(app)} z {len(ids)} stránok (všetky by trvali ~{info['odhad'] / 60:.0f} min)"
+                  if info["vzorka"] else f"všetkých {len(app)} stránok")
+        self.info.append(f"**Obsah appka ↔ statika:** {rozsah}, {pekne(kariet)} kariet, "
+                         f"porovnanie v prehliadači {info['cas']:.0f} s; zhodných stránok {pekne(zhoda)}")
+        detail = (f"{rozsah}: zhoda {zhoda}, rozdielov {len(rozdiely) + len(live_rozdiely)}"
+                  + (" (vzorka)" if info["vzorka"] else ""))
+        if rozdiely:
+            return "fail", detail
+        if live_rozdiely:
+            return "warn", detail + " — len stránka Aktuálne (statika z nočného buildu, appka podľa dnešného dátumu)"
+        return "ok", detail
+
+    @staticmethod
+    def rozdiel_kariet(karty_app, a, s):
+        """Čitateľný popis prvého rozdielu dvoch zoznamov kariet (v poradí)."""
+        def popis(i, zoznam):
+            if i >= len(zoznam):
+                return "(nič)"
+            t, k = zoznam[i]
+            return ("priečinok " if t == "f" else "linka ") + k
+        if len(a) != len(s) or sorted(a) != sorted(s):
+            # rozdiel s počtom výskytov (duplicitná linka v priečinku sa ráta 2×)
+            chyba_a = list((collections.Counter(a) - collections.Counter(s)).elements())[:3]
+            chyba_s = list((collections.Counter(s) - collections.Counter(a)).elements())[:3]
+            text = f"kariet appka {len(a)} ≠ statika {len(s)}"
+            if chyba_a:
+                text += "; len v appke: " + ", ".join(k for _, k in chyba_a)
+            if chyba_s:
+                text += "; len v statike: " + ", ".join(k for _, k in chyba_s)
+            return text
+        i = next(i for i, (x, y) in enumerate(zip(a, s, strict=True)) if x != y)
+        meno = f"{karty_app[i][1]} „{karty_app[i][2]}“"
+        return (f"iné PORADIE od karty č. {i + 1}: appka {meno} = {popis(i, a)}, statika {popis(i, s)} "
+                f"(appka [{', '.join(x[2] for x in karty_app[i:i + 4])}…])")
+
     # ------------------------------------------------ hlavný beh
     def spusti(self):
         for pokus in (1, 2):
@@ -714,6 +850,7 @@ class Test:
         self.kontrola("e) Presmerovania http→https, www→bez www", self.presmerovania)
         self.kontrola("f) Ikonky /ikony/ a vlajky /vlajky/", self.ikony_vlajky)
         self.kontrola("g) Appka ↔ generátor: adresy a titulky všetkých stránok", self.zrkadlo)
+        self.kontrola("h) Obsah stránok appka ↔ statika: zoznam a poradie kariet", self.obsah)
 
     def zhrnutie(self, trvanie):
         ikona = {"ok": "✅", "warn": "⚠️", "fail": "❌"}
