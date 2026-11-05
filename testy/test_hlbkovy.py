@@ -80,12 +80,9 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 
 # ---------------------------------------------------------------- nastavenia
-UA_PC = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-         "(KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36")
-X_TEST = {"X-Test": "sportlinky-test"}   # podľa tejto hlavičky sa dá test odlíšiť od návštevníkov
-# Štatistiky a reklamy sa v prehliadači BLOKUJÚ (žiadne falošné návštevy ani zobrazenia).
-BLOKOVANE = ("goatcounter.com", "zgo.at", "googletagmanager.com",
-             "google-analytics.com", "ban.tipsport.sk")
+# UA_PC, X_TEST, BLOKOVANE (štatistiky a reklamy sa v teste BLOKUJÚ — žiadne falošné
+# návštevy ani zobrazenia reklám), Zlyhanie, titulok_z_html, meta_z_html: testy/_spolocne.py
+from _spolocne import BLOKOVANE, UA_PC, X_TEST, Zlyhanie, meta_z_html, titulok_z_html   # spoločné (Zadanie 36)
 
 NARAZ = 8                   # toľko stránok sa sťahuje naraz (slušne, nie záťažový test)
 TIMEOUT_S = 30              # max. čas na jednu adresu
@@ -104,10 +101,6 @@ SOCIAL_FAV = re.compile(r'(^|\.)(facebook\.com|fb\.com|instagram\.com|x\.com|twi
 NO_FAVICON_HOSTS = re.compile(r'(^|\.)(vereine\.oefb\.at|vereine\.fussballoesterreich\.at)$')
 SAFE_HOST = re.compile(r'^[a-z0-9](?:[a-z0-9-]{0,62})(?:\.[a-z0-9-]{1,63})*$')
 VLAJKA_RE = re.compile(r'[^"\s,]*/vlajky/\d+x\d+/[a-z0-9_-]+\.png')
-
-
-class Zlyhanie(Exception):
-    """Kontrola neprešla (text = vysvetlenie pre zhrnutie)."""
 
 
 # ---------------------------------------------------------------- pomocníci
@@ -168,16 +161,6 @@ def host_z_url(url):
         except UnicodeError:
             return ""
     return h
-
-
-def titulok_z_html(text):
-    m = re.search(r"<title[^>]*>(.*?)</title>", text, re.S | re.I)
-    return html.unescape(m.group(1)).strip() if m else ""
-
-
-def meta_z_html(text, prop):
-    m = re.search(r'<meta[^>]+property="%s"[^>]+content="([^"]*)"' % re.escape(prop), text)
-    return html.unescape(m.group(1)).strip() if m else ""
 
 
 def atributy(tag):

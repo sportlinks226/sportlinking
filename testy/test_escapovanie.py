@@ -23,6 +23,11 @@ TEST ESCAPOVANIA (XSS) GENERÁTORA — bez prehliadača, bez zmeny repozitára.
        d) škodlivé texty sú na stránke ako TEXT (escapované, nie zmazané) — H1,
           <title>, karty liniek, Aktuálne, promo blok;
        e) priečinok so slugom „../.." nevytvoril súbor mimo výstupného priečinka.
+       f) SLUG Z DÁT (Zadanie 36): priečinky so slugom s „../", „?" alebo „<" dostanú
+          NÁHRADNÝ slug z názvu (bez nebezpečných znakov) a generátor vypíše VAROVANIE;
+          slug s diakritikou („jemenská-liga-test") ostane PRESNE taký, aký je v dátach.
+          Náhradný slug sa porovná s nodeSlugBase() z index.html (spustí sa v Node.js —
+          appka a generátor musia dať rovnakú adresu; bez Node.js sa porovnanie preskočí).
 
 Dáta: data.json a aktualne.json z koreňa repozitára; keď tam nie sú (EN repozitár ich
 necommituje), stiahnu sa zo SK webu (data-full.json, aktualne.json). Voliteľne
@@ -49,6 +54,7 @@ import sys
 import tempfile
 import time
 import urllib.request
+import unicodedata
 
 KOREN = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SK_MASTER = "https://sportlinky.sk/"          # hlavná kópia dát (EN repozitár dáta nemá)
@@ -96,7 +102,22 @@ def otrav(d, a):
          "name": EV + " v koreni", "name_en": EV + " in root", "desc": SC,
          "url": "https://example.com/?a=1&b=<x>\"'"},
     ]
-    d["nodes"] = [fx] + linky + nodes
+    # f) Zadanie 36: ďalšie priečinky so zlým slugom (?, <) a jeden s diakritikou (má ostať)
+    slugy = [
+        {"id": "xssf2", "parentId": root["id"], "type": "folder", "order": -99,
+         "name": "Slug s otáznikom", "name_en": "Slug with question mark",
+         "slug": "liga?x=1&y=2", "slug_en": "league?x=1"},
+        {"id": "xssf3", "parentId": root["id"], "type": "folder", "order": -98,
+         "name": "Slug so značkou", "name_en": "Slug with tag",
+         "slug": "a<b>c", "slug_en": "a<b>\"c"},
+        {"id": "xssf4", "parentId": root["id"], "type": "folder", "order": -97,
+         "name": "Diakritika ostáva", "name_en": "Diacritics stay",
+         "slug": "jemenská-liga-test", "slug_en": "yemeni-léague-test"},
+    ]
+    for f in slugy:
+        linky.append({"id": f["id"] + "l", "parentId": f["id"], "type": "link", "order": 0,
+                      "name": f"linka {f['id']}", "url": "https://example.com/", "icon": "⚽"})
+    d["nodes"] = [fx] + slugy + linky + nodes
     d["title"] = f"Športové Linky</title><script>window.__XSS10=1</script>{ZN}"
     d["title_en"] = f"Sportlinking</title><script>window.__XSS10=1</script>{ZN}"
     d["subtitle"] = f"<img src=x onerror=window.__XSS11=1>{ZN}"
@@ -121,7 +142,7 @@ def otrav(d, a):
                           "desc_en": f"\"><img src=x onerror=window.__XSS18=1>{ZN}",
                           "startsAt": "", "endsAt": "", "disabled": False,
                           "addedAt": int(time.time() * 1000)})
-    return fx, linky
+    return fx, linky, slugy
 
 
 # ---------------------------------------------------------------- čítanie HTML
@@ -239,7 +260,60 @@ def build(lang, data, akt, tmp):
     if p.returncode != 0:
         raise RuntimeError(f"generátor ({lang}) skončil chybou {p.returncode}:\n"
                            + (p.stdout[-1500:] + p.stderr[-1500:]))
-    return pracovny, site, time.time() - t0
+    return pracovny, site, time.time() - t0, p.stdout
+
+
+def js_slugy(uzly, lang):
+    """Základné slugy z nodeSlugBase() v index.html (Node.js). None = Node.js nie je."""
+    if not shutil.which("node"):
+        return None
+    with open(os.path.join(KOREN, "index.html"), encoding="utf-8") as f:
+        t = f.read()
+    zac, kon = t.index("function slugify("), t.index("// DUPLICITNÉ SLUGY SÚRODENCOV")
+    skript = ("const IS_EN = " + ("true" if lang == "en" else "false") + ";\n" + t[zac:kon]
+              + "\nconst uzly = JSON.parse(require('fs').readFileSync(0, 'utf8'));"
+              + "\nprocess.stdout.write(JSON.stringify(uzly.map(nodeSlugBase)));")
+    p = subprocess.run(["node", "-e", skript], input=json.dumps(uzly), capture_output=True,
+                       text=True, timeout=120)
+    if p.returncode != 0:
+        raise RuntimeError("Node.js: " + p.stderr[-500:])
+    return json.loads(p.stdout)
+
+
+def over_slugy(lang, site, stdout, fx, slugy):
+    """f) zlé slugy z dát → náhradný slug (+ VAROVANIE), diakritika ostáva."""
+    chyby, info = [], []
+    kluc = "slug_en" if lang == "en" else "slug"
+    stranky = {}                                  # id priečinka → relatívna cesta stránky
+    for kor, _, subory in os.walk(site):
+        if "index.html" in subory:
+            with open(os.path.join(kor, "index.html"), encoding="utf-8") as f:
+                r = Rozbor()
+                r.feed(f.read())
+            i = id_stranky(r)
+            if i:
+                stranky[i] = os.path.relpath(kor, site).replace(os.sep, "/")
+    uzly = [fx] + slugy
+    js = js_slugy(uzly, lang)
+    for n in uzly:
+        cesta = stranky.get(n["id"])
+        if not cesta:
+            chyby.append(f"f) priečinok {n['id']} nemá stránku")
+            continue
+        posledny = unicodedata.normalize("NFC", cesta.split("/")[-1])
+        zly = n["id"] != "xssf4"
+        if zly:
+            if posledny == n[kluc] or re.search(r"[/\\?#&%<>\"' ]|\.\.", posledny):
+                chyby.append(f"f) zlý slug {n[kluc]!r} sa nenahradil: /{cesta}/")
+            if f"VAROVANIE: priečinok {n['id']!r} má v poli {kluc}" not in stdout:
+                chyby.append(f"f) generátor nevypísal VAROVANIE pre zlý slug priečinka {n['id']}")
+        elif posledny != n[kluc]:
+            chyby.append(f"f) slug s diakritikou sa zmenil: {n[kluc]!r} → {posledny!r}")
+        if js is not None and js[uzly.index(n)] != posledny:
+            chyby.append(f"f) appka (nodeSlugBase) {js[uzly.index(n)]!r} ≠ generátor {posledny!r} ({n['id']})")
+    info.append("slugy z dát: zlé → náhradné, diakritika ostala"
+                + ("" if js is not None else " (bez Node.js — appka neporovnaná)"))
+    return chyby, info
 
 
 def over_web(lang, pracovny, site, fx, linky):
@@ -317,12 +391,15 @@ def main():
     try:
         for lang in a.jazyky.split(","):
             data, akt = copy.deepcopy(data0), copy.deepcopy(akt0)
-            fx, linky = otrav(data, akt)
+            fx, linky, slugy = otrav(data, akt)
             jtmp = os.path.join(tmp, "beh-" + lang)
             os.makedirs(jtmp)
             try:
-                pracovny, site, trv = build(lang, data, akt, jtmp)
+                pracovny, site, trv, vypis = build(lang, data, akt, jtmp)
                 chyby, info = over_web(lang, pracovny, site, fx, linky)
+                ch2, info2 = over_slugy(lang, site, vypis, fx, slugy)
+                chyby += ch2
+                info += info2
                 info.insert(0, f"build {trv:.1f} s")
             except Exception as e:
                 chyby, info = [f"{type(e).__name__}: {e}"], []

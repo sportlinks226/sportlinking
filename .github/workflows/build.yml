@@ -16,8 +16,10 @@ on:
   push:
     branches: [main]
   schedule:
-    # len POISTKA: denne 4:41 UTC (5:41 v zime, 6:41 v lete u nás), neokrúhla minúta
-    # (o celej hodine je GitHub preťažený). Hlavne EN build spúšťa SK build sám.
+    # len POISTKA: naplánované na 4:41 UTC (5:41 v zime, 6:41 v lete u nás), neokrúhla minúta.
+    # SKUTOČNOSŤ (previerka 3, bod 20): GitHub spúšťa nočné behy o niekoľko hodín
+    # neskôr (história: 4,5–8 h meškanie). Nie je to chyba; presný čas by dal len
+    # externý plánovač. Hlavne EN build spúšťa SK build sám (po každom SK builde).
     - cron: "41 4 * * *"
   # workflow_dispatch MUSÍ ostať — cezeň EN build spúšťa SK build (úloha en-build)
   workflow_dispatch:
@@ -73,8 +75,10 @@ jobs:
       # webu — generátor z nej vloží lištu do statického HTML (Google, návštevník bez
       # JavaScriptu) a priečinok Live This Week; zároveň ide na web ako záloha pre
       # appku (tá si súbor sťahuje priamo zo sportlinky.sk). Keď sa stiahnutie
-      # nepodarí alebo súbor nie je platný JSON, súbor sa zmaže a generátor použije
-      # pole "aktualne" z data.json alebo nič — build kvôli tomu NIKDY nespadne.
+      # nepodarí alebo súbor nie je platný JSON, súbor sa zmaže a Aktuálne budú v tomto
+      # builde prázdne — build kvôli tomu NIKDY nespadne. (Pole "aktualne" v data.json
+      # od Zadania 36 generátor nečíta; vkladá ho len SÁM do odľahčeného data.json
+      # a BOOT ako zálohu pre appku.)
       # aktualne.json sa v tomto repozitári NEcommituje (je v .gitignore).
       # Krok je PRED vlajkami a ikonkami (Zadanie 17): ikony.py berie aj weby položiek
       # Aktuálnych (hosty_z_aktualnych) — bez súboru by ich ikonky na EN webe chýbali.
@@ -86,9 +90,9 @@ jobs:
           curl -fsSL --retry 3 "https://sportlinky.sk/aktualne.json?build=$GITHUB_RUN_ID" -o aktualne.json || rm -f aktualne.json
           if [ -f aktualne.json ]; then
             python -c "import json; d=json.load(open('aktualne.json', encoding='utf-8')); assert isinstance(d.get('items'), list); print('aktualne.json OK, verzia', d.get('version'), ',', len(d['items']), 'položiek')" \
-              || { echo "::warning::aktualne.json nie je platný — použije sa pole z data.json"; rm -f aktualne.json; }
+              || { echo "::warning::aktualne.json nie je platný — Aktuálne budú v tomto builde prázdne"; rm -f aktualne.json; }
           else
-            echo "::warning::aktualne.json sa nepodarilo stiahnuť — použije sa pole z data.json (alebo nič)"
+            echo "::warning::aktualne.json sa nepodarilo stiahnuť — Aktuálne budú v tomto builde prázdne"
           fi
 
       # VLAJKY KRAJÍN (3.11.2026): vlajky sa sťahujú z flagcdn.com LEN tu, na serveri —
@@ -115,7 +119,8 @@ jobs:
       # nemaže). Vlastné ikonky EN webu sa ukladajú do ikony/ v TOMTO repozitári
       # a PRIEBEŽNE (každé ~3 min) sa commitujú „[skip ci]" — commituje sa LEN
       # ikony/, stiahnutý data.json NIE. Limit 12 min — čo nestihne, dotiahne ďalší
-      # build. Obnovujú sa LEN ikonky staršie ako 30 dní (max. 300 za build, bod 9).
+      # build. Obnovujú sa LEN ikonky staršie ako 30 dní (max. 300 za DEŇ, bod 9 + bod 21a
+      # previerky 3 — denné počítadlo v ikony/stav.json, kľúč "obnova").
       # Build kvôli ikonkám NIKDY nespadne (continue-on-error, timeout).
       - name: Stiahni ikonky webov
         continue-on-error: true

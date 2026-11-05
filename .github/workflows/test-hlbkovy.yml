@@ -60,7 +60,7 @@ jobs:
       # prehliadač Chromium z pamäte (cache) — rovnaký kľúč ako v test-webu.yml
       - name: Pamäť prehliadača (cache)
         id: pw-cache
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: ~/.cache/ms-playwright
           key: playwright-chromium-${{ runner.os }}-${{ env.PW_VERSION }}
