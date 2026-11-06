@@ -101,7 +101,7 @@ body.cols-on footer{margin-top:10px}
 .cols{display:flex;gap:8px;align-items:flex-start;overflow-x:auto;overflow-y:hidden;padding-bottom:6px;position:sticky;scroll-behavior:smooth;overscroll-behavior:contain}
 @media (prefers-reduced-motion: reduce){.cols{scroll-behavior:auto}}
 @keyframes hdrIn{from{opacity:0}to{opacity:1}}
-@media (prefers-reduced-motion: reduce){.h-lupa{animation:none!important}}
+@media (prefers-reduced-motion: reduce){.h-lupa,.h-fav{animation:none!important}}
 .col{flex:0 0 var(--colw,220px);width:var(--colw,220px);max-height:100%;min-height:140px;overflow-y:auto;overscroll-behavior:contain;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:6px}
 .col-title{font-size:.66rem;letter-spacing:1px;text-transform:uppercase;color:var(--muted);padding:6px 10px 4px;position:sticky;top:0;background:var(--surface);z-index:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .cit{display:flex;align-items:center;gap:7px;padding:7px 8px;border-radius:8px;cursor:pointer;font-size:.85rem;line-height:1.2;border:1px solid transparent;text-decoration:none;color:inherit}
@@ -352,6 +352,79 @@ a.akt-head[href]:hover #aktHeadTxt{text-decoration:underline}
 .card-link .socs a.si:first-child::before{top:0;bottom:-4px}
 .card-link .socs a.si:last-child::before{top:-4px;bottom:0}
 .admin-mode .card-link .socs{display:none}
+/* ===== OBĽÚBENÉ ★ (Zadanie 39) — hviezdička v ĽAVOM DOLNOM rohu karty linky, POD ikonkou
+   webu (ikonka ostáva zvislo v strede karty). Hviezdička je <button> MIMO odkazu <a>
+   (ako FB/IG) a leží nad ním (z-index) — klik do jej zóny nikdy neotvorí web.
+   Zóna: počítač 40×20 px, dotyk/mobil 44×28 px, vodorovne vycentrovaná pod ikonkou
+   (ikonka x 14–38 px, text začína na 48 px — zóna počítač 6–46 px, mobil 2–46 px). Aby sa zóna zmestila
+   POD ikonku bez prekrytia, má karta s hviezdičkou najmenšiu výšku 2 × zóna + ikonka
+   24 px + rámik 2 px: počítač 66 px, mobil 82 px. Trieda has-star sa dáva pri
+   vykreslení karty (miesto je rezervované, po načítaní obľúbených nič neposkočí). */
+.card-link.has-star{min-height:66px}
+.card-link .star{position:absolute;left:6px;bottom:0;width:40px;height:20px;z-index:2;display:flex;align-items:center;justify-content:center;padding:0;border:0;background:none;color:#6f8396;font-size:15px;line-height:1;cursor:pointer;border-radius:6px;font-family:inherit}
+.star.on{color:#f5c518}
+@media(hover:hover){.card-link .star:hover{color:#f5c518;transform:scale(1.15)}}
+.card-link .star:focus-visible{outline:2px solid #f5c518;outline-offset:-2px}
+.admin-mode .card-link .star{display:none}
+@media(max-width:700px),(hover:none){
+  .card-link.has-star{min-height:82px}
+  .card-link .star{left:2px;width:44px;height:28px;font-size:16px}
+}
+/* tlačidlo „★ 4“ v hlavičke (len keď je niečo uložené) */
+.h-fav{display:flex;align-items:center;gap:5px;flex-shrink:0;height:38px;padding:0 12px;border:1.5px solid var(--border);border-radius:30px;background:var(--surface);color:#f5c518;font-size:.95rem;font-weight:700;line-height:1;cursor:pointer;font-family:inherit}
+.h-fav b{color:var(--text);font-size:.85rem;font-variant-numeric:tabular-nums}
+/* Zadanie 39a3: tlačidlo je vidno vždy — pri 0 sivé „☆ 0“ (farba prázdnej hviezdičky na karte) */
+.h-fav.fav0{color:#6f8396}
+.h-fav.fav0 b{color:var(--muted)}
+.fp-empty{border-top:1px solid var(--border);padding:12px 14px 10px;font-size:.84rem;line-height:1.45;color:var(--muted)}
+.h-fav[hidden],.admin-mode .h-fav{display:none}
+@media(hover:hover){.h-fav:hover{border-color:#f5c518}}
+.h-fav[aria-expanded="true"]{border-color:#f5c518;background:var(--surface2)}
+/* panel obľúbených pod tlačidlom (počítač ~300 px; mobil cez celú šírku pod hlavičkou) */
+#favPanel{position:fixed;z-index:60;width:300px;max-width:calc(100vw - 16px);background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:0 12px 30px rgba(0,0,0,.5);overflow:auto;padding:6px 0}
+#favPanel[hidden]{display:none}
+.fp-head{display:flex;align-items:center;justify-content:space-between;padding:6px 8px 6px 14px;font-weight:700;font-size:.92rem}
+.fp-x{background:none;border:0;color:var(--muted);font-size:1.3rem;line-height:1;cursor:pointer;width:36px;height:36px;border-radius:8px}
+.fp-x:hover,.fp-x:focus-visible{color:var(--text);background:var(--surface2)}
+.fp-row{display:flex;align-items:center;border-top:1px solid var(--border)}
+.fp-row>a{display:flex;align-items:center;gap:10px;flex:1;min-width:0;padding:8px 4px 8px 14px}
+@media(hover:hover){.fp-row>a:hover{background:var(--surface2)}}
+.fp-row .fav,.fp-row .fav-fb{width:22px;height:22px;flex-shrink:0;border-radius:4px;object-fit:contain;display:flex;align-items:center;justify-content:center;font-size:16px}
+.fp-row .fav.fav-wait{opacity:0}
+.fp-row .fav-fb.fav-sport{filter:grayscale(1);opacity:.55}
+.fp-t{min-width:0;flex:1}
+.fp-n{display:block;font-size:.85rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fp-p{display:block;font-size:.72rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}
+.fp-row .star{flex-shrink:0;width:40px;height:40px;border:0;background:none;font-size:16px;cursor:pointer;border-radius:8px;color:#6f8396;font-family:inherit}
+.fp-row .star.on{color:#f5c518}
+@media(hover:hover){.fp-row .star:hover{background:var(--surface2)}}
+.fp-wait{border-top:1px solid var(--border);padding:8px 14px;font-size:.78rem;color:var(--muted)}
+.fp-all{display:block;border-top:1px solid var(--border);padding:10px 14px;font-size:.85rem;font-weight:600;color:var(--accent-text)}
+@media(hover:hover){.fp-all:hover{background:var(--surface2)}}
+@media(max-width:560px){
+  #favPanel{left:0!important;right:0!important;width:auto;max-width:none;border-radius:0 0 12px 12px;border-left:0;border-right:0}
+  .fp-p{display:none}
+}
+/* tlačidlo v paneli s popisom linky (stĺpce) */
+.col-fav{display:inline-flex;align-items:center;gap:6px;margin-top:10px;background:none;border:1.5px solid var(--border);color:var(--text);border-radius:8px;padding:7px 12px;font-size:.82rem;font-weight:600;cursor:pointer;font-family:inherit}
+.col-fav.on{border-color:#f5c518}
+.col-fav .sg{color:#6f8396;font-size:15px;line-height:1}
+.col-fav.on .sg{color:#f5c518}
+@media(hover:hover){.col-fav:hover{border-color:#f5c518}}
+/* zobrazenie všetkých obľúbených (?oblubene / ?favorites) */
+.fv-group{margin-top:22px}
+.fv-group:first-of-type{margin-top:6px}
+/* Zadanie 39a3: riadok „Hľadaj v obľúbených“ + „✕ Zavrieť obľúbené“ — prilepený pod hlavičkou
+   (top = --hdrH, skutočná výška hlavičky; nastavuje hdrVyska() aj pri zbalení na mobile),
+   plné pozadie, miesto má od prvého vykreslenia (nič neposkočí) */
+.fv-bar{position:sticky;top:var(--hdrH,0px);z-index:40;display:flex;align-items:center;gap:10px;background:var(--bg);padding:8px 0;margin:-8px 0 0}
+.fv-close{margin-left:auto;flex-shrink:0;display:flex;align-items:center;height:38px;padding:0 14px;border:1.5px solid var(--border);border-radius:30px;background:var(--surface);color:var(--text);font-size:.85rem;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap}
+@media(hover:hover){.fv-close:hover{border-color:var(--accent);background:var(--surface2)}}
+.fv-close:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.fv-close .fs{display:none}
+.fv-srch{flex:1;min-width:0;width:100%;max-width:420px;padding:9px 16px;border-radius:30px;border:1.5px solid var(--border);background:var(--surface);color:var(--text);font-size:.88rem;outline:none;-webkit-appearance:none;appearance:none}
+.fv-srch:focus{border-color:#f5c518}
+@media(max-width:560px){.fv-srch{font-size:16px;max-width:none}.fv-close{height:40px;padding:0 12px}.fv-close .fl{display:none}.fv-close .fs{display:inline}}
 
 /* ===== ANIMÁCIA KARIET — jemné vynorenie pri vstupe do sekcie ===== */
 @keyframes cardIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
@@ -564,6 +637,10 @@ button#aktMoreBadge{-webkit-appearance:none;appearance:none;margin:0;border:0;fo
   #breadcrumb{padding:12px 14px 0}
   .h-wordmark{font-size:1.2rem}
   .h-search{flex:1 1 100%;max-width:none;margin:6px 0 0}
+  /* Zadanie 39: ★ v prvom riadku vpravo (vedľa loga), hľadanie pod ním; v zbalenej hlavičke logo + ★ + 🔍 */
+  .h-search{order:3}
+  .h-fav{order:1;margin-left:auto;height:36px}
+  .h-lupa{order:2}
   /* previerka 22.10.2026, bod 9: písmo 16 px — iPhone pri ťuknutí do hľadania nepriblíži stránku */
   .h-search input{font-size:16px}
   /* bod 10: hlavička ostáva prilepená, ale bez podnadpisu a s menším počítadlom (menej miesta) */
@@ -577,6 +654,8 @@ button#aktMoreBadge{-webkit-appearance:none;appearance:none;margin:0;border:0;fo
   body.hdr-min .h-wordmark{font-size:1rem}
   body.hdr-min .h-count,body.hdr-min .h-search{display:none}
   body.hdr-min .h-lupa{display:flex;align-items:center;justify-content:center;position:relative;margin-left:auto;width:44px;height:44px;padding:0;border:0;border-radius:50%;background:transparent;color:var(--text);font-size:20px;line-height:1;cursor:pointer;animation:hdrIn .15s ease-out}
+  body.hdr-min.has-fav .h-lupa{margin-left:4px}
+  body.hdr-min .h-fav{height:40px;animation:hdrIn .15s ease-out}
   /* v hľadaní je text (kurzor už v ňom nie je) — červená bodka na lupe */
   body.hdr-min .h-lupa.has-q::after{content:'';position:absolute;top:9px;right:8px;width:9px;height:9px;border-radius:50%;background:#e84242;box-shadow:0 0 0 2px #0f1923}
   main{padding:16px 12px 100px}
@@ -664,6 +743,7 @@ button#aktMoreBadge{-webkit-appearance:none;appearance:none;margin:0;border:0;fo
   <nav class="h-sports" id="hSports" aria-label="Športy"></nav>
   <button type="button" class="h-lupa" id="hLupa" aria-label="Hľadať" onclick="hdrOpenSearch()">🔍</button>
   <div class="h-search"><input type="search" id="srch" aria-label="Hľadaj v strome" placeholder="🔍  Hľadaj kdekoľvek v strome..." oninput="onSearch()"/></div>
+  <button type="button" class="h-fav fav0" id="hFav" aria-haspopup="dialog" aria-expanded="false" aria-controls="favPanel" aria-label="Obľúbené (0)" title="Obľúbené" onclick="favPanelToggle()"><span id="hFavS" aria-hidden="true">☆</span> <b id="hFavN">0</b></button>
   <div class="vswitch" id="vSwitch" role="group" aria-label="Zobrazenie"><button type="button" data-mode="tiles" class="on" aria-pressed="true" title="Dlaždice" onclick="setViewMode('tiles')">▦ Dlaždice</button><button type="button" data-mode="cols" aria-pressed="false" title="Stĺpce — priečinky sa otvárajú myšou" onclick="setViewMode('cols')">▥ Stĺpce</button></div>
   <button class="btn-admin-tog" id="adminTog" onclick="toggleAdmin()">⚙️ Admin</button>
 </header>
@@ -700,6 +780,7 @@ button#aktMoreBadge{-webkit-appearance:none;appearance:none;margin:0;border:0;fo
 <!-- MAIN -->
 <p id="pathNote" class="path-note" role="status" hidden></p>
 <main id="main" tabindex="-1"></main>
+<div id="favPanel" role="dialog" aria-labelledby="fpTitle" hidden></div>
 <div id="srLive" class="sr-only" aria-live="polite" aria-atomic="true"></div>
 <script>
 // Bod 6 (2.11.2026): generator vkladá do #main dlaždice DOMOVA (pre roboty bez
@@ -1504,6 +1585,7 @@ function initFromUrl(){
     }catch(e){}
   }
   let id = PATH_ROUTING ? idForPath() : null;
+  FAV_VIEW = id === null && favInUrl() && !(location.hash.indexOf('#/') === 0); // Zadanie 39: /?oblubene
   const cestaOk = !PATH_ROUTING || CESTA_CELA; // rozlúštila sa celá cesta z adresy?
   if(id === null && location.hash.indexOf('#/') === 0) id = idForHash(location.hash);
   curId = id;
@@ -1514,7 +1596,7 @@ function initFromUrl(){
   if(PATH_ROUTING){
     // #admin a podobné nehashovacie kotvy zachovaj, #/cestu zahoď (nahradí ju cesta)
     const keep = (location.hash && location.hash.indexOf('#/') !== 0) ? location.hash : '';
-    try{ history.replaceState({curId: id}, '', urlForId(id) + location.search + keep); }catch(e){}
+    try{ history.replaceState(FAV_VIEW ? {curId: id, fav: true} : {curId: id}, '', urlForId(id) + location.search + keep); }catch(e){}
   }else if(id !== null){
     try{ history.replaceState({curId: id}, '', location.hash); }catch(e){}
   }
@@ -1586,6 +1668,8 @@ window.addEventListener('pageshow', function(e){
 let NAVIGOVANE = false; // bod 5: už sa preklikalo v appke (hreflang zo statickej stránky neplatí)
 function navigate(id, fromPopState){
   hdrSet(false); // Zadanie 34: po prekliku plná hlavička
+  favPanelClose(false);
+  if(!fromPopState) FAV_VIEW = false; // pri Späť/Vpred nastavuje popstate
   curId = id;
   NAVIGOVANE = true;
   if(!fromPopState) CESTA_CELA = true; // adresu teraz zapisuje appka — sedí s obrazovkou
@@ -1618,7 +1702,7 @@ function navigate(id, fromPopState){
 // tabindex="-1" = dá sa naň presunúť kurzor skriptom, ale Tab ho nepreskakuje.
 function focusHeading(){
   try{
-    const h = (curId === null) ? document.querySelector('#homeLink .h-wordmark') : document.querySelector('#breadcrumb .bc-h');
+    const h = (curId === null && !FAV_VIEW) ? document.querySelector('#homeLink .h-wordmark') : document.querySelector('#breadcrumb .bc-h');
     if(!h) return;
     h.setAttribute('tabindex', '-1');
     h.focus({preventScroll: true});
@@ -1630,6 +1714,7 @@ window.addEventListener('popstate', function(e){
   clearTimeout(_scrollT); // neskorý zápis posunu z opúšťanej stránky nesmie prepísať tento záznam
   const id = (e.state && e.state.curId !== undefined) ? e.state.curId
            : (PATH_ROUTING ? idForPath() : idForHash(location.hash));
+  FAV_VIEW = id === null && (e.state ? !!e.state.fav : favInUrl()); // Zadanie 39: ?oblubene
   navigate(id, true);
   // bod 1: posun sa vráti až po vykreslení (dlhý zoznam je už v DOM). Stĺpce
   // majú vlastné doladenie polohy (colsAfterNav v navigate) — tam sa nič nemení.
@@ -1867,6 +1952,12 @@ function updateHead(){
     : n ? (nName(n) + ctxStr + (site ? ' — ' + site : '')) : (HOME_TITLE || site || document.title);
   // Bod 10 (previerka 3): počas hľadania titulok „Hľadanie: kosice — Športové Linky“
   const qv = (document.getElementById('srch').value || '').trim();
+  const favT = FAV_VIEW && !qv && !adminMode;
+  if(favT) document.title = '★ ' + FT.fav + (site ? ' — ' + site : '');
+  // Zadanie 39: zobrazenie obľúbených nie je stránka pre Google (noindex)
+  let rb = document.getElementById('favRobots');
+  if(favT && !rb){ rb = document.createElement('meta'); rb.name = 'robots'; rb.id = 'favRobots'; rb.content = 'noindex'; document.head.appendChild(rb); }
+  else if(!favT && rb) rb.remove();
   if(qv) document.title = (IS_EN ? 'Search: ' : 'Hľadanie: ') + qv + (site ? ' — ' + site : '');
   // Bod 5 (previerka 3): hreflang odkazy sú zo statickej stránky, na ktorú človek
   // prišiel. Po prekliku v appke už nesedia — nepárový hreflang je horší než žiadny.
@@ -1915,6 +2006,8 @@ function retryLoad(){
 }
 function render(){
   rebuildChildIndex();
+  favPurge();   // Zadanie 39: zmiznuté linky z obľúbených preč (len pri celých dátach)
+  favHeader();
   updateLinkCount();
   updateHead();
   renderBreadcrumb();
@@ -1925,7 +2018,8 @@ function render(){
   if(aktWrap) aktWrap.style.display = (curId===LIVE_ID && !adminMode) ? 'none' : '';
   const q = document.getElementById('srch').value.trim().toLowerCase();
   // trieda cols-mode sa prepína tu (nie v renderLevel), aby pri hľadaní nezostala (bod 14 analýzy)
-  const colsOn = !q && viewMode==='cols' && colsAllowed();
+  const favOn = FAV_VIEW && !q && !adminMode; // Zadanie 39: všetky obľúbené — vždy ako dlaždice
+  const colsOn = !q && !favOn && viewMode==='cols' && colsAllowed();
   document.getElementById('main').classList.toggle('cols-mode', colsOn);
   document.body.classList.toggle('cols-on', colsOn);
   // Bod 8 (previerka 3, bod 28 previerky 2): adresa neexistuje celá — appka ukazuje
@@ -1940,6 +2034,7 @@ function render(){
     renderSearch(q); return;
   }
   srAnnounce('');
+  if(favOn){ favViewRender(false); return; }
   renderLevel();
 }
 
@@ -1978,9 +2073,12 @@ function renderBreadcrumb(){
     // bod 26: otvorená sekcia je nadpis H1 (čítačky po nadpisoch skáču)
     html += node.id===curId ? `<h1 class="bc-h">${a}</h1>` : a;
   });
+  // Zadanie 39: „Domov › ★ Obľúbené" (nadpis H1)
+  const favBc = FAV_VIEW && curId === null && !adminMode;
+  if(favBc) html = html.replace('bc-item active', 'bc-item') + `<span class="bc-sep">›</span><h1 class="bc-h"><span class="bc-item active">★ ${FT.fav}</span></h1>`;
 
   bc.innerHTML = html;
-  setLogoTag(curId === null ? 'H1' : 'DIV');
+  setLogoTag(curId === null && !favBc ? 'H1' : 'DIV');
 }
 // Bod 26: na domove je H1 logo (názov webu), v sekcii je H1 jej názov v drobčekovej
 // navigácii a logo je obyčajný <div> s tým istým vzhľadom (trieda h-wordmark).
@@ -2088,8 +2186,9 @@ function renderLevel(){
       const liveIcon = curId===LIVE_ID;
       const ligaTag = (n.tag||n.order===-1) ? `<span class="liga-tag">${n.tag?String(n.tag).toUpperCase():(IS_EN?'LEAGUE':'LIGA')}</span>` : ''; // tag:'scores' → SCORES (rýchle linky live výsledkov, 1.11.2026)
       const socs = socHtml(n, host);
+      const star = (!liveIcon && favOk(n)) ? starBtn(n) : ''; // Zadanie 39: ★ (nie Aktuálne, nie admin)
       html += `
-        <div class="card-link${socs?' has-soc':''}">${ligaTag}
+        <div class="card-link${socs?' has-soc':''}${star?' has-star':''}">${ligaTag}
           ${adminBarHtml(n.id, '          ', false, false)}
           <a href="${attrEsc(safeUrl(n.url))}" target="_blank" rel="noopener" title="${attrEsc(nDesc(n))}" ${adminMode?'onclick="return false"':''}>
             ${liveIcon ? `<span class="fav-fb" aria-hidden="true">${attrEsc(n.icon||'🔗')}</span>` : favHtml(n, host)}
@@ -2097,7 +2196,7 @@ function renderLevel(){
               <div class="cl-name">${(!liveIcon && n.icon && !SOCIAL_FAV.test(host) && !NO_FAVICON_HOSTS.test(host) && !/^[a-z]{2}(-[a-z]{2,4})?$/.test(n.icon))?attrEsc(n.icon)+' ':''}${attrEsc(nName(n))}</div>
               <div class="cl-desc">${attrEsc(nDesc(n))}</div>
             </div>
-          </a>${socs}
+          </a>${socs}${star}
         </div>`;
     });
     html += `</div>`;
@@ -2369,7 +2468,7 @@ function colDetailHtml(){
     const host = colHost(h);
     const socs = socHtml(h, host);
     return `<h3>${iconText(renderIcon(h.icon,'24x18')||'', attrEsc(nName(h)))}</h3><div class="host">${attrEsc(host)}</div><p>${attrEsc(nDesc(h))}</p>` +
-           `<a class="btn-open" href="${attrEsc(safeUrl(h.url))}" target="_blank" rel="noopener">${IS_EN?'Open website':'Otvoriť web'} ›</a>${socs}`;
+           `<a class="btn-open" href="${attrEsc(safeUrl(h.url))}" target="_blank" rel="noopener">${IS_EN?'Open website':'Otvoriť web'} ›</a>${favOk(h)?'<div>'+colFavBtn(h)+'</div>':''}${socs}`;
   }
   const last = colPath && colPath.length ? colNode(colPath[colPath.length-1]) : null;
   if(last) return `<h3>${iconText(renderIcon(nodeIcon(last),'24x18')||'', attrEsc(nName(last)))}</h3><p>${attrEsc(nDesc(last))}</p><div class="empty-hint">${colCnt(last)}</div>`;
@@ -2640,6 +2739,7 @@ function hdrSet(min){
   }
   hdrMin = min;
   hdrDot();
+  if(typeof hdrVyska === 'function') hdrVyska(); // Zadanie 39a3: prilepený riadok obľúbených pod hlavičku
 }
 function hdrDot(){
   const l = document.getElementById('hLupa'), s = document.getElementById('srch');
@@ -2806,11 +2906,12 @@ function renderSearch(q){
     const host = colHost(n);
     const path = attrEsc(pathOf(n.parentId).map(p=>nName(p)).join(' › '));
     const socs = socHtml(n, host);
-    return `<div class="card-link${socs?' has-soc':''}">${(n.tag||n.order===-1)?`<span class="liga-tag">${n.tag?String(n.tag).toUpperCase():(IS_EN?'LEAGUE':'LIGA')}</span>`:''}
+    const star = favOk(n) ? starBtn(n) : ''; // Zadanie 39: ★ (položky Aktuálnych nie)
+    return `<div class="card-link${socs?' has-soc':''}${star?' has-star':''}">${(n.tag||n.order===-1)?`<span class="liga-tag">${n.tag?String(n.tag).toUpperCase():(IS_EN?'LEAGUE':'LIGA')}</span>`:''}
         <a href="${attrEsc(safeUrl(n.url))}" target="_blank" rel="noopener" title="${attrEsc(nDesc(n))}">
           ${favHtml(n, host)}
           <div style="min-width:0"><div class="cl-name">${attrEsc(nName(n))}</div><div class="cl-desc sr-path">${path}</div>${snip?srchSnip(nDesc(n),nq,words):''}</div>
-        </a>${socs}</div>`;
+        </a>${socs}${star}</div>`;
   };
   const card = (n, snip)=> n.type==='folder' ? folderCard(n, snip) : linkCard(n, snip);
   // Bod 49 (previerka 3): nič sa nenašlo → tip a 2–3 najbližšie zhody. Dopyt sa skracuje
@@ -2870,6 +2971,280 @@ function socHtml(n, host){
     : `<span class="ph"></span>`;
   return `<span class="socs">${ico(fb,'facebook.com',IS_EN?'Facebook page':'Facebook')}${ico(ig,'instagram.com',IS_EN?'Instagram profile':'Instagram')}</span>`;
 }
+// ============================================================
+// OBĽÚBENÉ ★ (Zadanie 39) — návštevník si linky označí hviezdičkou.
+// Ukladá sa LEN v prehliadači návštevníka (localStorage, kľúč FAV_KEY): zoznam
+// [{id, t}] = ID linky + čas pridania (ms). Nič sa nikam neposiela (okrem anonymného
+// počítania PRIDANIA v GoatCounter: udalosť „obl/+<id>“ — bez osobných údajov).
+// SK a EN web majú obľúbené oddelené (iná doména = iné úložisko prehliadača).
+//  - každý prístup do localStorage je v try/catch (lsGet/lsSet — Safari súkromný režim)
+//  - zmena v inom okne/karte → udalosť „storage“ → hviezdičky, počet aj panel sa prekreslia
+//  - linka, ktorá z dát zmizla, sa ticho vyradí — LEN keď sú načítané CELÉ dáta
+//    (nie štartovací balík BOOT / mini-balík stránky, kde veľa liniek chýba), nie v admine.
+//    Upravená linka (iná adresa/názov) ostáva — ID sa nemení.
+//  - hviezdička LEN pri linkách (type link), nie pri priečinkoch, nie pri umelých linkách
+//    Aktuálnych (_live), nie v admin režime
+// Zobrazenie všetkých: adresa „/?oblubene“ (EN „/?favorites“; appka pozná obe) — len
+// v appke, statická stránka ani sitemap nevzniká; počas zobrazenia meta robots noindex.
+// ============================================================
+const FAV_KEY = 'sportLinkyObl';
+const FAV_PANEL_MAX = 10;     // najviac riadkov v paneli v hlavičke (potom „Zobraziť všetky (N) ›")
+const FAV_SRCH_OD = 15;       // políčko „Hľadaj v obľúbených" až od toľkých položiek
+const FAV_Q = IS_EN ? 'favorites' : 'oblubene';
+let FAV = [];                 // [{id, t}] — posledne pridané prvé
+let FAV_VIEW = false;         // zobrazenie všetkých obľúbených na ploche stránky
+let _favPurged = null;        // DB.nodes, pri ktorých už prebehlo vyradenie zmiznutých
+let _favFilter = '';          // text v políčku „Hľadaj v obľúbených"
+const FT = IS_EN
+  ? {add:'Add to favorites', rem:'Remove from favorites', inF:'In favorites', fav:'Favorites', all:'Show all', srch:'Search favorites',
+     wait:'loading…', empty:'You have no favorites yet. Mark a link with the star ☆ in the bottom-left corner of its card.', zavriet:'✕ Close favorites', zavrietK:'✕ Close', zavrietA:'Close favorites', home:'Go to the homepage', close:'Close', none:'Nothing found in favorites.'}
+  : {add:'Pridať do obľúbených', rem:'Odobrať z obľúbených', inF:'V obľúbených', fav:'Obľúbené', all:'Zobraziť všetky', srch:'Hľadaj v obľúbených',
+     wait:'načítava sa…', empty:'Zatiaľ nemáš žiadne obľúbené linky. Označ linku hviezdičkou ☆ v ľavom dolnom rohu karty.', zavriet:'✕ Zavrieť obľúbené', zavrietK:'✕ Zavrieť', zavrietA:'Zavrieť obľúbené', home:'Prejsť na domovskú stránku', close:'Zavrieť', none:'V obľúbených sa nič nenašlo.'};
+
+function favRead(){
+  let a = [];
+  try{ a = JSON.parse(lsGet(FAV_KEY) || '[]'); }catch(e){ a = []; }
+  if(!Array.isArray(a)) a = [];
+  const seen = new Set();
+  a = a.filter(x => x && typeof x.id === 'string' && x.id && !seen.has(x.id) && seen.add(x.id))
+       .map(x => ({id: x.id, t: +x.t || 0}));
+  a.sort((x, y) => y.t - x.t);
+  return a;
+}
+function favWrite(){ lsSet(FAV_KEY, JSON.stringify(FAV)); }
+function favHas(id){ return FAV.some(x => x.id === id); }
+// smie mať linka hviezdičku? (len skutočná linka z dát, nie umelá z Aktuálnych, nie admin)
+function favOk(n){ return !!n && n.type === 'link' && !n._live && !adminMode && typeof n.id === 'string' && n.id.indexOf('akt_') !== 0; }
+function starBtn(n){
+  const on = favHas(n.id);
+  return `<button type="button" class="star${on?' on':''}" data-fid="${attrEsc(n.id)}" aria-pressed="${on}" aria-label="${on?FT.rem:FT.add}" title="${on?FT.rem:FT.add}" onclick="favToggle(this.dataset.fid)">${on?'★':'☆'}</button>`;
+}
+function colFavBtn(n){
+  const on = favHas(n.id);
+  return `<button type="button" class="col-fav${on?' on':''}" data-fid="${attrEsc(n.id)}" data-col="1" aria-pressed="${on}" aria-label="${on?FT.rem:FT.add}" onclick="favToggle(this.dataset.fid)"><span class="sg" aria-hidden="true">${on?'★':'☆'}</span><span class="tx">${on?FT.inF:FT.add}</span></button>`;
+}
+function favToggle(id){
+  FAV = favRead(); // čerstvý stav (iná karta mohla medzitým niečo zmeniť)
+  if(favHas(id)) FAV = FAV.filter(x => x.id !== id);
+  else {
+    FAV.unshift({id, t: Date.now()});
+    // anonymné počítanie PRIDANIA (Miro 6.11.2026: len pridanie, nie odobratie)
+    try{
+      if(window.goatcounter && typeof window.goatcounter.count === 'function'){
+        const n = nodeById(id);
+        window.goatcounter.count({path: 'obl/+' + id, title: n ? nName(n) : id, event: true});
+      }
+    }catch(e){}
+  }
+  favWrite();
+  favRefresh();
+}
+// prekreslí všetko, čo obľúbené ukazuje (bez prekreslenia kariet — len stav hviezdičiek)
+function favRefresh(){
+  document.querySelectorAll('[data-fid]').forEach(b => {
+    const on = favHas(b.dataset.fid);
+    b.classList.toggle('on', on);
+    b.setAttribute('aria-pressed', on ? 'true' : 'false');
+    b.setAttribute('aria-label', on ? FT.rem : FT.add);
+    if(b.dataset.col){ b.querySelector('.sg').textContent = on ? '★' : '☆'; b.querySelector('.tx').textContent = on ? FT.inF : FT.add; }
+    else { b.textContent = on ? '★' : '☆'; b.title = on ? FT.rem : FT.add; }
+  });
+  favHeader();
+  if(favPanelOpen()) favPanelRender();
+  if(FAV_VIEW && !adminMode && !document.getElementById('srch').value.trim()) favViewRender(true);
+}
+function favHeader(){
+  const b = document.getElementById('hFav'); if(!b) return;
+  const n = FAV.length;
+  // Zadanie 39a3: vidno vždy (aj pri 0 — ľudia vedia, že funkcia existuje); v admine skryté cez CSS
+  b.hidden = false;
+  b.classList.toggle('fav0', !n);
+  document.body.classList.add('has-fav');
+  document.getElementById('hFavS').textContent = n ? '★' : '☆';
+  document.getElementById('hFavN').textContent = n;
+  b.setAttribute('aria-label', FT.fav + ' (' + n + ')');
+  b.title = FT.fav;
+}
+// celé dáta (nie BOOT / mini-balík) → vyraď zmiznuté linky (raz pre každé pole DB.nodes)
+function favPurge(){
+  if(adminMode || !DB || DB._partial || !Array.isArray(DB.nodes) || !DB.nodes.length) return;
+  if(_favPurged === DB.nodes) return;
+  _favPurged = DB.nodes;
+  FAV = favRead();
+  const ost = FAV.filter(x => { const n = nodeById(x.id); return n && n.type === 'link'; });
+  if(ost.length !== FAV.length){ FAV = ost; favWrite(); }
+}
+// cesta k linke skrátená: šport › predposledný › posledný priečinok, napr. „Futbal › Anglicko › Premier League"
+// (celá cesta „Futbal › Kluby › Európa › Anglicko › Premier League" by sa do panela nezmestila)
+function favPath(n){
+  const c = getPath(n.parentId);
+  return (c.length > 3 ? [c[0]].concat(c.slice(-2)) : c).map(p => nName(p)).join(' › ');
+}
+// obľúbené, ktoré sú v dátach (pri balíku BOOT niektoré ešte chýbajú → missing)
+function favNodes(){
+  const ok = [], miss = [];
+  FAV.forEach(x => { const n = nodeById(x.id); if(n && n.type === 'link') ok.push(n); else miss.push(x.id); });
+  return {ok, miss};
+}
+
+// ---- panel v hlavičke ----
+function favPanelOpen(){ const p = document.getElementById('favPanel'); return !!p && !p.hidden; }
+function favPanelToggle(){ if(favPanelOpen()) favPanelClose(true); else favPanelShow(); }
+function favPanelShow(){
+  const p = document.getElementById('favPanel'), b = document.getElementById('hFav');
+  if(!p || !b || adminMode) return;
+  FAV = favRead();
+  favPanelRender();
+  p.hidden = false;
+  b.setAttribute('aria-expanded', 'true');
+  favPanelPlace();
+  try{ p.querySelector('.fp-x').focus({preventScroll: true}); }catch(e){}
+}
+function favPanelClose(vratFokus){
+  const p = document.getElementById('favPanel'), b = document.getElementById('hFav');
+  if(!p || p.hidden) return;
+  p.hidden = true;
+  if(b){ b.setAttribute('aria-expanded', 'false'); if(vratFokus && !b.hidden){ try{ b.focus({preventScroll: true}); }catch(e){} } }
+}
+// poloha: počítač — pod tlačidlom, zarovnané vpravo; mobil — pod hlavičkou cez celú šírku (CSS)
+function favPanelPlace(){
+  const p = document.getElementById('favPanel'), b = document.getElementById('hFav'), h = document.querySelector('header');
+  if(!p || p.hidden || !b || !h) return;
+  const hb = h.getBoundingClientRect().bottom;
+  const top = window.matchMedia('(max-width:560px)').matches ? hb : Math.max(hb, b.getBoundingClientRect().bottom) + 6;
+  p.style.top = top + 'px';
+  const r = b.getBoundingClientRect();
+  p.style.left = Math.max(8, Math.min(window.innerWidth - p.offsetWidth - 8, r.right - p.offsetWidth)) + 'px';
+  p.style.maxHeight = Math.max(160, window.innerHeight - top - 10) + 'px';
+}
+function favRowHtml(n){
+  const host = colHost(n);
+  return `<div class="fp-row"><a href="${attrEsc(safeUrl(n.url))}" target="_blank" rel="noopener" title="${attrEsc(nDesc(n))}" onclick="favPanelClose(false)">${favHtml(n, host)}<span class="fp-t"><span class="fp-n">${attrEsc(nName(n))}</span><span class="fp-p">${attrEsc(favPath(n))}</span></span></a>${starBtn(n)}</div>`;
+}
+function favPanelRender(){
+  const p = document.getElementById('favPanel'); if(!p) return;
+  const {ok, miss} = favNodes();
+  const n = FAV.length;
+  let h = `<div class="fp-head"><span id="fpTitle">${n?'★':'☆'} ${FT.fav} (${n})</span><button type="button" class="fp-x" aria-label="${FT.close}" title="${FT.close}" onclick="favPanelClose(true)">✕</button></div>`;
+  // poradie podľa FAV (posledne pridané hore); chýbajúce (balík BOOT) → jeden riadok „načítava sa…"
+  h += ok.slice(0, FAV_PANEL_MAX).map(favRowHtml).join('');
+  if(miss.length && ok.length < FAV_PANEL_MAX) h += `<div class="fp-wait">+ ${miss.length} ${FT.wait}</div>`;
+  if(!n) h += `<p class="fp-empty">${FT.empty}</p>`; // Zadanie 39a3: pri 0 veta (panel sa nezatvára)
+  if(n > FAV_PANEL_MAX) h += `<a class="fp-all" href="${attrEsc(favUrl())}" rel="nofollow" onclick="return favViewOpen(event)">${FT.all} (${n}) ›</a>`;
+  p.innerHTML = h;
+  // panel v DOM je vymenený — fokus by inak spadol na <body>
+  if(document.activeElement === document.body) try{ p.querySelector('.fp-x').focus({preventScroll: true}); }catch(e){}
+  favPanelPlace();
+}
+document.addEventListener('keydown', e => {
+  if(e.key !== 'Escape') return;
+  if(favPanelOpen()){ favPanelClose(true); return; }
+  // Zadanie 39a3: Escape zavrie stránku všetkých obľúbených (nie keď je kurzor v „Hľadaj v obľúbených“
+  // alebo je otvorené okno admina / prihlásenie)
+  const a = document.activeElement;
+  if(favViewShown() && !(a && a.id === 'fvSrch') && !document.querySelector('.mo.open, #pwScreen.open')) favViewClose();
+});
+document.addEventListener('click', e => {
+  if(!favPanelOpen()) return;
+  const p = document.getElementById('favPanel'), b = document.getElementById('hFav');
+  if(p.contains(e.target) || (b && b.contains(e.target))) return;
+  // Zadanie 39a2: klik na hviezdičku (karta, tlačidlo v stĺpcoch) panel NEZATVORÍ — prekreslí sa (favRefresh)
+  if(e.target.closest && e.target.closest('[data-fid]')) return;
+  favPanelClose(false);
+}, true);
+window.addEventListener('resize', favPanelPlace);
+window.addEventListener('scroll', favPanelPlace, {passive: true});
+// zmena obľúbených v inom okne / karte
+window.addEventListener('storage', e => { if(e.key === FAV_KEY || e.key === null){ FAV = favRead(); favRefresh(); } });
+
+// ---- zobrazenie všetkých (na ploche stránky) ----
+function favUrl(){ return urlForId(null) + '?' + FAV_Q; }
+function favInUrl(){
+  try{ const p = new URLSearchParams(location.search); return p.has('oblubene') || p.has('favorites'); }catch(e){ return false; }
+}
+function favViewOpen(ev){
+  if(ev && (ev.ctrlKey || ev.metaKey || ev.shiftKey || ev.button === 1)) return true;
+  if(ev) ev.preventDefault();
+  favPanelClose(false);
+  hdrSet(false);
+  saveScrollState();
+  curId = null; FAV_VIEW = true; _favFilter = ''; NAVIGOVANE = true; CESTA_CELA = true;
+  document.getElementById('srch').value = '';
+  try{ history.pushState({curId: null, fav: true, zWeb: true}, '', favUrl()); }catch(e){} // zWeb: Zavrieť = Späť
+  render();
+  renderBannerSlot();
+  try{ window.scrollTo(0, 0); }catch(e){}
+  focusHeading();
+  return false;
+}
+// je práve na obrazovke stránka všetkých obľúbených?
+function favViewShown(){ return FAV_VIEW && !adminMode && !document.getElementById('srch').value.trim(); }
+// Zadanie 39a3: „✕ Zavrieť obľúbené" / Escape — prišlo sa z webu (klik na „Zobraziť všetky") → Späť;
+// priamy príchod (záložka, adresa) → domov
+function favViewClose(){
+  if(history.state && history.state.fav && history.state.zWeb){ try{ history.back(); return; }catch(e){} }
+  navigate(null);
+}
+// výška hlavičky pre prilepený riadok (.fv-bar) — mení sa pri zbalení/rozbalení na mobile
+function hdrVyska(){
+  const h = document.querySelector('header');
+  if(h) document.documentElement.style.setProperty('--hdrH', Math.round(h.getBoundingClientRect().height) + 'px');
+}
+window.addEventListener('resize', hdrVyska);
+function favCard(n){
+  const host = colHost(n);
+  const ligaTag = (n.tag||n.order===-1) ? `<span class="liga-tag">${n.tag?String(n.tag).toUpperCase():(IS_EN?'LEAGUE':'LIGA')}</span>` : '';
+  const socs = socHtml(n, host);
+  return `<div class="card-link has-star${socs?' has-soc':''}">${ligaTag}
+          <a href="${attrEsc(safeUrl(n.url))}" target="_blank" rel="noopener" title="${attrEsc(nDesc(n))}">
+            ${favHtml(n, host)}
+            <div style="min-width:0"><div class="cl-name">${attrEsc(nName(n))}</div><div class="cl-desc">${attrEsc(nDesc(n))}</div></div>
+          </a>${socs}${starBtn(n)}
+        </div>`;
+}
+// karta = rovnaká ako v dlaždiciach (ikonka, názov, popis, FB/IG, ★); šport je v nadpise skupiny
+// skupiny podľa športu (koreňová sekcia) v poradí hlavných sekcií webu, v skupine posledne pridané hore
+function favGroupsHtml(){
+  const {ok, miss} = favNodes();
+  const f = norm(_favFilter.trim());
+  const list = f ? ok.filter(n => norm(nName(n) + ' ' + favPath(n)).includes(f)) : ok;
+  const koren = getChildren(null);
+  const poradie = new Map(koren.map((k, i) => [k.id, i]));
+  const skup = new Map();
+  list.forEach(n => {
+    const cesta = getPath(n.id), r = cesta.length > 1 ? cesta[0] : null;
+    const k = r ? r.id : '';
+    if(!skup.has(k)) skup.set(k, {r, arr: []});
+    skup.get(k).arr.push(n);
+  });
+  const g = Array.from(skup.values()).sort((a, b) =>
+    (a.r && poradie.has(a.r.id) ? poradie.get(a.r.id) : 1e9) - (b.r && poradie.has(b.r.id) ? poradie.get(b.r.id) : 1e9));
+  let h = g.map(x => `<div class="fv-group"><div class="section-label">${x.r ? iconText(renderIcon(nodeIcon(x.r),'16x12')||'', attrEsc(nName(x.r))) : '🔗'} (${x.arr.length})</div>`
+    + `<div class="grid-deep">${x.arr.map(favCard).join('')}</div></div>`).join('');
+  if(f && !list.length) h = `<p class="sr-tip" style="margin-top:14px">${FT.none}</p>`;
+  if(miss.length) h += `<p class="sr-path" style="margin-top:14px">+ ${miss.length} ${FT.wait}</p>`;
+  return h;
+}
+function favViewRender(zmena){
+  const main = document.getElementById('main');
+  _lvlHtml = null; _promoEl = null; _promoSrc = '';
+  const n = FAV.length;
+  hdrVyska();
+  const zav = `<button type="button" class="fv-close" id="fvClose" aria-label="${FT.zavrietA}" onclick="favViewClose()"><span class="fl">${FT.zavriet}</span><span class="fs" aria-hidden="true">${FT.zavrietK}</span></button>`;
+  if(!n){
+    main.innerHTML = `<div class="fv-bar" id="fvBar">${zav}</div><div class="empty"><div class="e-icon">☆</div><p>${FT.empty}</p><p style="margin-top:12px"><a class="fp-home" href="${attrEsc(urlForId(null))}" onclick="return navClick(event,null)" style="color:var(--accent-text);font-weight:600">🏠 ${FT.home} ›</a></p></div>`;
+    return;
+  }
+  // pri zmene (odobratie hviezdičkou) sa políčko hľadania nemení — kurzor v ňom ostáva
+  const box = document.getElementById('fvGroups');
+  const chceSrch = n >= FAV_SRCH_OD;
+  if(zmena && box && !!document.getElementById('fvSrch') === chceSrch){ box.innerHTML = favGroupsHtml(); return; }
+  if(!chceSrch) _favFilter = '';
+  main.innerHTML = `<div class="fv-bar" id="fvBar">` + (chceSrch ? `<input type="search" class="fv-srch" id="fvSrch" aria-label="${FT.srch}" placeholder="🔍  ${FT.srch}…" value="${attrEsc(_favFilter)}" oninput="_favFilter=this.value;document.getElementById('fvGroups').innerHTML=favGroupsHtml()"/>` : '')
+    + zav + `</div><div id="fvGroups">${favGroupsHtml()}</div>`;
+}
+FAV = favRead();
+
 // SYSTÉM ZNAČIEK NA DLAŽDICI (Miro 5.10.2026, variant 3): logo klubu = vlastný web;
 // klub bez vlastného webu (hlavná linka FB, IG, X, YouTube, TikTok, Wikipédia)
 // = TLMENÁ (sivá, priesvitná) ikona športu podľa hlavnej sekcie (⚽ 🏐 🏀 🤾 🏒…),
@@ -3013,6 +3388,7 @@ function enterAdmin(){
   document.getElementById('adminBar').classList.add('on');
   document.body.classList.add('admin-mode');
   hdrSet(false); // Zadanie 34: v admine sa hlavička nezbaľuje
+  favPanelClose(false);
   abhSet();
   render();
   renderAktualne();
@@ -4555,7 +4931,8 @@ function afterLoad(opakovanie){
   // _lvlSkipSame: obsah zhodný s balíkom sa neprepisuje (karty nepreblikú)
   // stránka Aktuálne: úvodný text (popis) mohol v balíku chýbať — prekreslí sa, ak sa líši
   // po „Skúsiť znova“ sa prekreslí vždy — na obrazovke mohla byť správa o chybe aj na domove (Admin)
-  if(opakovanie || q || hlboko || maLinky || (curId && !cur) || curId === LIVE_ID){ _lvlSkipSame = true; render(); _lvlSkipSame = false; }
+  favPurge(); favHeader(); if(favPanelOpen()) favPanelRender(); // Zadanie 39: celé dáta — obľúbené kompletné
+  if(opakovanie || q || hlboko || maLinky || (curId && !cur) || curId === LIVE_ID || FAV_VIEW){ _lvlSkipSame = true; render(); _lvlSkipSame = false; }
   else { updateLinkCount(); updateHead(); }
   checkAdminHash();
   if(_adminPending){ _adminPending = false; toggleAdmin(); }
