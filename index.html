@@ -424,6 +424,20 @@ a.akt-head[href]:hover #aktHeadTxt{text-decoration:underline}
 .fv-close .fs{display:none}
 .fv-srch{flex:1;min-width:0;width:100%;max-width:420px;padding:9px 16px;border-radius:30px;border:1.5px solid var(--border);background:var(--surface);color:var(--text);font-size:.88rem;outline:none;-webkit-appearance:none;appearance:none}
 .fv-srch:focus{border-color:#f5c518}
+/* Zadanie 39a4: „🗑 Vymazať všetky obľúbené“ DOLE pod zoznamom — nenápadné (sivé), s poistkou
+   (otázka Áno/Nie na mieste tlačidla) a lištou „Vrátiť späť“ na 15 s prilepenou dole na obrazovke */
+.fv-clear{margin-top:30px;display:flex;justify-content:center;align-items:center;flex-wrap:wrap;gap:10px}
+.fv-clear-btn,.fv-no{background:none;border:1.5px solid var(--border);color:var(--muted);border-radius:8px;padding:0 14px;min-height:40px;font-size:.82rem;cursor:pointer;font-family:inherit}
+.fv-no{color:var(--text);font-weight:600}
+@media(hover:hover){.fv-clear-btn:hover,.fv-no:hover{color:var(--text);border-color:var(--muted)}}
+.fv-ask{flex:0 0 100%;text-align:center;font-size:.9rem;font-weight:600}
+.fv-yes{background:var(--accent-strong);color:#fff;border:1.5px solid var(--accent-strong);border-radius:8px;padding:0 16px;min-height:40px;font-size:.85rem;font-weight:700;cursor:pointer;font-family:inherit}
+@media(hover:hover){.fv-yes:hover{background:var(--accent2)}}
+.fv-clear button:focus-visible{outline:2px solid #f5c518;outline-offset:2px}
+#favUndo{position:fixed;left:50%;bottom:calc(16px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:70;display:flex;align-items:center;gap:6px;max-width:calc(100vw - 24px);padding:4px 6px 4px 16px;background:var(--surface2);border:1px solid var(--border);border-radius:12px;box-shadow:0 10px 26px rgba(0,0,0,.5);font-size:.88rem;white-space:nowrap}
+#favUndo button{background:none;border:0;color:#f5c518;font-weight:700;font-size:.88rem;padding:0 10px;min-height:40px;cursor:pointer;font-family:inherit;border-radius:8px}
+@media(hover:hover){#favUndo button:hover{background:var(--surface)}}
+@media(max-width:560px){.fv-clear-btn,.fv-no,.fv-yes,#favUndo button{min-height:44px}}
 @media(max-width:560px){.fv-srch{font-size:16px;max-width:none}.fv-close{height:40px;padding:0 12px}.fv-close .fl{display:none}.fv-close .fs{display:inline}}
 
 /* ===== ANIMÁCIA KARIET — jemné vynorenie pri vstupe do sekcie ===== */
@@ -461,16 +475,41 @@ a.akt-head[href]:hover #aktHeadTxt{text-decoration:underline}
 .ibtn:hover{border-color:var(--accent);color:var(--accent)}
 .ibtn.d:hover{border-color:var(--red);color:var(--red)}
 
-/* Admin na mobile a dotykových zariadeniach (Zadanie 31, bod 15) — na počítači
-   s myšou sa nič nemení. Lišta ▲▼✏️🗑 ide POD text karty (neprekrýva názov
-   ani popis), tlačidlá 38 px (pohodlné na prst). 700px = COLS_MIN_W v JS. */
+/* Lišta ⤒▲▼⤓✏️🗑 ide v admine POD text karty na KAŽDEJ šírke (Zadanie 41, bod 3):
+   na počítači (1366 px) pôvodná lišta v rohu prekrývala názov linky. Pôvodne
+   (Zadanie 31, bod 15) to platilo len pre mobil a dotyk; tam ostávajú tlačidlá
+   38 px (pohodlné na prst). Návštevník nevidí nič — všetko je pod .admin-mode.
+   700px = COLS_MIN_W v JS. */
+.admin-mode .card-link,.admin-mode .card-folder{flex-wrap:wrap}
+.admin-mode .card-admin-bar{position:static;order:99;flex:0 0 100%;justify-content:flex-end;gap:4px;margin-top:6px}
+.admin-mode .card-root .card-admin-bar{flex:none;justify-content:center;margin:0 auto;flex-wrap:wrap;width:86px} /* dlaždica je úzka — tlačidlá 3 × 2 */
+.admin-mode .card-link .card-admin-bar{margin-right:0}
+.ibtn.kraj{font-size:0.95rem} /* ⤒ ⤓ sú v písme drobné */
 @media(max-width:700px),(hover:none){
-  .admin-mode .card-link,.admin-mode .card-folder{flex-wrap:wrap}
-  .admin-mode .card-admin-bar{position:static;order:99;flex:0 0 100%;justify-content:flex-end;gap:6px;margin-top:6px}
-  .admin-mode .card-root .card-admin-bar{flex:none;justify-content:center;margin:0 auto;flex-wrap:wrap;width:88px} /* dlaždica je úzka — tlačidlá 2 × 2 */
+  .admin-mode .card-admin-bar{gap:6px}
+  .admin-mode .card-admin-bar .ibtn.kraj{font-size:1.2rem}
+  .admin-mode .card-root .card-admin-bar{width:126px}
   .admin-mode .card-admin-bar .ibtn{width:38px;height:38px;font-size:0.95rem}
-  .admin-mode .card-link .card-admin-bar{margin-right:0}
 }
+/* Zadanie 41: okno linky — zbalené „▸ Viac“, poznámky a chyby pod poľom, značka verzie na webe, sprievodca */
+.mo-viac{margin:2px 0 14px}
+.mo-viac summary{cursor:pointer;font-size:0.82rem;font-weight:600;color:var(--text);padding:8px 0;list-style:none;user-select:none}
+.mo-viac summary::-webkit-details-marker{display:none}
+.mo-viac summary::before{content:'▸ '}
+.mo-viac[open] summary::before{content:'▾ '}
+.mo-viac summary span{font-weight:400;color:var(--muted);font-size:0.75rem}
+.mo-viac[open] summary span{display:none}
+.mo-viac summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
+.mo-viac > .fg:first-of-type{margin-top:8px}
+.fg-note{font-size:0.72rem;color:var(--muted);margin-top:5px;line-height:1.45}
+.fg-note.varovanie{color:#f0b429}
+.fg-err{font-size:0.76rem;color:var(--red);font-weight:600;margin-top:5px;line-height:1.4}
+.fg input.err{border-color:var(--red)}
+.web-ver-badge{font-size:0.78rem;font-weight:700;color:#f0b429}
+.web-ver-badge[hidden]{display:none}
+.pub-kroky{margin:0 0 6px 20px;padding:0;line-height:1.55;font-size:0.9rem}
+.pub-kroky li{margin-bottom:12px}
+.pub-kroky .btn{display:inline-flex;margin:4px 0}
 
 /* ===== ADMIN FLOATING BAR ===== */
 #adminBar{
@@ -812,6 +851,7 @@ button#aktMoreBadge{-webkit-appearance:none;appearance:none;margin:0;border:0;fo
 <div id="adminBar">
   <span style="font-size:0.78rem;color:var(--muted)">⚙️ ADMIN:</span>
   <span id="verBadge" style="font-size:0.78rem;font-weight:bold;color:#4caf50" title="Verzia dát, na ktorej práve pracuješ"></span>
+  <span id="webVerBadge" class="web-ver-badge" hidden title="Stiahnutý data.json ešte nie je nahratý na GitHub (alebo web sa ešte prebúdza). Značka zmizne sama, keď web ohlási novú verziu."></span>
   <button class="btn btn-p" onclick="openAdd()">➕ Pridať sem</button>
   <button class="btn btn-s" onclick="openAktualne()">📌 Aktuálne</button>
   <button class="btn btn-s" onclick="openSettings()">🛠 Nastavenia</button>
@@ -976,17 +1016,52 @@ button#aktMoreBadge{-webkit-appearance:none;appearance:none;margin:0;border:0;fo
       <button class="type-btn" id="typeBtnFolder" onclick="setType('folder')">📁 Priečinok</button>
       <button class="type-btn active" id="typeBtnLink" onclick="setType('link')">🔗 Linka</button>
     </div>
-    <div class="fg" id="urlGroup"><label>URL *</label><input type="url" id="nUrl" placeholder="https://..."/></div>
-    <div class="fg soc-fg"><label>Facebook (ikonka)</label><input type="url" id="nFb" placeholder="https://www.facebook.com/... (nepovinné)"/></div>
-    <div class="fg soc-fg"><label>Instagram (ikonka)</label><input type="url" id="nIg" placeholder="https://www.instagram.com/... (nepovinné)"/></div>
+    <!-- Zadanie 41: poradie polí URL › Názov › Popis › Názov (EN) › Popis (EN); zvyšok je pod „▸ Viac“ -->
+    <div class="fg" id="urlGroup"><label>URL *</label><input type="url" id="nUrl" placeholder="https://..." onchange="urlZmenene()"/><div class="fg-note" id="nUrlNote" hidden></div></div>
     <div class="fg"><label>Názov *</label><input type="text" id="nName" placeholder="napr. Futbal"/></div>
     <div class="fg"><label>Popis</label><input type="text" id="nDesc" placeholder="Krátky popis"/></div>
-    <div class="fg"><label>Názov (EN)</label><input type="text" id="nNameEn" placeholder="len ak sa líši od slovenského"/></div>
-    <div class="fg"><label>Popis (EN)</label><input type="text" id="nDescEn" placeholder="anglický popis pre sportlinking.com"/></div>
-    <div class="fg"><label>Emoji ikona</label><input type="text" id="nIcon" placeholder="⚽" maxlength="4"/></div>
+    <div class="fg"><label>Názov (EN)</label><input type="text" id="nNameEn" placeholder="vyplň, ak názov obsahuje slovenské slová"/></div>
+    <div class="fg"><label>Popis (EN)</label><input type="text" id="nDescEn" placeholder="anglický popis pre sportlinking.com" oninput="enPopisChyba('')"/><div class="fg-err" id="nDescEnErr" hidden></div></div>
+    <details class="mo-viac" id="nViac">
+      <summary>Viac <span>· Facebook, Instagram, ikonka, typ linky, zaradiť</span></summary>
+      <div class="fg soc-fg"><label>Facebook (ikonka)</label><input type="url" id="nFb" placeholder="https://www.facebook.com/... (nepovinné)"/></div>
+      <div class="fg soc-fg"><label>Instagram (ikonka)</label><input type="url" id="nIg" placeholder="https://www.instagram.com/... (nepovinné)"/></div>
+      <div class="fg"><label>Ikonka alebo kód vlajky (nepovinné — ikonku webu doplní build sám)</label><input type="text" id="nIcon" maxlength="4"/></div>
+      <div class="fg soc-fg"><label>Typ linky</label>
+        <select id="nTyp">
+          <option value="0">Bežná</option>
+          <option value="-1">Linka ligy (LIGA) — vždy navrchu</option>
+          <option value="-2">Rýchla linka — navrchu, pred linkou ligy</option>
+        </select>
+      </div>
+      <div class="fg" id="nZaradGroup"><label>Zaradiť</label>
+        <select id="nZarad">
+          <option value="koniec">na koniec</option>
+          <option value="zaciatok">na začiatok</option>
+          <option value="abc">abecedne</option>
+        </select>
+      </div>
+    </details>
     <div class="mo-acts">
       <button class="btn btn-s" onclick="closeMo('nodeMo')">Zrušiť</button>
-      <button class="btn btn-p" onclick="saveNode()">Uložiť</button>
+      <button class="btn btn-s" id="nSaveNext" onclick="saveNode(true)" title="Uloží linku a nechá okno otvorené pre ďalšiu do toho istého priečinka">Uložiť a pridať ďalšiu</button>
+      <button class="btn btn-p" id="nSave" onclick="saveNode()">Uložiť</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: SPRIEVODCA PO 🚀 PUBLIKOVAŤ (Zadanie 41, bod 4 = Zadanie 44 z analýzy admina) -->
+<div class="mo" role="dialog" aria-modal="true" id="pubMo">
+  <div class="mo-box">
+    <h3>🚀 Publikovať — ako dostať dáta na web</h3>
+    <ol class="pub-kroky">
+      <li>Súbor <b>data.json</b> (<b id="pubVer">v?</b>) je v Stiahnutých.</li>
+      <li><a class="btn btn-p" id="pubGh" href="https://github.com/sportlinks226/sport-linky/upload/main" target="_blank" rel="noopener">Otvoriť nahrávanie na GitHub</a>
+        <div class="fg-note">Na stránke GitHubu pretiahni (alebo vyber) stiahnutý data.json a klikni Commit changes. Dáta sa nahrávajú vždy len do sport-linky — EN web si ich berie zo SK webu.</div></li>
+      <li>Po nahratí sa SK aj EN web prebudujú samy (pár minút). V lište admina dovtedy svieti „⚠️ … ešte nie je na webe“ — zmizne sama.</li>
+    </ol>
+    <div class="mo-acts">
+      <button class="btn btn-p" onclick="closeMo('pubMo')">Zavrieť</button>
     </div>
   </div>
 </div>
@@ -1304,6 +1379,7 @@ function alertLite(){
 function updateVerBadge(){
   const el = document.getElementById('verBadge');
   if(el) el.textContent = 'v'+(DB.version||'?');
+  if(typeof webVerBadge === 'function') webVerBadge();
 }
 function uid(){ return 'n'+Date.now()+Math.random().toString(36).slice(2,5); }
 
@@ -1836,9 +1912,14 @@ function adminBarHtml(id, ind, titulky, zastav){
   const st = zastav ? 'event.stopPropagation();event.preventDefault();' : '';
   const b = (trieda, titulok, volanie, ikona) =>
     `${ind}  <button class="${trieda}"${titulky ? ` title="${titulok}"` : ''} onclick="${st}${volanie}">${ikona}</button>\n`;
+  // Zadanie 41 (bod 2): skoky ⤒ Na začiatok / ⤓ Na koniec — LEN v zapnutom admine.
+  // Pre návštevníka (aj statická stránka z generator.py, admin_bar_html) ostáva
+  // lišta presne taká ako doteraz; po prihlásení sa karty aj tak kreslia znova.
   return `<div class="card-admin-bar">\n`
+    + (adminMode ? b('ibtn kraj', 'Na začiatok', `moveNodeKraj('${id}',-1)`, '⤒') : '')
     + b('ibtn', 'Hore', `moveNode('${id}',-1)`, '▲')
     + b('ibtn', 'Dole', `moveNode('${id}',1)`, '▼')
+    + (adminMode ? b('ibtn kraj', 'Na koniec', `moveNodeKraj('${id}',1)`, '⤓') : '')
     + b('ibtn', 'Upraviť', `openEdit('${id}')`, '✏️')
     + b('ibtn d', 'Zmazať', `delNode('${id}')`, '🗑')
     + `${ind}</div>`;
@@ -2034,6 +2115,7 @@ function render(){
     renderSearch(q); return;
   }
   srAnnounce('');
+  if(!favOn) favUndoEnd(); // Zadanie 39a4: odchod zo stránky obľúbených — lišta „Vrátiť späť“ zmizne
   if(favOn){ favViewRender(false); return; }
   renderLevel();
 }
@@ -2997,9 +3079,9 @@ let _favPurged = null;        // DB.nodes, pri ktorých už prebehlo vyradenie z
 let _favFilter = '';          // text v políčku „Hľadaj v obľúbených"
 const FT = IS_EN
   ? {add:'Add to favorites', rem:'Remove from favorites', inF:'In favorites', fav:'Favorites', all:'Show all', srch:'Search favorites',
-     wait:'loading…', empty:'You have no favorites yet. Mark a link with the star ☆ in the bottom-left corner of its card.', zavriet:'✕ Close favorites', zavrietK:'✕ Close', zavrietA:'Close favorites', home:'Go to the homepage', close:'Close', none:'Nothing found in favorites.'}
+     wait:'loading…', empty:'You have no favorites yet. Mark a link with the star ☆ in the bottom-left corner of its card.', zavriet:'✕ Close favorites', zavrietK:'✕ Close', zavrietA:'Close favorites', vymaz:'🗑 Clear all favorites', otazka:n=>`Really clear all ${n} favorites?`, ano:'Yes, clear', nie:'No', vymazane:'Favorites cleared', spat:'Undo', home:'Go to the homepage', close:'Close', none:'Nothing found in favorites.'}
   : {add:'Pridať do obľúbených', rem:'Odobrať z obľúbených', inF:'V obľúbených', fav:'Obľúbené', all:'Zobraziť všetky', srch:'Hľadaj v obľúbených',
-     wait:'načítava sa…', empty:'Zatiaľ nemáš žiadne obľúbené linky. Označ linku hviezdičkou ☆ v ľavom dolnom rohu karty.', zavriet:'✕ Zavrieť obľúbené', zavrietK:'✕ Zavrieť', zavrietA:'Zavrieť obľúbené', home:'Prejsť na domovskú stránku', close:'Zavrieť', none:'V obľúbených sa nič nenašlo.'};
+     wait:'načítava sa…', empty:'Zatiaľ nemáš žiadne obľúbené linky. Označ linku hviezdičkou ☆ v ľavom dolnom rohu karty.', zavriet:'✕ Zavrieť obľúbené', zavrietK:'✕ Zavrieť', zavrietA:'Zavrieť obľúbené', vymaz:'🗑 Vymazať všetky obľúbené', otazka:n=>`Naozaj vymazať všetkých ${n} obľúbených?`, ano:'Áno, vymazať', nie:'Nie', vymazane:'Obľúbené boli vymazané', spat:'Vrátiť späť', home:'Prejsť na domovskú stránku', close:'Zavrieť', none:'V obľúbených sa nič nenašlo.'};
 
 function favRead(){
   let a = [];
@@ -3139,6 +3221,7 @@ function favPanelRender(){
 document.addEventListener('keydown', e => {
   if(e.key !== 'Escape') return;
   if(favPanelOpen()){ favPanelClose(true); return; }
+  if(document.querySelector('#fvClear .fv-ask')){ favClearNo(); return; } // Zadanie 39a4: Escape = Nie
   // Zadanie 39a3: Escape zavrie stránku všetkých obľúbených (nie keď je kurzor v „Hľadaj v obľúbených“
   // alebo je otvorené okno admina / prihlásenie)
   const a = document.activeElement;
@@ -3238,10 +3321,62 @@ function favViewRender(zmena){
   // pri zmene (odobratie hviezdičkou) sa políčko hľadania nemení — kurzor v ňom ostáva
   const box = document.getElementById('fvGroups');
   const chceSrch = n >= FAV_SRCH_OD;
-  if(zmena && box && !!document.getElementById('fvSrch') === chceSrch){ box.innerHTML = favGroupsHtml(); return; }
+  if(zmena && box && !!document.getElementById('fvSrch') === chceSrch){
+    box.innerHTML = favGroupsHtml();
+    const fc = document.getElementById('fvClear'); if(fc && fc.querySelector('.fv-ask')) fc.innerHTML = favClearBtnHtml(); // počet sa zmenil — otázka odznova
+    return;
+  }
   if(!chceSrch) _favFilter = '';
   main.innerHTML = `<div class="fv-bar" id="fvBar">` + (chceSrch ? `<input type="search" class="fv-srch" id="fvSrch" aria-label="${FT.srch}" placeholder="🔍  ${FT.srch}…" value="${attrEsc(_favFilter)}" oninput="_favFilter=this.value;document.getElementById('fvGroups').innerHTML=favGroupsHtml()"/>` : '')
-    + zav + `</div><div id="fvGroups">${favGroupsHtml()}</div>`;
+    + zav + `</div><div id="fvGroups">${favGroupsHtml()}</div><div class="fv-clear" id="fvClear" aria-live="polite">${favClearBtnHtml()}</div>`;
+}
+// ---- Zadanie 39a4: vymazať všetky (poistka 1: otázka Áno/Nie; poistka 2: „Vrátiť späť" 15 s) ----
+// Pôvodný zoznam (ID, poradie, časy) je počas 15 s LEN v pamäti stránky (_favUndoData);
+// do localStorage sa zapisuje iba samotný kľúč sportLinkyObl (prázdny / obnovený).
+// GoatCounter: vymazanie ani obnovenie sa NEpočíta.
+const FAV_UNDO_MS = 15000;
+let _favUndoData = null, _favUndoT = null;
+function favClearBtnHtml(){ return `<button type="button" class="fv-clear-btn" id="fvClearBtn" onclick="favClearAsk()">${FT.vymaz}</button>`; }
+function favClearAsk(){
+  const fc = document.getElementById('fvClear'); if(!fc) return;
+  fc.innerHTML = `<p class="fv-ask" id="fvAsk">${FT.otazka(FAV.length)}</p>`
+    + `<button type="button" class="fv-yes" id="fvYes" onclick="favClearYes()">${FT.ano}</button>`
+    + `<button type="button" class="fv-no" id="fvNo" onclick="favClearNo()">${FT.nie}</button>`;
+  try{ document.getElementById('fvNo').focus({preventScroll: true}); }catch(e){} // bezpečná voľba má kurzor
+}
+function favClearNo(){
+  const fc = document.getElementById('fvClear'); if(!fc) return;
+  fc.innerHTML = favClearBtnHtml();
+  try{ document.getElementById('fvClearBtn').focus({preventScroll: true}); }catch(e){}
+}
+function favClearYes(){
+  FAV = favRead();
+  if(!FAV.length){ favRefresh(); return; }
+  favUndoEnd();
+  _favUndoData = FAV.map(x => ({id: x.id, t: x.t}));
+  FAV = []; favWrite();
+  favRefresh();                       // prázdny stav + „☆ 0“ v hlavičke
+  // prázdny stav aj „Zavrieť" hneď vidno — skok hore (pri obmedzení pohybu bez animácie)
+  let plynulo = true;
+  try{ plynulo = !window.matchMedia('(prefers-reduced-motion: reduce)').matches; }catch(e){}
+  try{ window.scrollTo({top: 0, behavior: plynulo ? 'smooth' : 'auto'}); }catch(e){ window.scrollTo(0, 0); }
+  let u = document.getElementById('favUndo');
+  if(!u){ u = document.createElement('div'); u.id = 'favUndo'; u.setAttribute('role', 'status'); document.body.appendChild(u); }
+  u.innerHTML = `<span>${FT.vymazane} (${_favUndoData.length}) ·</span><button type="button" id="favUndoBtn" onclick="favUndo()">${FT.spat}</button>`;
+  _favUndoT = setTimeout(favUndoEnd, FAV_UNDO_MS);
+  try{ document.getElementById('favUndoBtn').focus({preventScroll: true}); }catch(e){}
+}
+function favUndo(){
+  if(!_favUndoData) return;
+  FAV = _favUndoData; _favUndoData = null;
+  favWrite();
+  favUndoEnd();
+  favRefresh();
+}
+// koniec lišty (15 s, odchod zo stránky, Vrátiť späť) — pamäť sa zahodí, vymazanie platí
+function favUndoEnd(){
+  clearTimeout(_favUndoT); _favUndoT = null; _favUndoData = null;
+  const u = document.getElementById('favUndo'); if(u) u.remove();
 }
 FAV = favRead();
 
@@ -3393,6 +3528,7 @@ function enterAdmin(){
   render();
   renderAktualne();
   updateVerBadge();
+  sledujWebVer(); // Zadanie 41: značka „⚠️ vN ešte nie je na webe“
   aktAdminLoad(); // vždy čerstvý aktualne.json zo servera (+ samočinné mazanie starých skončených)
 }
 function logoutAdmin(){
@@ -3401,6 +3537,7 @@ function logoutAdmin(){
   document.getElementById('adminTog').textContent = '⚙️ Admin';
   document.getElementById('adminBar').classList.remove('on');
   document.body.classList.remove('admin-mode');
+  sledujWebVer(); // Zadanie 41: značka verzie zhasne, sledovanie sa zastaví
   // Aktuálne: zahoď pracovnú kópiu admina z pamäte okna, ukáž verejnú verziu z webu
   AKT_ADMIN = false; AKT_ADMIN_P = null; AKT = null; AKT_NOTE = '';
   render();
@@ -3411,12 +3548,233 @@ function logoutAdmin(){
 // ============================================================
 // NODE CRUD
 // ============================================================
+// Zadanie 41 (6.–7.11.2026): MÚDREJŠIE OKNO LINKY. Polia URL › Názov › Popis ›
+// Názov (EN) › Popis (EN), zvyšok (Facebook, Instagram, ikonka, typ, zaradiť) pod
+// „▸ Viac“. Kontroly sú SAMOSTATNÉ funkcie bez práce s oknom (adresaUprav,
+// adresaKluc, duplicity, navrhNazov, slovenskeSlovo, kontrolaEN, kontrolaTypu,
+// jeAbecedny, zaradNovu, nastavTyp), aby ich Zadanie 42 (hromadné vloženie do
+// priečinka) použilo v náhľade. Priečinky a Aktuálne sa nemenia.
+
+// --- adresa ---------------------------------------------------------------
+// Sledovacie prívesky (utm_*, fbclid, gclid…) sa odstránia, OSTATNÉ parametre ostávajú.
+const SLEDOVACI_PARAM = /^(utm_[a-z0-9_]*|fbclid|gclid|dclid|gbraid|wbraid|msclkid|yclid|ttclid|twclid|igshid|igsh|mc_cid|mc_eid|_ga|_gl|ref_src|srsltid)$/i;
+// adresaUprav(u) → {url, zmeny:[…], varovania:[…]}: doplní chýbajúce https://
+// (http:// nechá, len upozorní) a odstráni sledovacie prívesky. Inak sa text
+// adresy nemení (parametre sa neprekódujú).
+function adresaUprav(u){
+  let s = String(u||'').trim(); const zmeny = [], varovania = [];
+  if(!s) return {url:s, zmeny, varovania};
+  if(/^\/\//.test(s)){ s = 'https:' + s; zmeny.push('doplnené https:'); }
+  else if(!/^[a-z][a-z0-9+.-]*:\/\//i.test(s)){ s = 'https://' + s; zmeny.push('doplnené https://'); }
+  if(/^http:\/\//i.test(s)) varovania.push('adresa začína http:// (bez šifrovania) — nechal som ju, skús, či web nejde aj cez https://');
+  const m = s.match(/^([^?#]*)(\?[^#]*)?(#.*)?$/);
+  if(m && m[2] && m[2].length > 1){
+    const casti = m[2].slice(1).split('&'), prec = [];
+    const zost = casti.filter(c=>{
+      let k = c.split('=')[0]; try{ k = decodeURIComponent(k); }catch(e){}
+      if(SLEDOVACI_PARAM.test(k)){ prec.push(k); return false; }
+      return true;
+    });
+    if(prec.length){
+      s = m[1] + (zost.length ? '?' + zost.join('&') : '') + (m[3]||'');
+      zmeny.push('odstránené sledovacie prívesky (' + prec.join(', ') + ')');
+    }
+  }
+  return {url:s, zmeny, varovania};
+}
+// Kľúč na porovnanie adries (duplicita): bez https/http, www., koncovej lomky
+// a sledovacích príveskov; doména malými písmenami, cesta ostáva, ako je.
+function adresaKluc(u){
+  let s = adresaUprav(u).url;
+  if(!s) return '';
+  s = s.replace(/^[a-z][a-z0-9+.-]*:\/\//i, '');
+  const i = s.search(/[\/?#]/);
+  const host = (i < 0 ? s : s.slice(0, i)).toLowerCase().replace(/^www\./, '');
+  let zvysok = i < 0 ? '' : s.slice(i);
+  zvysok = zvysok.replace(/\/+(?=[?#]|$)/, '');   // koncová lomka (aj pred ? alebo #)
+  zvysok = zvysok.replace(/\?(?=#|$)/, '');       // prázdny otáznik
+  return host + zvysok;
+}
+// Index adries celých dát (kľúč → id liniek) — stavia sa raz (~14 800 liniek za
+// pár desiatok ms) a znova až keď sa zoznam uzlov vymení/zmení dĺžku alebo po
+// uložení okna (dupInvalidate — úprava adresy dĺžku nemení).
+let _dupIdx = null, _dupSrc = null, _dupLen = 0;
+function dupIndex(){
+  if(_dupIdx && _dupSrc === DB.nodes && _dupLen === DB.nodes.length) return _dupIdx;
+  const m = new Map();
+  for(const n of DB.nodes){
+    if(n.type !== 'link' || !n.url) continue;
+    const k = adresaKluc(n.url); if(!k) continue;
+    const a = m.get(k); if(a) a.push(n.id); else m.set(k, [n.id]);
+  }
+  _dupIdx = m; _dupSrc = DB.nodes; _dupLen = DB.nodes.length;
+  return m;
+}
+function dupInvalidate(){ _dupIdx = null; }
+function cestaPriecinka(parentId){ const p = getPath(parentId).map(x=>x.name); return p.length ? p.join(' › ') : 'Domov'; }
+// duplicity(url, vynechajId) → [{id, cesta}] všetky linky s rovnakou adresou v celých dátach
+function duplicity(url, vynechajId){
+  const k = adresaKluc(url); if(!k) return [];
+  return (dupIndex().get(k)||[]).filter(id=>id !== vynechajId && nodeById(id))
+    .map(id=>({id, cesta: cestaPriecinka(nodeById(id).parentId)}));
+}
+const DUP_MAX = 5; // najviac vypísaných výskytov, zvyšok „a ďalšie N“
+function duplicityText(d){
+  if(!d.length) return '';
+  const r = d.slice(0, DUP_MAX).map(x=>'• ' + x.cesta);
+  if(d.length > DUP_MAX) r.push('… a ďalšie ' + (d.length - DUP_MAX));
+  return 'Táto adresa už je v:\n' + r.join('\n');
+}
+// Návrh názvu z adresy (bez siete): doména bez www a koncovky, prvé písmeno veľké
+// (sportnet.sme.sk → „Sportnet“, hcslovan.sk → „Hcslovan“); pri Facebooku/Instagrame
+// názov profilu z cesty. Len návrh do prázdneho poľa Názov.
+function navrhNazov(u){
+  const k = adresaKluc(u); if(!k) return '';
+  const i = k.search(/[\/?#]/);
+  const host = i < 0 ? k : k.slice(0, i), cesta = i < 0 ? '' : k.slice(i);
+  const vel = t => t ? t.charAt(0).toUpperCase() + t.slice(1) : '';
+  if(/(^|\.)(facebook\.com|fb\.com|instagram\.com)$/.test(host)){
+    const seg = cesta.split(/[\/?#]/).filter(Boolean);
+    const prof = seg.find(x=>!/^(profile\.php|pages|people|groups|p|reel|reels|explore)$/i.test(x)) || '';
+    return vel(prof.replace(/[._-]+/g, ' ').trim());
+  }
+  const casti = host.split('.').filter(Boolean);
+  if(casti.length < 2) return vel(casti[0]||'');
+  casti.pop(); // koncovka (.sk, .com …)
+  if(casti.length >= 2 && /^(co|com|org|net|gov|edu|ac)$/.test(casti[casti.length-1])) casti.pop(); // co.uk, com.br
+  let n = casti[0];
+  if(casti.length >= 2 && n.length <= 2) n = casti[1]; // en.wikipedia.org → Wikipedia
+  return vel(n.replace(/-+/g, ' '));
+}
+// IG adresa v poli Facebook (a naopak) → ponuka prehodiť; null = v poriadku
+const FB_ADR = /^https?:\/\/([a-z0-9-]+\.)*(facebook\.com|fb\.com)(\/|$)/i, IG_ADR = /^https?:\/\/([a-z0-9-]+\.)*instagram\.com(\/|$)/i;
+function vymenaSieti(fb, ig){
+  const fbJeIg = !!fb && IG_ADR.test(fb), igJeFb = !!ig && FB_ADR.test(ig);
+  if(!fbJeIg && !igJeFb) return null;
+  if(fbJeIg && igJeFb) return {otazka:'V poli Facebook je adresa Instagramu a v poli Instagram adresa Facebooku. Prehodiť ich?', fb: ig, ig: fb};
+  if(fbJeIg && !ig) return {otazka:'V poli Facebook je adresa Instagramu. Presunúť ju do poľa Instagram?', fb:'', ig: fb};
+  if(igJeFb && !fb) return {otazka:'V poli Instagram je adresa Facebooku. Presunúť ju do poľa Facebook?', fb: ig, ig:''};
+  return {otazka:(fbJeIg ? 'V poli Facebook je adresa Instagramu' : 'V poli Instagram je adresa Facebooku') + ', ale aj druhé pole je vyplnené. Prehodiť obe polia?', fb: ig, ig: fb};
+}
+
+// --- angličtina --------------------------------------------------------------
+// Slovenské slová v názve (celé slová, bez ohľadu na veľkosť písmen). Samotné
+// „liga“ zámerne nie je — je v cudzích názvoch (Erovnuli Liga, Liga MX…);
+// rovnako „tenis“, „mesto“, „česká“, „juniori“ (Oberá Tenis Club, VK Nové Mesto…).
+const SK_SLOVA = ['šport','športové','športový','športová','športu','správy','spravodajstvo',
+  'ženy','žien','ženská','ženský','muži','mužov','mužská','mužský','zväz','zväzu','zväzy',
+  'pohár','pohára','liga žien','liga mužov','extraliga','futbal','futbalový','futbalová',
+  'hokej','hokejový','basketbal','hádzaná','volejbal','atletika','plávanie','cyklistika',
+  'lyžovanie','florbal','kluby','súťaže','asociácie','výsledky','tabuľka','tabuľky','mládež',
+  'noviny','denník','televízia','rádio','rozhlas','oficiálna','oficiálny','stránka',
+  'slovenský','slovenská','slovenské','národný','národná'];
+const SK_SLOVA_RE = new RegExp('(?:^|[^\\p{L}\\p{N}])(' + SK_SLOVA.map(w=>w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|') + ')(?=$|[^\\p{L}\\p{N}])', 'iu');
+// slovenskeSlovo(name) → nájdené slovenské slovo alebo '' (názov vyzerá cudzojazyčne)
+function slovenskeSlovo(name){ const m = String(name||'').match(SK_SLOVA_RE); return m ? m[1] : ''; }
+// Popis (EN) je pri LINKE povinný (zobrazí sa na sportlinking.com) → text chyby alebo ''
+function kontrolaEN(descEn){ return String(descEn||'').trim() ? '' : 'Doplň anglický popis (zobrazí sa na sportlinking.com)'; }
+
+// --- typ linky a poradie ---------------------------------------------------
+// Typ: 0 = bežná, −1 = linka ligy (štítok LIGA, navrchu, bez FB/IG ikoniek),
+// −2 = rýchla linka (navrchu, pred linkou ligy). Rovnaký tvar dát, aký zapisuje
+// Cowork: order −1/−2 a — ak priečinok používa order_en (alebo sme na EN webe) —
+// rovnaká hodnota aj v order_en. Iné polia typ nemá.
+function kontrolaTypu(parentId, typ, vynechajId){
+  if(typ !== -1) return '';
+  const ine = childrenOf(parentId).filter(x=>x.type==='link' && x.order === -1 && x.id !== vynechajId);
+  return ine.length ? 'Priečinok už má linku ligy: ' + ine.map(x=>x.name).join(', ') : '';
+}
+function pouzivaOrderEn(parentId, vynechaj){
+  return IS_EN || childrenOf(parentId).some(x=>x !== vynechaj && x.order_en !== undefined && x.order_en !== null);
+}
+function nastavTyp(node, typ){
+  node.order = typ;
+  if(pouzivaOrderEn(node.parentId, node) && !enAlphaFolder(node.parentId)) node.order_en = typ;
+  else delete node.order_en;
+}
+// Slovenská abeceda (Intl.Collator('sk'): CH za H, Č za C…); záloha = obyčajné porovnanie
+const SK_COLL = (typeof Intl !== 'undefined' && Intl.Collator) ? new Intl.Collator('sk') : null;
+function skPorovnaj(a, b){ return SK_COLL ? SK_COLL.compare(a, b) : (a < b ? -1 : a > b ? 1 : 0); }
+// anglický kľúč podľa EN názvu (ako enAlphaKey, ale aj na SK webe z name_en)
+function enKluc(n){ return String(n.name_en || n.name || '').trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase(); }
+// Je priečinok (bežné položky, bez −1/−2) zoradený abecedne? Tolerantne: podľa
+// slovenskej abecedy ALEBO podľa kľúča bez diakritiky — Cowork nemusel použiť
+// presne slovenskú abecedu. Na EN webe podľa EN názvov a EN poradia.
+function jeAbecedny(parentId){
+  const F = IS_EN ? 'order_en' : 'order';
+  const val = x => (x[F]!==undefined && x[F]!==null) ? x[F] : (x.order||0);
+  const arr = getChildren(parentId).filter(x=>val(x) >= 0);
+  if(arr.length < 2) return false;
+  const mena = arr.map(x=>nName(x));
+  const sk = mena.every((m,i)=>i===0 || skPorovnaj(mena[i-1], m) <= 0);
+  const bez = mena.every((m,i)=>i===0 || enAlphaKey(arr[i-1]) <= enAlphaKey(arr[i]));
+  return sk || bez;
+}
+// Zaradí položku medzi bežných súrodencov podľa kam: 'koniec' | 'zaciatok' | 'abc'.
+// Vždy SK order (abecedne = slovenská abeceda podľa SK názvu) a — ak priečinok
+// používa order_en alebo sme na EN webe — aj order_en (abecedne = anglická abeceda
+// bez diakritiky podľa EN názvu, enKluc); chýbajúce order_en sa súrodencom doplnia
+// z order (ako ▲▼). Bežní súrodenci sa prečíslujú 0, 1, 2…; −1/−2 ostávajú. V EN
+// abecedných priečinkoch kontinentov (enAlphaFolder) sa order_en nerieši.
+function zaradNovu(node, kam){
+  const subs = childrenOf(node.parentId).filter(x=>x !== node);
+  const zarad = (F, kluc, porovnaj) => {
+    const val = x => (x[F]!==undefined && x[F]!==null) ? x[F] : (x.order||0);
+    const bezne = subs.filter(x=>val(x) >= 0).sort((a,b)=>val(a)-val(b));
+    let i = bezne.length;
+    if(kam === 'zaciatok') i = 0;
+    else if(kam === 'abc'){ const k = kluc(node); i = bezne.findIndex(x=>porovnaj(kluc(x), k) > 0); if(i < 0) i = bezne.length; }
+    bezne.splice(i, 0, node);
+    bezne.forEach((x,j)=>{ x[F] = j; });
+  };
+  zarad('order', x=>x.name||'', skPorovnaj);
+  if(pouzivaOrderEn(node.parentId, node) && !enAlphaFolder(node.parentId)){
+    subs.forEach(x=>{ if(x.order_en===undefined || x.order_en===null) x.order_en = x.order; });
+    zarad('order_en', enKluc, (a,b)=> a < b ? -1 : a > b ? 1 : 0);
+  } else delete node.order_en;
+}
+
+// --- okno ---------------------------------------------------------------------
 function setType(t){
   nodeType = t;
   document.getElementById('typeBtnFolder').classList.toggle('active', t==='folder');
   document.getElementById('typeBtnLink').classList.toggle('active', t==='link');
   document.getElementById('urlGroup').style.display = t==='link' ? '' : 'none';
   document.querySelectorAll('#nodeMo .soc-fg').forEach(el=>{ el.style.display = t==='link' ? '' : 'none'; });
+  // Zaradiť a „Uložiť a pridať ďalšiu“ len pri NOVEJ linke
+  const nova = t==='link' && !editNodeId;
+  document.getElementById('nZaradGroup').style.display = nova ? '' : 'none';
+  document.getElementById('nSaveNext').style.display = nova ? '' : 'none';
+}
+function viacOtvor(otvor){ document.getElementById('nViac').open = !!otvor; }
+function urlNote(text, varovanie){
+  const el = document.getElementById('nUrlNote');
+  el.textContent = text || ''; el.hidden = !text; el.classList.toggle('varovanie', !!varovanie);
+}
+function enPopisChyba(text){
+  const el = document.getElementById('nDescEnErr');
+  el.textContent = text || ''; el.hidden = !text;
+  document.getElementById('nDescEn').classList.toggle('err', !!text);
+}
+function upravaText(up, pole){
+  const t = [];
+  if(up.zmeny.length) t.push('Admin upravil ' + (pole || 'adresu') + ' (' + up.zmeny.join(', ') + ') → ' + up.url);
+  if(up.varovania.length) t.push((pole ? pole + ': ' : '') + up.varovania.join(' '));
+  return t.join(' · ');
+}
+// Po opustení poľa URL: adresa sa upraví (https://, prívesky) a ukáže sa, čo sa
+// zmenilo; ak je Názov prázdny, navrhne sa z adresy (len návrh — prepíšeš ho).
+function urlZmenene(){
+  const inp = document.getElementById('nUrl');
+  const up = adresaUprav(inp.value);
+  if(up.url !== inp.value) inp.value = up.url;
+  urlNote(upravaText(up), !up.zmeny.length && up.varovania.length > 0);
+  const nm = document.getElementById('nName');
+  if(!nm.value.trim() && up.url) nm.value = navrhNazov(up.url);
+}
+function vyprazdniOkno(){
+  ['nIcon','nName','nDesc','nNameEn','nDescEn','nUrl','nFb','nIg'].forEach(id=>{ document.getElementById(id).value = ''; });
+  urlNote(''); enPopisChyba('');
 }
 function openAdd(){
   // bod 15 (Zadanie 31): priečinok Aktuálne nemá vlastné linky — obsah mu dodávajú Aktuálne
@@ -3427,14 +3785,11 @@ function openAdd(){
   editNodeId = null;
   setType('link');
   document.getElementById('moTitle').textContent = 'Pridať do: ' + (curId ? DB.nodes.find(n=>n.id===curId)?.name : 'Domov');
-  document.getElementById('nIcon').value='';
-  document.getElementById('nName').value='';
-  document.getElementById('nDesc').value='';
-  document.getElementById('nNameEn').value='';
-  document.getElementById('nDescEn').value='';
-  document.getElementById('nUrl').value='';
-  document.getElementById('nFb').value='';
-  document.getElementById('nIg').value='';
+  vyprazdniOkno();
+  document.getElementById('nTyp').value = '0';
+  // predvoľba Zaradiť: abecedne, ak je priečinok už zoradený abecedne, inak na koniec
+  document.getElementById('nZarad').value = jeAbecedny(curId) ? 'abc' : 'koniec';
+  viacOtvor(false);
   document.getElementById('typeBtnFolder').style.display='';
   document.getElementById('typeBtnLink').style.display='';
   document.getElementById('nodeMo').classList.add('open');
@@ -3454,38 +3809,81 @@ function openEdit(id){
   document.getElementById('nUrl').value  = n.url||'';
   document.getElementById('nFb').value = n.fb||'';
   document.getElementById('nIg').value = n.ig||'';
+  const typ = (n.order === -1 || n.order === -2) ? n.order : 0;
+  document.getElementById('nTyp').value = String(typ);
+  urlNote(''); enPopisChyba('');
+  // „Viac“ rozbalené, keď linka má niečo z neho vyplnené (nech vidno, čo tam je)
+  viacOtvor(!!(n.fb || n.ig || n.icon || typ));
   document.getElementById('typeBtnFolder').style.display='none';
   document.getElementById('typeBtnLink').style.display='none';
   document.getElementById('nodeMo').classList.add('open');
   setTimeout(()=>document.getElementById('nName').focus(),100);
 }
-function saveNode(){
-  const name = document.getElementById('nName').value.trim();
-  const icon = document.getElementById('nIcon').value.trim();
-  const desc = document.getElementById('nDesc').value.trim();
-  const nameEn = document.getElementById('nNameEn').value.trim();
-  const descEn = document.getElementById('nDescEn').value.trim();
-  const url  = document.getElementById('nUrl').value.trim();
-  const fb   = document.getElementById('nFb').value.trim();
-  const ig   = document.getElementById('nIg').value.trim();
+// saveNode(aDalsia): aDalsia = „Uložiť a pridať ďalšiu“ (len nová linka) — okno
+// ostane otvorené prázdne pre ďalšiu linku do toho istého priečinka.
+function saveNode(aDalsia){
+  const g = id => document.getElementById(id);
+  const name = g('nName').value.trim();
+  const icon = g('nIcon').value.trim();
+  const desc = g('nDesc').value.trim();
+  const nameEn = g('nNameEn').value.trim();
+  const descEn = g('nDescEn').value.trim();
+  let url = g('nUrl').value.trim();
+  let fb = g('nFb').value.trim();
+  let ig = g('nIg').value.trim();
+  const typ = parseInt(g('nTyp').value, 10) || 0;
+  const kam = g('nZarad').value;
+  const stary = editNodeId ? DB.nodes.find(x=>x.id===editNodeId) : null;
+  if(editNodeId && !stary) return;
+  const jeLinka = stary ? stary.type==='link' : nodeType==='link';
+  const rodic = stary ? stary.parentId : curId;
   if(!name){ alert('Vyplň názov!'); return; }
-  if(nodeType==='link' && !url){ alert('Vyplň URL!'); return; }
-  // bod 14 (Zadanie 31): tvar adresy — prázdne FB/IG sú povolené
+  if(jeLinka && !url){ alert('Vyplň URL!'); return; }
+  let pozn = '';
   // (pri úprave priečinka sa URL/FB/IG neukladajú, preto sa ani nekontrolujú)
-  const jeLinka = editNodeId ? ((DB.nodes.find(x=>x.id===editNodeId)||{}).type==='link') : nodeType==='link';
   if(jeLinka){
+    // b) adresa: https://, sledovacie prívesky — ukáže sa, čo admin zmenil
+    const upU = adresaUprav(url), upF = adresaUprav(fb), upI = adresaUprav(ig);
+    url = upU.url; fb = upF.url; ig = upI.url;
+    g('nUrl').value = url; g('nFb').value = fb; g('nIg').value = ig;
+    pozn = [upravaText(upU), upravaText(upF, 'Facebook'), upravaText(upI, 'Instagram')].filter(Boolean).join(' · ');
+    urlNote(pozn, !upU.zmeny.length && upU.varovania.length > 0);
+    // bod 14 (Zadanie 31): tvar adresy — prázdne FB/IG sú povolené
     if(!urlOk(url, 'URL')) return;
     if(fb && !urlOk(fb, 'Facebook')) return;
     if(ig && !urlOk(ig, 'Instagram')) return;
+    const v = vymenaSieti(fb, ig);
+    if(v && confirm(v.otazka + '\n\n(Zrušiť = nechať, ako je)')){ fb = v.fb; ig = v.ig; g('nFb').value = fb; g('nIg').value = ig; }
+    // e) Popis (EN) je pri linke povinný
+    const chybaEn = kontrolaEN(descEn);
+    if(chybaEn){ enPopisChyba(chybaEn); g('nDescEn').focus(); return; }
+    // f) slovenský názov bez anglického názvu — otázka
+    if(!nameEn){
+      const sl = slovenskeSlovo(name);
+      if(sl && !confirm('Názov vyzerá po slovensky („' + sl + '“). Uložiť bez anglického názvu?\n\nOK = Áno, uložiť bez neho · Zrušiť = Doplniť anglický názov')){
+        g('nNameEn').focus(); return;
+      }
+    }
+    // g) linka ligy — priečinok už jednu má?
+    const ut = kontrolaTypu(rodic, typ, editNodeId);
+    if(ut && !confirm(ut + '\n\nUložiť aj tak ďalšiu linku ligy?')) return;
+    // d) duplicita v celých dátach — len upozornenie; pri úprave len ak sa adresa zmenila
+    if(!stary || adresaKluc(stary.url) !== adresaKluc(url)){
+      const d = duplicity(url, editNodeId);
+      if(d.length && !confirm(duplicityText(d) + '\n\nOK = Pridať aj tak · Zrušiť = nepridávať')) return;
+    }
   }
 
-  if(editNodeId){
-    const n = DB.nodes.find(x=>x.id===editNodeId);
-    if(n){
-      n.name=name; n.icon=icon; n.desc=desc; if(n.type==='link') n.url=url;
-      if(n.type==='link'){ if(fb) n.fb=fb; else delete n.fb; if(ig) n.ig=ig; else delete n.ig; }
-      if(nameEn) n.name_en=nameEn; else delete n.name_en;
-      if(descEn) n.desc_en=descEn; else delete n.desc_en;
+  if(stary){
+    const n = stary;
+    n.name=name; n.icon=icon; n.desc=desc; if(n.type==='link') n.url=url;
+    if(n.type==='link'){ if(fb) n.fb=fb; else delete n.fb; if(ig) n.ig=ig; else delete n.ig; }
+    if(nameEn) n.name_en=nameEn; else delete n.name_en;
+    if(descEn) n.desc_en=descEn; else delete n.desc_en;
+    if(n.type==='link'){
+      // zmena typu: na ligu/rýchlu = −1/−2 navrch; z ligy späť na bežnú = na koniec
+      const staryTyp = (n.order === -1 || n.order === -2) ? n.order : 0;
+      if(typ !== staryTyp){ if(typ) nastavTyp(n, typ); else zaradNovu(n, 'koniec'); }
     }
   } else {
     const siblings = getChildren(curId);
@@ -3512,8 +3910,22 @@ function saveNode(){
       node.slug_en = se;
     }
     DB.nodes.push(node);
+    // h) zaradenie novej linky (typ −1/−2 ide navrch; priečinok ako doteraz na koniec)
+    if(nodeType==='link'){ if(typ) nastavTyp(node, typ); else zaradNovu(node, kam); }
   }
   if(!save()) return; // bod 15: neuložené (staré okno) — nevykresľuj ako uložené
+  dupInvalidate();
+  if(aDalsia && !stary && nodeType==='link'){
+    // j) okno ostáva otvorené pre ďalšiu linku do toho istého priečinka: Zaradiť sa
+    // pamätá, Typ sa po linke ligy vráti na Bežná (priečinok má len jednu linku ligy)
+    render();
+    vyprazdniOkno();
+    if(typ === -1) g('nTyp').value = '0';
+    urlNote('Uložené: ' + name + (pozn ? ' (' + pozn + ')' : ''));
+    const m = g('nodeMo'); _moSnap.set(m, moState(m)); // nové „čisté“ okno
+    g('nUrl').focus();
+    return;
+  }
   closeMo('nodeMo'); render();
 }
 function delNode(id){
@@ -3581,6 +3993,31 @@ function moveNode(id, dir){
   } else {
     a[F] = vb; b[F] = va;
   }
+  save(); render();
+}
+// ⤒ Na začiatok / ⤓ Na koniec (Zadanie 41, bod 2) — rovnaké pravidlá ako ▲▼:
+// SK mení order, EN order_en (chýbajúce order_en sa súrodencom doplnia), v EN
+// abecedných priečinkoch hláška, −1/−2 ostávajú navrchu (skok cez ne nepustí).
+// Bežní súrodenci sa prečíslujú 0, 1, 2…
+function moveNodeKraj(id, dir){
+  const n = DB.nodes.find(x=>x.id===id);
+  if(!n) return;
+  if(enAlphaFolder(n.parentId)){ alert('Here the order is alphabetical.\n(Tu sa na EN webe radí abecedne — poradie sa nedá meniť.)'); return; }
+  const siblings = getChildren(n.parentId);
+  const F = IS_EN ? 'order_en' : 'order';
+  const val = x => (x[F]!==undefined && x[F]!==null) ? x[F] : (x.order||0);
+  if(val(n) < 0){
+    alert(IS_EN
+      ? 'The league link / quick links (order −1 / −2) always stay at the top — they cannot be moved past other items.'
+      : 'Linka ligy a rýchle linky (poradie −1 / −2) ostávajú vždy navrchu — cez ostatné položky sa presúvať nedajú.');
+    return;
+  }
+  const bezne = siblings.filter(x=>val(x) >= 0);
+  const i = bezne.indexOf(n), ni = dir < 0 ? 0 : bezne.length - 1;
+  if(i < 0 || i === ni) return;
+  if(IS_EN) siblings.forEach(x=>{ if(x.order_en===undefined || x.order_en===null) x.order_en = x.order; });
+  bezne.splice(i, 1); bezne.splice(ni, 0, n);
+  bezne.forEach((x,k)=>{ x[F] = k; });
   save(); render();
 }
 
@@ -3653,8 +4090,54 @@ function publishData(){
   DB.updated = new Date().toISOString();
   if(!save()){ DB.version = oldVer; if(oldUpd === undefined) delete DB.updated; else DB.updated = oldUpd; return; } // nesťahuj
   lsSet('sportStromPubClean', '1'); // od teraz nič neupravené — po nahratí na web sa prevezme web
-  downloadJSON('data.json');
+  if(!downloadJSON('data.json')) return;
+  // Zadanie 41 (bod 4): sprievodca — čo so stiahnutým súborom (nahráva sa VŽDY do
+  // sport-linky, aj z EN webu; EN build si dáta berie zo SK webu)
+  document.getElementById('pubVer').textContent = 'v' + DB.version;
+  document.getElementById('pubMo').classList.add('open');
+  sledujWebVer();
 }
+// ============================================================
+// VERZIA NA WEBE (Zadanie 41, bod 4 = Zadanie 44 z analýzy admina)
+// ============================================================
+// Po Publikovať má okno vyššiu verziu než web (DB.version > WEB_VER). Kým web
+// nenahlási novú verziu, v admin lište svieti „⚠️ vN ešte nie je na webe (web má vM)“.
+// Verzia webu sa číta z version.txt (pár bajtov, bez cache; vyrába ho generator.py
+// pri každom builde — na EN webe teda verzia EN webu). Číta sa LEN v admine, len
+// kým je čo sledovať, raz za minútu a len keď je karta viditeľná (a hneď pri
+// návrate do karty). Návštevníkov sa to netýka. WEB_VER_MS = 60 s.
+const WEB_VER_MS = 60000;
+let _webVerT = null;
+async function nacitajWebVer(){
+  if(!/^https?:$/.test(location.protocol)) return 0; // súbor z disku — verzia webu nie je
+  try{
+    const r = await fetch(SITE_ROOT + 'version.txt', {cache:'no-store'});
+    if(!r.ok) return 0;
+    const t = (await r.text()).trim();
+    return /^\d+$/.test(t) ? parseInt(t, 10) : 0;
+  }catch(e){ return 0; }
+}
+function webVerBadge(){
+  const el = document.getElementById('webVerBadge');
+  if(!el) return;
+  const treba = adminMode && WEB_VER > 0 && (DB.version||0) > WEB_VER;
+  el.hidden = !treba;
+  if(treba) el.textContent = '⚠️ v' + DB.version + ' ešte nie je na webe (web má v' + WEB_VER + ')';
+}
+function sledujWebVer(){
+  clearTimeout(_webVerT); _webVerT = null;
+  webVerBadge();
+  if(!adminMode || !(WEB_VER > 0) || !((DB.version||0) > WEB_VER)) return;
+  (async ()=>{
+    if(!document.hidden){
+      const v = await nacitajWebVer();
+      if(v > WEB_VER) WEB_VER = v;
+    }
+    webVerBadge();
+    if(adminMode && (DB.version||0) > WEB_VER) _webVerT = setTimeout(sledujWebVer, WEB_VER_MS);
+  })();
+}
+document.addEventListener('visibilitychange', ()=>{ if(!document.hidden && adminMode && _webVerT) sledujWebVer(); });
 function importData(e){
   const f=e.target.files[0]; if(!f) return;
   const r=new FileReader();
