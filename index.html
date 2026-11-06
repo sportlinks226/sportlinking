@@ -503,8 +503,6 @@ a.akt-head[href]:hover #aktHeadTxt{text-decoration:underline}
 .mo-viac > .fg:first-of-type{margin-top:8px}
 .fg-note{font-size:0.72rem;color:var(--muted);margin-top:5px;line-height:1.45}
 .fg-note.varovanie{color:#f0b429}
-.fg-err{font-size:0.76rem;color:var(--red);font-weight:600;margin-top:5px;line-height:1.4}
-.fg input.err{border-color:var(--red)}
 .web-ver-badge{font-size:0.78rem;font-weight:700;color:#f0b429}
 .web-ver-badge[hidden]{display:none}
 .pub-kroky{margin:0 0 6px 20px;padding:0;line-height:1.55;font-size:0.9rem}
@@ -1019,9 +1017,10 @@ button#aktMoreBadge{-webkit-appearance:none;appearance:none;margin:0;border:0;fo
     <!-- Zadanie 41: poradie polí URL › Názov › Popis › Názov (EN) › Popis (EN); zvyšok je pod „▸ Viac“ -->
     <div class="fg" id="urlGroup"><label>URL *</label><input type="url" id="nUrl" placeholder="https://..." onchange="urlZmenene()"/><div class="fg-note" id="nUrlNote" hidden></div></div>
     <div class="fg"><label>Názov *</label><input type="text" id="nName" placeholder="napr. Futbal"/></div>
-    <div class="fg"><label>Popis</label><input type="text" id="nDesc" placeholder="Krátky popis"/></div>
-    <div class="fg"><label>Názov (EN)</label><input type="text" id="nNameEn" placeholder="vyplň, ak názov obsahuje slovenské slová"/></div>
-    <div class="fg"><label>Popis (EN)</label><input type="text" id="nDescEn" placeholder="anglický popis pre sportlinking.com" oninput="enPopisChyba('')"/><div class="fg-err" id="nDescEnErr" hidden></div></div>
+    <!-- Zadanie 41c: povinné je LEN URL a Názov — popisy a anglické texty dopĺňa Cowork v data.json -->
+    <div class="fg"><label>Popis</label><input type="text" id="nDesc" placeholder="nepovinné — doplní Cowork"/></div>
+    <div class="fg"><label>Názov (EN)</label><input type="text" id="nNameEn" placeholder="nepovinné — doplní Cowork"/></div>
+    <div class="fg"><label>Popis (EN)</label><input type="text" id="nDescEn" placeholder="nepovinné — doplní Cowork"/></div>
     <details class="mo-viac" id="nViac">
       <summary>Viac <span>· Facebook, Instagram, ikonka, typ linky, zaradiť</span></summary>
       <div class="fg soc-fg"><label>Facebook (ikonka)</label><input type="url" id="nFb" placeholder="https://www.facebook.com/... (nepovinné)"/></div>
@@ -3551,9 +3550,13 @@ function logoutAdmin(){
 // Zadanie 41 (6.–7.11.2026): MÚDREJŠIE OKNO LINKY. Polia URL › Názov › Popis ›
 // Názov (EN) › Popis (EN), zvyšok (Facebook, Instagram, ikonka, typ, zaradiť) pod
 // „▸ Viac“. Kontroly sú SAMOSTATNÉ funkcie bez práce s oknom (adresaUprav,
-// adresaKluc, duplicity, navrhNazov, slovenskeSlovo, kontrolaEN, kontrolaTypu,
-// jeAbecedny, zaradNovu, nastavTyp), aby ich Zadanie 42 (hromadné vloženie do
-// priečinka) použilo v náhľade. Priečinky a Aktuálne sa nemenia.
+// adresaKluc, duplicity, navrhNazov, kontrolaTypu, jeAbecedny, zaradNovu,
+// nastavTyp), aby ich Zadanie 42 (hromadné vloženie do priečinka) použilo
+// v náhľade. Priečinky a Aktuálne sa nemenia.
+// Zadanie 41c (7.11.2026): povinné je LEN URL a Názov. Popis, Názov (EN) a Popis (EN)
+// sú nepovinné — dopĺňa ich Cowork priamo v data.json (žiadne upozornenie ani otázka;
+// bývalé kontroly kontrolaEN a slovenskeSlovo sú odstránené). Prázdne polia sa
+// do dát nezapisujú.
 
 // --- adresa ---------------------------------------------------------------
 // Sledovacie prívesky (utm_*, fbclid, gclid…) sa odstránia, OSTATNÉ parametre ostávajú.
@@ -3657,23 +3660,6 @@ function vymenaSieti(fb, ig){
   return {otazka:(fbJeIg ? 'V poli Facebook je adresa Instagramu' : 'V poli Instagram je adresa Facebooku') + ', ale aj druhé pole je vyplnené. Prehodiť obe polia?', fb: ig, ig: fb};
 }
 
-// --- angličtina --------------------------------------------------------------
-// Slovenské slová v názve (celé slová, bez ohľadu na veľkosť písmen). Samotné
-// „liga“ zámerne nie je — je v cudzích názvoch (Erovnuli Liga, Liga MX…);
-// rovnako „tenis“, „mesto“, „česká“, „juniori“ (Oberá Tenis Club, VK Nové Mesto…).
-const SK_SLOVA = ['šport','športové','športový','športová','športu','správy','spravodajstvo',
-  'ženy','žien','ženská','ženský','muži','mužov','mužská','mužský','zväz','zväzu','zväzy',
-  'pohár','pohára','liga žien','liga mužov','extraliga','futbal','futbalový','futbalová',
-  'hokej','hokejový','basketbal','hádzaná','volejbal','atletika','plávanie','cyklistika',
-  'lyžovanie','florbal','kluby','súťaže','asociácie','výsledky','tabuľka','tabuľky','mládež',
-  'noviny','denník','televízia','rádio','rozhlas','oficiálna','oficiálny','stránka',
-  'slovenský','slovenská','slovenské','národný','národná'];
-const SK_SLOVA_RE = new RegExp('(?:^|[^\\p{L}\\p{N}])(' + SK_SLOVA.map(w=>w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|') + ')(?=$|[^\\p{L}\\p{N}])', 'iu');
-// slovenskeSlovo(name) → nájdené slovenské slovo alebo '' (názov vyzerá cudzojazyčne)
-function slovenskeSlovo(name){ const m = String(name||'').match(SK_SLOVA_RE); return m ? m[1] : ''; }
-// Popis (EN) je pri LINKE povinný (zobrazí sa na sportlinking.com) → text chyby alebo ''
-function kontrolaEN(descEn){ return String(descEn||'').trim() ? '' : 'Doplň anglický popis (zobrazí sa na sportlinking.com)'; }
-
 // --- typ linky a poradie ---------------------------------------------------
 // Typ: 0 = bežná, −1 = linka ligy (štítok LIGA, navrchu, bez FB/IG ikoniek),
 // −2 = rýchla linka (navrchu, pred linkou ligy). Rovnaký tvar dát, aký zapisuje
@@ -3751,11 +3737,6 @@ function urlNote(text, varovanie){
   const el = document.getElementById('nUrlNote');
   el.textContent = text || ''; el.hidden = !text; el.classList.toggle('varovanie', !!varovanie);
 }
-function enPopisChyba(text){
-  const el = document.getElementById('nDescEnErr');
-  el.textContent = text || ''; el.hidden = !text;
-  document.getElementById('nDescEn').classList.toggle('err', !!text);
-}
 function upravaText(up, pole){
   const t = [];
   if(up.zmeny.length) t.push('Admin upravil ' + (pole || 'adresu') + ' (' + up.zmeny.join(', ') + ') → ' + up.url);
@@ -3774,7 +3755,7 @@ function urlZmenene(){
 }
 function vyprazdniOkno(){
   ['nIcon','nName','nDesc','nNameEn','nDescEn','nUrl','nFb','nIg'].forEach(id=>{ document.getElementById(id).value = ''; });
-  urlNote(''); enPopisChyba('');
+  urlNote('');
 }
 function openAdd(){
   // bod 15 (Zadanie 31): priečinok Aktuálne nemá vlastné linky — obsah mu dodávajú Aktuálne
@@ -3811,7 +3792,7 @@ function openEdit(id){
   document.getElementById('nIg').value = n.ig||'';
   const typ = (n.order === -1 || n.order === -2) ? n.order : 0;
   document.getElementById('nTyp').value = String(typ);
-  urlNote(''); enPopisChyba('');
+  urlNote('');
   // „Viac“ rozbalené, keď linka má niečo z neho vyplnené (nech vidno, čo tam je)
   viacOtvor(!!(n.fb || n.ig || n.icon || typ));
   document.getElementById('typeBtnFolder').style.display='none';
@@ -3854,16 +3835,7 @@ function saveNode(aDalsia){
     if(ig && !urlOk(ig, 'Instagram')) return;
     const v = vymenaSieti(fb, ig);
     if(v && confirm(v.otazka + '\n\n(Zrušiť = nechať, ako je)')){ fb = v.fb; ig = v.ig; g('nFb').value = fb; g('nIg').value = ig; }
-    // e) Popis (EN) je pri linke povinný
-    const chybaEn = kontrolaEN(descEn);
-    if(chybaEn){ enPopisChyba(chybaEn); g('nDescEn').focus(); return; }
-    // f) slovenský názov bez anglického názvu — otázka
-    if(!nameEn){
-      const sl = slovenskeSlovo(name);
-      if(sl && !confirm('Názov vyzerá po slovensky („' + sl + '“). Uložiť bez anglického názvu?\n\nOK = Áno, uložiť bez neho · Zrušiť = Doplniť anglický názov')){
-        g('nNameEn').focus(); return;
-      }
-    }
+    // Popis, Názov (EN), Popis (EN): nepovinné (Zadanie 41c) — bez kontroly
     // g) linka ligy — priečinok už jednu má?
     const ut = kontrolaTypu(rodic, typ, editNodeId);
     if(ut && !confirm(ut + '\n\nUložiť aj tak ďalšiu linku ligy?')) return;

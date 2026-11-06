@@ -71,10 +71,11 @@ a „☆ 0“, stránka skočí hore, lišta „Vrátiť späť“ obnoví presn
 
 Kontrola s) (7.11.2026, Zadanie 41): admin na LOKÁLNEJ KÓPII webu (generator.py z repozitára, SK aj EN,
 testovacie heslo len v kópii dát; dáta z data.json repozitára, inak data-full.json z testovaného webu;
-repozitár ani web sa nemenia, Tipsport a GoatCounter blokované): okno linky (poradie polí, zbalené „Viac“,
-doplnenie https:// a odstránenie utm, návrh názvu z adresy, povinný Popis (EN), otázka pri slovenskom
-názve, duplicita s cestou, linka ligy −1 navrch aj cez „Uložiť a pridať ďalšiu“, zaradenie abecedne aj
-s CH, IG adresa v poli Facebook, http:// ostáva), ⤒/⤓ na SK (order) aj EN (order_en), na EN webe nová
+aktualne.json z repozitára, inak z testovaného webu — Zadanie 41c; repozitár ani web sa nemenia,
+Tipsport a GoatCounter blokované): okno linky (poradie polí, zbalené „Viac“, doplnenie https:// a
+odstránenie utm, návrh názvu z adresy, povinné len URL a Názov — popisy a EN polia nepovinné s poznámkou
+„doplní Cowork“ a bez otázky (Zadanie 41c), duplicita s cestou, linka ligy −1 navrch aj cez „Uložiť a
+pridať ďalšiu“, zaradenie abecedne aj s CH, IG adresa v poli Facebook, http:// ostáva), ⤒/⤓ na SK (order) aj EN (order_en), na EN webe nová
 linka dostane SK order aj order_en, 1366×768 bez prekrytia názvu, mobil 5 polí + tlačidlá bez „Viac“,
 sprievodca po 🚀 Publikovať (3 kroky, odkaz na nahrávanie do sport-linky aj z EN webu) a značka
 „⚠️ vN ešte nie je na webe“, ktorá zmizne po novej verzii webu (podstrčený version.txt).
@@ -1979,6 +1980,17 @@ class Test:
         for f in ("generator.py", "index.html", "aktualne.json", "favicon.ico", "apple-touch-icon.png", "og-image.png"):
             if os.path.exists(os.path.join(repo, f)):
                 shutil.copy(os.path.join(repo, f), src)
+        akt_zdroj = "aktualne.json z repozitára"
+        if not os.path.exists(os.path.join(src, "aktualne.json")):
+            # EN repozitár (sportlinking) aktualne.json nemá — EN web si ho berie zo SK webu;
+            # kópia ho dostane z testovaného webu (Zadanie 41c). Keď ani tam nie je, kópia je bez neho.
+            kod, _, text = stiahni(self.base + "aktualne.json", timeout=60)
+            if kod == 200:
+                with open(os.path.join(src, "aktualne.json"), "w", encoding="utf-8") as f:
+                    f.write(text)
+                akt_zdroj = "aktualne.json z testovaného webu"
+            else:
+                akt_zdroj = f"bez aktualne.json (HTTP {kod})"
         dj = os.path.join(repo, "data.json")
         if os.path.exists(dj):
             with open(dj, encoding="utf-8") as f:
@@ -2010,7 +2022,7 @@ class Test:
             threading.Thread(target=srv.serve_forever, daemon=True).start()
             self._servery.append(srv)
             urls[lang] = f"http://127.0.0.1:{srv.server_address[1]}/"
-        self.info.append(f"**Lokálna kópia pre admin (s):** {zdroj}, v{self._kopia_verzia}, SK aj EN z generator.py")
+        self.info.append(f"**Lokálna kópia pre admin (s):** {zdroj}, v{self._kopia_verzia}, {akt_zdroj}, SK aj EN z generator.py")
         self._kopia = urls
         return urls
 
@@ -2039,7 +2051,10 @@ class Test:
 
         def na_odpoved(r):
             u = urllib.parse.urlsplit(r.url)
-            # ikonky webov (/ikony/) v lokálnej kópii nie sú — sťahuje ich až build na GitHube
+            # aktualne.json môže v kópii chýbať (ako v stranka()); ikonky webov (/ikony/)
+            # v lokálnej kópii nie sú — sťahuje ich až build na GitHube
+            if u.path.endswith("/aktualne.json") and r.status == 404:
+                return
             if u.netloc == host and r.status >= 400 and not u.path.startswith("/ikony/"):
                 page.chyby_suborov.append(f"{r.status} {u.path}")
 
@@ -2145,9 +2160,12 @@ class Test:
               poradie: [...document.querySelectorAll('#nodeMo input[type=text], #nodeMo input[type=url]')].filter(i => i.offsetParent).map(i => i.id),
               viac: document.getElementById('nViac').open, fokus: document.activeElement.id,
               zarad: document.getElementById('nZarad').value, typ: document.getElementById('nTyp').value,
-              ikona: document.getElementById('nIcon').placeholder, next: !!document.getElementById('nSaveNext').offsetParent})""")
+              ikona: document.getElementById('nIcon').placeholder, next: !!document.getElementById('nSaveNext').offsetParent,
+              cowork: ['nDesc', 'nNameEn', 'nDescEn'].map(id => document.getElementById(id).placeholder)})""")
             if st["poradie"][:5] != ["nUrl", "nName", "nDesc", "nNameEn", "nDescEn"] or st["viac"] or st["fokus"] != "nUrl":
                 raise Zlyhanie(f"okno linky: poradie polí / Viac / kurzor nesedí: {st}")
+            if any("doplní Cowork" not in p for p in st["cowork"]):
+                raise Zlyhanie(f"pri Popis / Názov (EN) / Popis (EN) chýba poznámka „nepovinné — doplní Cowork“: {st['cowork']}")
             if st["zarad"] != "abc":
                 raise Zlyhanie(f"abecedný priečinok (aj s CH) nemá predvoľbu Zaradiť = abecedne, má „{st['zarad']}“")
             if st["ikona"] or not st["next"]:
@@ -2160,31 +2178,23 @@ class Test:
             url, nazov, pozn = page.input_value("#nUrl"), page.input_value("#nName"), page.text_content("#nUrlNote")
             if url != "https://sportnet.sme.sk/?z=1" or nazov != "Sportnet" or "https://" not in pozn or "utm_source" not in pozn:
                 raise Zlyhanie(f"úprava adresy / návrh názvu nesedí: {url!r}, {nazov!r}, {pozn!r}")
-            # e) bez EN popisu sa linka neuloží — červený text, kurzor v poli, žiadna otázka
-            page.fill("#nDescEn", "")
-            d = self.uloz(page)
-            chyba = page.evaluate("""() => ({txt: document.getElementById('nDescEnErr').textContent,
-              vidno: !!document.getElementById('nDescEnErr').offsetParent, fokus: document.activeElement.id})""")
-            if d or not chyba["vidno"] or "anglický popis" not in chyba["txt"] or chyba["fokus"] != "nDescEn" or not self.okno_otvorene(page):
-                raise Zlyhanie(f"chýbajúci Popis (EN) nezastavil uloženie: {d}, {chyba}")
-            self.snimka(page, "s-okno-chyba-en-popis-pc")
-            # f) slovenský názov bez EN názvu — otázka; Zrušiť = kurzor do Názov (EN)
-            page.fill("#nName", "Šport správy test")
-            page.fill("#nDescEn", "desc")
-            d = self.uloz(page, odpovede=[False])
-            if len(d) != 1 or "po slovensky" not in d[0] or page.evaluate("() => (document.activeElement.id)") != "nNameEn" or not self.okno_otvorene(page):
-                raise Zlyhanie(f"otázka pri slovenskom názve nesedí: {d}")
-            # bez slovenského slova (klub) sa nepýta; h) abecedne aj s CH: Humenné medzi Hodonín a Chomutov,
-            # SK order aj order_en (priečinok ho používa — EN podľa anglického kľúča)
-            page.fill("#nName", "Humenné")
+            # Zadanie 41c: linka LEN s URL a Názvom (slovenský názov, bez popisov a EN polí) sa uloží
+            # bez akejkoľvek otázky; prázdne polia sa do dát nezapíšu (desc sa zapisuje vždy, prázdny).
+            # h) abecedne aj s CH: Humenné medzi Hodonín a Chomutov, SK order aj order_en
+            # (priečinok ho používa — EN podľa anglického kľúča)
+            page.fill("#nName", "Humenné šport")
+            self.snimka(page, "s-okno-len-url-nazov-pc")
             d = self.uloz(page)
             if d or self.okno_otvorene(page):
-                raise Zlyhanie(f"uloženie bežnej linky: nečakaná otázka {d} / okno ostalo otvorené")
+                raise Zlyhanie(f"uloženie linky len s URL a Názvom: nečakaná otázka {d} / okno ostalo otvorené")
+            nova = page.evaluate("id => { const n = getChildren(id).find(x => x.name === 'Humenné šport'); return n ? {desc: n.desc, name_en: 'name_en' in n, desc_en: 'desc_en' in n} : null; }", self.T41)
+            if nova != {"desc": "", "name_en": False, "desc_en": False}:
+                raise Zlyhanie(f"prázdne polia sa zapísali do dát: {nova}")
             stav = self.t41_stav(page)
-            ocak = [["Hodonín", 0, 0], ["Humenné", 1, 2], ["Chomutov", 2, 1], ["Ilava", 3, 3]]
+            ocak = [["Hodonín", 0, 0], ["Humenné šport", 1, 2], ["Chomutov", 2, 1], ["Ilava", 3, 3]]
             if stav != ocak:
                 raise Zlyhanie(f"abecedné zaradenie (CH za H) nesedí: {stav} ≠ {ocak}")
-            popis.append("abecedne s CH (order aj order_en)")
+            popis.append("len URL + Názov bez otázky; abecedne s CH (order aj order_en)")
             # d) duplicita s cestou: adresa linky z iného priečinka — Zrušiť nepridá, OK pridá
             dup = page.evaluate("""id => { const n = DB.nodes.find(x => x.type === 'link' && x.order >= 0 && x.parentId !== id && x.url);
               return {url: n.url, cesta: getPath(n.parentId).map(x => x.name).join(' › ')}; }""", self.T41)
@@ -2292,7 +2302,7 @@ class Test:
             m = page.evaluate("""() => { const c = document.querySelector('#main .card-link'); const b = c.querySelector('.card-admin-bar');
               const r = b.getBoundingClientRect(); const t = [...b.querySelectorAll('.ibtn')].map(x => x.getBoundingClientRect());
               return {n: t.length, vyska: r.height, riadky: new Set(t.map(x => Math.round(x.top))).size, min: Math.min(...t.map(x => Math.min(x.width, x.height)))}; }""")
-            if m["n"] != 6 or m["riadky"] != 1 or m["min"] < 38:
+            if m["n"] != 6 or m["riadky"] != 1 or round(m["min"]) < 38:   # round: prehliadač vráti aj 37,99997
                 raise Zlyhanie(f"mobil: lišta karty nemá 6 tlačidiel v jednom riadku ≥ 38 px: {m}")
             self.snimka(page, "s-karty-mobil")
             self.okno_otvor(page)
