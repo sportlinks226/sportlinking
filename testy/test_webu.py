@@ -66,6 +66,18 @@ Escape, klik mimo), /?oblubene (noindex, odobratie, Späť/Vpred), admin bez hvi
 Zadanie 39a3: tlačidlo „☆ 0“ vidno aj pri 0, panel pri 0 s vetou (aj po odobratí poslednej pri
 otvorenom paneli), „✕ Zavrieť obľúbené“ vráti na stránku, odkiaľ sa prišlo (priamy príchod → domov),
 pri ~50 obľúbených je riadok s hľadaním a Zavrieť prilepený pod hlavičkou aj na konci zoznamu.
+Zadanie 39a4: „🗑 Vymazať všetky“ dole pod zoznamom — otázka (Nie / Escape nič nezmení), Áno → 0
+a „☆ 0“, stránka skočí hore, lišta „Vrátiť späť“ obnoví presne pôvodný zoznam (ID, poradie, časy), po F5 stav sedí.
+
+Kontrola s) (7.11.2026, Zadanie 41): admin na LOKÁLNEJ KÓPII webu (generator.py z repozitára, SK aj EN,
+testovacie heslo len v kópii dát; dáta z data.json repozitára, inak data-full.json z testovaného webu;
+repozitár ani web sa nemenia, Tipsport a GoatCounter blokované): okno linky (poradie polí, zbalené „Viac“,
+doplnenie https:// a odstránenie utm, návrh názvu z adresy, povinný Popis (EN), otázka pri slovenskom
+názve, duplicita s cestou, linka ligy −1 navrch aj cez „Uložiť a pridať ďalšiu“, zaradenie abecedne aj
+s CH, IG adresa v poli Facebook, http:// ostáva), ⤒/⤓ na SK (order) aj EN (order_en), na EN webe nová
+linka dostane SK order aj order_en, 1366×768 bez prekrytia názvu, mobil 5 polí + tlačidlá bez „Viac“,
+sprievodca po 🚀 Publikovať (3 kroky, odkaz na nahrávanie do sport-linky aj z EN webu) a značka
+„⚠️ vN ešte nie je na webe“, ktorá zmizne po novej verzii webu (podstrčený version.txt).
 
 Spustenie (lokálne):  python testy/test_webu.py --url https://sportlinky.sk/
 Voliteľne:  --od 2026-11-02T02:30:00Z  (počkaj, kým živý web nemá novšiu verziu)
@@ -75,9 +87,16 @@ Zhrnutie sa zapíše aj do súboru z premennej GITHUB_STEP_SUMMARY (stránka beh
 
 import argparse
 import email.utils
+import functools
+import hashlib
 import html
+import http.server
 import json
 import os
+import shutil
+import subprocess
+import tempfile
+import threading
 import random
 import re
 import sys
@@ -1604,11 +1623,71 @@ class Test:
         self.snimka(page, "r-obl-dlhy-" + ("mobil" if kde == "mobil" else "pc"))
         if st["y"] < 300 or not st["trafi"] or not st["srch"] or st["hore"] < st["hlav"] - 1:
             raise Zlyhanie(f"{kde}: pri posune na koniec {len(ids)} obľúbených nie je „Zavrieť“/hľadanie vidno pod hlavičkou: {st}")
+        vym = self.obl_vymazat(page, kde, len(ids))
         page.click("#fvClose")
         page.wait_for_timeout(500)
         if urllib.parse.urlsplit(page.url).path != o.path or urllib.parse.urlsplit(page.url).query:
             raise Zlyhanie(f"{kde}: „Zavrieť“ pri priamom príchode nevedie na domov (adresa {page.url})")
-        return f"{kde}: {len(ids)} obľúbených, na konci (posun {st['y']} px) „Zavrieť“ pod hlavičkou, priamy príchod → domov"
+        return f"{kde}: {len(ids)} obľúbených, na konci (posun {st['y']} px) „Zavrieť“ pod hlavičkou, {vym}, priamy príchod → domov"
+
+    def obl_vymazat(self, page, kde, n):
+        """Zadanie 39a4: „🗑 Vymazať všetky“ dole pod zoznamom — poistka 1 (otázka; Nie / Escape nič
+        nezmení), Áno → 0 a „☆ 0“, poistka 2 (lišta „Vrátiť späť“) obnoví PRESNE pôvodný zoznam
+        (ID, poradie, časy); po F5 stav sedí. Všetko len v prehliadači testu, GoatCounter blokovaný."""
+        surovy = lambda: page.evaluate(f"() => localStorage.getItem('{self.OBL_KLUC}')")
+        povodny = surovy()
+        btn = page.locator("#fvClear #fvClearBtn")
+        btn.scroll_into_view_if_needed()
+        if not btn.is_visible():
+            raise Zlyhanie(f"{kde}: pod zoznamom obľúbených chýba tlačidlo „Vymazať všetky“")
+        if page.locator("#fvBar #fvClearBtn, #favPanel #fvClearBtn").count():
+            raise Zlyhanie(f"{kde}: „Vymazať všetky“ je v prilepenom riadku alebo v paneli (má byť len dole)")
+        btn.click()
+        page.wait_for_selector("#fvAsk", state="visible")
+        if f"{n}" not in page.locator("#fvAsk").inner_text() or surovy() != povodny:
+            raise Zlyhanie(f"{kde}: po kliku na „Vymazať všetky“ chýba otázka s počtom {n} alebo sa už niečo vymazalo")
+        self.snimka(page, f"r-obl-vymazat-otazka-{kde}")
+        page.click("#fvNo")
+        page.wait_for_selector("#fvClearBtn", state="visible")
+        if surovy() != povodny or page.locator("#main .card-link").count() != n:
+            raise Zlyhanie(f"{kde}: „Nie“ zmenilo obľúbené")
+        page.click("#fvClearBtn")
+        page.wait_for_selector("#fvAsk", state="visible")
+        page.keyboard.press("Escape")
+        page.wait_for_timeout(200)
+        if (not page.locator("#fvClearBtn").is_visible() or surovy() != povodny
+                or urllib.parse.urlsplit(page.url).query not in ("oblubene", "favorites")):
+            raise Zlyhanie(f"{kde}: Escape pri otázke nemá byť nič iné než „Nie“ (stránka obľúbených ostáva)")
+        page.click("#fvClearBtn")
+        if page.evaluate("scrollY") < 50:
+            raise Zlyhanie(f"{kde}: pred „Áno“ nie je stránka posunutá nadol — skok hore sa nedá overiť")
+        page.click("#fvYes")
+        page.wait_for_selector("#favUndo #favUndoBtn", state="visible")
+        try:   # po vymazaní skok hore — prázdny stav aj „Zavrieť“ hneď vidno
+            page.wait_for_function("() => scrollY === 0", timeout=3000)
+        except Exception:
+            raise Zlyhanie(f"{kde}: po „Áno, vymazať“ stránka neskočila hore (posun {page.evaluate('scrollY')} px)") from None
+        if not page.locator("#fvClose").is_visible() or not page.locator("#main .empty").is_visible():
+            raise Zlyhanie(f"{kde}: po vymazaní nie je hore vidno prázdny stav a „Zavrieť“")
+        zoz = self.obl_zoznam(page)
+        if zoz != [] or page.locator("#hFav").inner_text().split() != ["☆", "0"] or page.locator("#main .card-link").count():
+            raise Zlyhanie(f"{kde}: po „Áno“ nie je 0 obľúbených a „☆ 0“ (úložisko {zoz}, hlavička {page.locator('#hFav').inner_text()})")
+        if f"({n})" not in page.locator("#favUndo").inner_text():
+            raise Zlyhanie(f"{kde}: lišta „Vrátiť späť“ neukazuje počet {n}")
+        self.snimka(page, f"r-obl-vymazat-lista-{kde}")
+        page.click("#favUndoBtn")
+        page.wait_for_selector("#main .card-link > .star.on", state="visible")
+        if surovy() != povodny:
+            raise Zlyhanie(f"{kde}: „Vrátiť späť“ neobnovilo PRESNE pôvodný zoznam (ID, poradie, časy)")
+        if page.locator("#favUndo").count() or self.obl_pocet_hlavicka(page) != n or page.locator("#main .card-link").count() != n:
+            raise Zlyhanie(f"{kde}: po „Vrátiť späť“ nesedí lišta, hlavička ({self.obl_pocet_hlavicka(page)}) alebo počet kariet")
+        page.reload(wait_until="load")
+        page.wait_for_function(self.OBL_CELE_DATA, timeout=30_000)
+        page.wait_for_selector("#main .card-link > .star.on", state="visible")
+        page.wait_for_timeout(300)
+        if surovy() != povodny or self.obl_pocet_hlavicka(page) != n:
+            raise Zlyhanie(f"{kde}: po F5 nesedí obnovený zoznam obľúbených")
+        return "vymazať: otázka/Nie/Escape/Áno → skok hore, ☆ 0 → Vrátiť späť = rovnaký zoznam aj po F5"
 
     def oblubene(self, pokus):
         if not self.data:
@@ -1869,6 +1948,417 @@ class Test:
             ctx.close()
         return "ok", "; ".join(popis)
 
+    # ------------------------------------------------ s) admin v lokálnej kópii (Zadanie 41)
+    # Admin sa skúša na LOKÁLNEJ KÓPII webu: generator.py z repozitára vyrobí SK aj EN web
+    # do dočasného priečinka, do kópie dát sa vloží testovacie heslo (skutočné heslo test
+    # nepozná a nepotrebuje), kópiu obslúži malý server na 127.0.0.1. Dáta: data.json z
+    # repozitára (sport-linky); kde v repozitári nie je (sportlinking), stiahnu sa úplné dáta
+    # data-full.json z testovaného webu. Repozitár ani web sa nemenia. Tipsport aj GoatCounter
+    # ostávajú blokované (BLOKOVANE). Skúšobný priečinok „Zadanie 41 test“ s linkami vzniká
+    # LEN v pamäti prehliadača testu.
+    ADMIN_HESLO = "test"
+    T41 = "t41"              # id skúšobného priečinka
+    GITHUB_UPLOAD = "https://github.com/sportlinks226/sport-linky/upload/main"
+
+    class _TichyServer(http.server.SimpleHTTPRequestHandler):
+        def log_message(self, *a, **k):   # bez výpisov do konzoly
+            pass
+
+    def lokalna_kopia(self):
+        """Vráti {'sk': url, 'en': url} lokálnych kópií (vyrobí ich pri prvom volaní)."""
+        if getattr(self, "_kopia", None):
+            return self._kopia
+        repo = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        if not os.path.exists(os.path.join(repo, "generator.py")):
+            raise Zlyhanie("v repozitári nie je generator.py — lokálna kópia sa nedá vyrobiť")
+        tmp = tempfile.mkdtemp(prefix="sportlinky-admin-")
+        self._kopia_dir = tmp
+        self._servery = []
+        src = os.path.join(tmp, "src")
+        os.makedirs(src)
+        for f in ("generator.py", "index.html", "aktualne.json", "favicon.ico", "apple-touch-icon.png", "og-image.png"):
+            if os.path.exists(os.path.join(repo, f)):
+                shutil.copy(os.path.join(repo, f), src)
+        dj = os.path.join(repo, "data.json")
+        if os.path.exists(dj):
+            with open(dj, encoding="utf-8") as f:
+                d = json.load(f)
+            zdroj = "data.json z repozitára"
+        else:
+            kod, _, text = stiahni(self.base + "data-full.json", timeout=180)
+            if kod != 200:
+                raise Zlyhanie(f"úplné dáta data-full.json z webu sa nepodarilo stiahnuť (HTTP {kod})")
+            d = json.loads(text)
+            zdroj = "data-full.json z testovaného webu"
+        if not isinstance(d, dict) or not isinstance(d.get("nodes"), list) or d.get("_lite"):
+            raise Zlyhanie(f"dáta ({zdroj}) nie sú úplné (chýbajú nodes alebo sú odľahčené)")
+        salt = "0123456789abcdef0123456789abcdef"
+        d["pwKdf"] = {"salt": salt, "iter": 600_000,
+                      "hash": hashlib.pbkdf2_hmac("sha256", self.ADMIN_HESLO.encode(), bytes.fromhex(salt), 600_000).hex()}
+        with open(os.path.join(src, "data.json"), "w", encoding="utf-8") as f:
+            json.dump(d, f, ensure_ascii=False)
+        self._kopia_verzia = int(d.get("version") or 0)
+        urls = {}
+        for lang in ("sk", "en"):
+            out = os.path.join(tmp, lang)
+            r = subprocess.run([sys.executable, "generator.py", "--out", out], cwd=src,
+                               env={**os.environ, "SITE_LANG": lang, "BASE_URL": "", "OUT_PREFIX": ""},
+                               capture_output=True, text=True, timeout=600)
+            if r.returncode != 0 or not os.path.exists(os.path.join(out, "index.html")):
+                raise Zlyhanie(f"generator.py ({lang}) zlyhal: {(r.stderr or r.stdout)[-400:]}")
+            srv = http.server.ThreadingHTTPServer(("127.0.0.1", 0), functools.partial(self._TichyServer, directory=out))
+            threading.Thread(target=srv.serve_forever, daemon=True).start()
+            self._servery.append(srv)
+            urls[lang] = f"http://127.0.0.1:{srv.server_address[1]}/"
+        self.info.append(f"**Lokálna kópia pre admin (s):** {zdroj}, v{self._kopia_verzia}, SK aj EN z generator.py")
+        self._kopia = urls
+        return urls
+
+    def uprac_kopiu(self):
+        for srv in getattr(self, "_servery", []) or []:
+            try:
+                srv.shutdown()
+            except Exception:
+                pass
+        if getattr(self, "_kopia_dir", None):
+            shutil.rmtree(self._kopia_dir, ignore_errors=True)
+
+    def admin_prihlas(self, ctx, base, cesta=""):
+        """Otvorí lokálnu kópiu s #admin, prihlási sa testovacím heslom. Stránka si zbiera
+        otázky okna (confirm/alert) do page.dialogy; page.odpovede = pripravené odpovede
+        (True = OK, False = Zrušiť) na nasledujúce otázky, inak OK."""
+        page = self.stranka(ctx)
+        page.dialogy = []
+        page.odpovede = []
+        host = urllib.parse.urlsplit(base).netloc
+
+        def na_dialog(d):
+            page.dialogy.append(d.message)
+            odp = page.odpovede.pop(0) if page.odpovede else True
+            (d.accept if odp else d.dismiss)()
+
+        def na_odpoved(r):
+            u = urllib.parse.urlsplit(r.url)
+            # ikonky webov (/ikony/) v lokálnej kópii nie sú — sťahuje ich až build na GitHube
+            if u.netloc == host and r.status >= 400 and not u.path.startswith("/ikony/"):
+                page.chyby_suborov.append(f"{r.status} {u.path}")
+
+        page.on("dialog", na_dialog)
+        page.on("response", na_odpoved)
+        page.goto(base + cesta + "#admin", wait_until="load")
+        page.wait_for_selector("#pwScreen.open #pwIn", state="visible")
+        page.fill("#pwIn", self.ADMIN_HESLO)
+        page.press("#pwIn", "Enter")
+        page.wait_for_function("() => (document.body.classList.contains('admin-mode'))", timeout=CAKANIE_MS)
+        page.wait_for_timeout(400)
+        return page
+
+    # Skúšobný priečinok LEN v prehliadači: v prvej koreňovej sekcii, linky Hodonín › Chomutov ›
+    # Ilava = presná slovenská abeceda (CH za H), ale NIE podľa kľúča bez diakritiky.
+    # order_en: True = priečinok používa order_en (SK web), False = nepoužíva (EN web).
+    T41_JS = """([id, sOrderEn]) => {
+      DB.nodes = DB.nodes.filter(n => n.id !== id && n.parentId !== id);
+      const sekcia = DB.nodes.find(n => n.parentId === null && n.type === 'folder' && n.id !== LIVE_ID);
+      DB.nodes.push({id, parentId: sekcia.id, type:'folder', name:'Zadanie 41 test', name_en:'Task 41 test',
+                     slug:'zadanie-41-test', slug_en:'task-41-test', icon:'', desc:'', order: 9999});
+      ['Hodonín', 'Chomutov', 'Ilava'].forEach((m, i) => {
+        const n = {id: id + '_' + i, parentId: id, type:'link', icon:'', name: m, name_en: m, desc:'popis', desc_en:'desc',
+                   url: 'https://t41-' + i + '.example/', order: i};
+        if(sOrderEn) n.order_en = i;
+        DB.nodes.push(n);
+      });
+      save(); navigate(id); return sekcia.name;
+    }"""
+    T41_STAV = """id => getChildren(id).map(n => [n.name, n.order, (n.order_en === undefined ? null : n.order_en)])"""
+    PREKRYTIE_JS = """() => { const zle = [];
+      document.querySelectorAll('#main .card-link, #main .card-folder, #main .card-root').forEach(c => {
+        const nm = c.querySelector('.cl-name, .cf-name, .c-name'); if(!nm) return;
+        const n = nm.getBoundingClientRect(); if(!n.width) return;
+        c.querySelectorAll('.ibtn').forEach(b => { const x = b.getBoundingClientRect();
+          if(x.left < n.right && x.right > n.left && x.top < n.bottom && x.bottom > n.top) zle.push(nm.textContent.trim()); });
+      });
+      return {karty: document.querySelectorAll('#main .ibtn').length / 6, zle}; }"""
+
+    def t41_pripravit(self, page, s_order_en):
+        return page.evaluate(self.T41_JS, [self.T41, s_order_en])
+
+    def t41_stav(self, page):
+        return page.evaluate(self.T41_STAV, self.T41)
+
+    def okno_otvor(self, page):
+        page.click("#adminBar >> text=Pridať sem")
+        page.wait_for_selector("#nodeMo.open", state="visible")
+        page.wait_for_timeout(250)
+
+    def okno_otvorene(self, page):
+        return page.evaluate("() => (document.getElementById('nodeMo').classList.contains('open'))")
+
+    def okno_vyplnit(self, page, url, nazov, desc_en="desc", nazov_en="", viac=None):
+        page.fill("#nUrl", url)
+        page.press("#nUrl", "Tab")       # onchange: úprava adresy + návrh názvu
+        page.wait_for_timeout(100)
+        if nazov is not None:
+            page.fill("#nName", nazov)
+        page.fill("#nNameEn", nazov_en)
+        page.fill("#nDescEn", desc_en)
+        if viac:
+            if not page.evaluate("() => (document.getElementById('nViac').open)"):
+                page.click("#nViac summary")
+            for k, v in viac.items():
+                if k in ("nTyp", "nZarad"):
+                    page.select_option("#" + k, v)
+                else:
+                    page.fill("#" + k, v)
+
+    def uloz(self, page, odpovede=(), dalsia=False):
+        page.dialogy.clear()
+        page.odpovede[:] = list(odpovede)
+        page.click("#nSaveNext" if dalsia else "#nSave")
+        page.wait_for_timeout(350)
+        return list(page.dialogy)
+
+    def admin_okno(self, pokus):
+        kopia = self.lokalna_kopia()
+        popis = []
+        # ---------------- SK, počítač 1366×768
+        ctx = self.kontext(okno=(1366, 768))
+        try:
+            page = self.admin_prihlas(ctx, kopia["sk"])
+            sekcia = self.t41_pripravit(page, True)
+            page.wait_for_timeout(300)
+            # 3) prekrytie: lišta ⤒▲▼⤓✏️🗑 (6 tlačidiel) nesmie ležať na názve — v priečinku aj na domove
+            pr = page.evaluate(self.PREKRYTIE_JS)
+            if pr["karty"] < 3 or pr["zle"]:
+                self.snimka(page, "s-prekrytie-chyba")
+                raise Zlyhanie(f"1366×768: tlačidlá prekrývajú názov ({pr['zle'] or 'karty bez 6 tlačidiel'})")
+            self.snimka(page, "s-karty-pc")
+            page.evaluate("() => (navigate(null))")
+            page.wait_for_timeout(300)
+            pr2 = page.evaluate(self.PREKRYTIE_JS)
+            if pr2["zle"]:
+                raise Zlyhanie(f"1366×768 domov: tlačidlá prekrývajú názov ({pr2['zle']})")
+            page.evaluate("id => navigate(id)", self.T41)
+            page.wait_for_timeout(300)
+            # okno: poradie polí, zbalené Viac, kurzor v URL, predvoľba abecedne
+            self.okno_otvor(page)
+            st = page.evaluate("""() => ({
+              poradie: [...document.querySelectorAll('#nodeMo input[type=text], #nodeMo input[type=url]')].filter(i => i.offsetParent).map(i => i.id),
+              viac: document.getElementById('nViac').open, fokus: document.activeElement.id,
+              zarad: document.getElementById('nZarad').value, typ: document.getElementById('nTyp').value,
+              ikona: document.getElementById('nIcon').placeholder, next: !!document.getElementById('nSaveNext').offsetParent})""")
+            if st["poradie"][:5] != ["nUrl", "nName", "nDesc", "nNameEn", "nDescEn"] or st["viac"] or st["fokus"] != "nUrl":
+                raise Zlyhanie(f"okno linky: poradie polí / Viac / kurzor nesedí: {st}")
+            if st["zarad"] != "abc":
+                raise Zlyhanie(f"abecedný priečinok (aj s CH) nemá predvoľbu Zaradiť = abecedne, má „{st['zarad']}“")
+            if st["ikona"] or not st["next"]:
+                raise Zlyhanie("pole ikonky má ukážku ⚽ alebo chýba „Uložiť a pridať ďalšiu“")
+            self.snimka(page, "s-okno-zbalene-pc")
+            # b) https:// + sledovacie prívesky + c) návrh názvu z adresy
+            page.fill("#nUrl", "sportnet.sme.sk/?utm_source=t&utm_medium=x&z=1")
+            page.press("#nUrl", "Tab")
+            page.wait_for_timeout(150)
+            url, nazov, pozn = page.input_value("#nUrl"), page.input_value("#nName"), page.text_content("#nUrlNote")
+            if url != "https://sportnet.sme.sk/?z=1" or nazov != "Sportnet" or "https://" not in pozn or "utm_source" not in pozn:
+                raise Zlyhanie(f"úprava adresy / návrh názvu nesedí: {url!r}, {nazov!r}, {pozn!r}")
+            # e) bez EN popisu sa linka neuloží — červený text, kurzor v poli, žiadna otázka
+            page.fill("#nDescEn", "")
+            d = self.uloz(page)
+            chyba = page.evaluate("""() => ({txt: document.getElementById('nDescEnErr').textContent,
+              vidno: !!document.getElementById('nDescEnErr').offsetParent, fokus: document.activeElement.id})""")
+            if d or not chyba["vidno"] or "anglický popis" not in chyba["txt"] or chyba["fokus"] != "nDescEn" or not self.okno_otvorene(page):
+                raise Zlyhanie(f"chýbajúci Popis (EN) nezastavil uloženie: {d}, {chyba}")
+            self.snimka(page, "s-okno-chyba-en-popis-pc")
+            # f) slovenský názov bez EN názvu — otázka; Zrušiť = kurzor do Názov (EN)
+            page.fill("#nName", "Šport správy test")
+            page.fill("#nDescEn", "desc")
+            d = self.uloz(page, odpovede=[False])
+            if len(d) != 1 or "po slovensky" not in d[0] or page.evaluate("() => (document.activeElement.id)") != "nNameEn" or not self.okno_otvorene(page):
+                raise Zlyhanie(f"otázka pri slovenskom názve nesedí: {d}")
+            # bez slovenského slova (klub) sa nepýta; h) abecedne aj s CH: Humenné medzi Hodonín a Chomutov,
+            # SK order aj order_en (priečinok ho používa — EN podľa anglického kľúča)
+            page.fill("#nName", "Humenné")
+            d = self.uloz(page)
+            if d or self.okno_otvorene(page):
+                raise Zlyhanie(f"uloženie bežnej linky: nečakaná otázka {d} / okno ostalo otvorené")
+            stav = self.t41_stav(page)
+            ocak = [["Hodonín", 0, 0], ["Humenné", 1, 2], ["Chomutov", 2, 1], ["Ilava", 3, 3]]
+            if stav != ocak:
+                raise Zlyhanie(f"abecedné zaradenie (CH za H) nesedí: {stav} ≠ {ocak}")
+            popis.append("abecedne s CH (order aj order_en)")
+            # d) duplicita s cestou: adresa linky z iného priečinka — Zrušiť nepridá, OK pridá
+            dup = page.evaluate("""id => { const n = DB.nodes.find(x => x.type === 'link' && x.order >= 0 && x.parentId !== id && x.url);
+              return {url: n.url, cesta: getPath(n.parentId).map(x => x.name).join(' › ')}; }""", self.T41)
+            self.okno_otvor(page)
+            self.okno_vyplnit(page, dup["url"], "Duplicita test", viac={"nZarad": "koniec"})
+            d = self.uloz(page, odpovede=[False])
+            if len(d) != 1 or "Táto adresa už je v:" not in d[0] or dup["cesta"] not in d[0] or not self.okno_otvorene(page):
+                raise Zlyhanie(f"upozornenie na duplicitu nesedí: {d} (čakaná cesta {dup['cesta']})")
+            self.snimka(page, "s-okno-duplicita-pc")
+            d = self.uloz(page, odpovede=[True])
+            stav = self.t41_stav(page)
+            if self.okno_otvorene(page) or stav[-1][:2] != ["Duplicita test", 4]:
+                raise Zlyhanie(f"„Pridať aj tak“ nepridalo linku na koniec: {stav}")
+            popis.append("duplicita s cestou")
+            # g) linka ligy cez „Uložiť a pridať ďalšiu“: order −1 (aj order_en), navrch, okno ostáva,
+            # Typ späť na Bežná, Zaradiť sa pamätá
+            self.okno_otvor(page)
+            self.okno_vyplnit(page, "https://liga.example/tabulka", "Liga test", viac={"nTyp": "-1", "nZarad": "zaciatok"})
+            d = self.uloz(page, dalsia=True)
+            po = page.evaluate("""() => ({open: document.getElementById('nodeMo').classList.contains('open'),
+              url: document.getElementById('nUrl').value, typ: document.getElementById('nTyp').value,
+              zarad: document.getElementById('nZarad').value, pozn: document.getElementById('nUrlNote').textContent})""")
+            stav = self.t41_stav(page)
+            if d or stav[0] != ["Liga test", -1, -1] or not po["open"] or po["url"] or po["typ"] != "0" or po["zarad"] != "zaciatok" or "Uložené" not in po["pozn"]:
+                raise Zlyhanie(f"linka ligy / Uložiť a pridať ďalšiu nesedí: {d}, {stav[:2]}, {po}")
+            # druhá linka ligy → upozornenie; Zrušiť = neuloží
+            self.okno_vyplnit(page, "https://liga2.example/", "Liga test 2", viac={"nTyp": "-1"})
+            d = self.uloz(page, odpovede=[False])
+            if len(d) != 1 or "už má linku ligy" not in d[0] or "Liga test" not in d[0] or len(self.t41_stav(page)) != 6:
+                raise Zlyhanie(f"upozornenie na druhú linku ligy nesedí: {d}")
+            page.odpovede[:] = [True]
+            page.click("#nodeMo >> text=Zrušiť")   # rozpísané zmeny → otázka → OK
+            page.wait_for_timeout(300)
+            popis.append("linka ligy −1 navrch")
+            # 2) skoky ⤒/⤓ na SK: mení order (0, 1, 2…), −1 ostáva navrchu, order_en sa nemení
+            posledna = page.evaluate("id => { const c = getChildren(id).filter(n => n.order >= 0); return c[c.length - 1].id; }", self.T41)
+            page.click(f"#main .card-link:has(button[onclick*=\"'{posledna}'\"]) .ibtn.kraj >> nth=0")
+            page.wait_for_timeout(300)
+            stav = self.t41_stav(page)
+            if stav[0][1] != -1 or stav[1][:2] != ["Duplicita test", 0] or [x[1] for x in stav[1:]] != [0, 1, 2, 3, 4] or stav[2][2] != 0:   # order_en sa na SK nemení
+                raise Zlyhanie(f"⤒ na SK nesedí: {stav}")
+            page.click(f"#main .card-link:has(button[onclick*=\"'{posledna}'\"]) .ibtn.kraj >> nth=1")
+            page.wait_for_timeout(300)
+            stav = self.t41_stav(page)
+            if stav[-1][:2] != ["Duplicita test", 4] or [x[1] for x in stav[1:]] != [0, 1, 2, 3, 4]:
+                raise Zlyhanie(f"⤓ na SK nesedí: {stav}")
+            page.odpovede[:] = [True]
+            page.click("#main .card-link:nth-child(1) .ibtn.kraj >> nth=1")   # linka ligy sa nehýbe — hláška
+            page.wait_for_timeout(200)
+            if not page.dialogy or "navrchu" not in page.dialogy[-1] or self.t41_stav(page)[0][1] != -1:
+                raise Zlyhanie("⤓ pri linke ligy nezastavil s hláškou")
+            popis.append("⤒/⤓ SK (order)")
+            # Facebook ↔ Instagram: IG adresa v poli Facebook → ponuka presunúť
+            self.okno_otvor(page)
+            self.okno_vyplnit(page, "https://klub.example/", "Klub FC", viac={"nFb": "https://www.instagram.com/klubfc/", "nZarad": "koniec"})
+            d = self.uloz(page, odpovede=[True])
+            n = page.evaluate("id => { const c = getChildren(id); const n = c[c.length - 1]; return {fb: n.fb || '', ig: n.ig || '', name: n.name}; }", self.T41)
+            if len(d) != 1 or "Instagramu" not in d[0] or n != {"fb": "", "ig": "https://www.instagram.com/klubfc/", "name": "Klub FC"}:
+                raise Zlyhanie(f"IG adresa v poli Facebook: {d}, {n}")
+            # http:// ostáva, len upozornenie; úprava linky: Viac rozbalené (má IG)
+            page.click(f"#main .card-link:has(button[onclick*=\"openEdit\"]) >> nth=-1 >> .ibtn:has-text('✏️')")
+            page.wait_for_selector("#nodeMo.open", state="visible")
+            page.wait_for_timeout(200)
+            if not page.evaluate("() => (document.getElementById('nViac').open)") or page.evaluate("() => (!!document.getElementById('nSaveNext').offsetParent)"):
+                raise Zlyhanie("úprava linky s IG: „Viac“ nie je rozbalené alebo je vidno „Uložiť a pridať ďalšiu“")
+            self.snimka(page, "s-okno-uprava-viac-pc")
+            page.fill("#nUrl", "http://stary.example/x")
+            page.press("#nUrl", "Tab")
+            page.wait_for_timeout(150)
+            if page.input_value("#nUrl") != "http://stary.example/x" or "http://" not in page.text_content("#nUrlNote"):
+                raise Zlyhanie("http:// sa mal nechať s upozornením")
+            d = self.uloz(page)   # adresa sa zmenila, nie je duplicitná → bez otázky
+            if d or self.okno_otvorene(page):
+                raise Zlyhanie(f"úprava linky s http:// sa neuložila: {d}")
+            # 4) sprievodca po Publikovať + značka verzie
+            with page.expect_download() as dl:
+                page.click("#adminBar >> text=Publikovať")
+            if dl.value.suggested_filename != "data.json":
+                raise Zlyhanie(f"Publikovať nestiahol data.json ({dl.value.suggested_filename})")
+            page.wait_for_selector("#pubMo.open", state="visible")
+            v = self._kopia_verzia
+            sp = page.evaluate("""() => ({ver: document.getElementById('pubVer').textContent,
+              href: document.getElementById('pubGh').getAttribute('href'), target: document.getElementById('pubGh').getAttribute('target'),
+              kroky: document.querySelectorAll('#pubMo .pub-kroky li').length,
+              badge: document.getElementById('webVerBadge').textContent, vidno: !document.getElementById('webVerBadge').hidden})""")
+            if sp["ver"] != f"v{v + 1}" or sp["href"] != self.GITHUB_UPLOAD or sp["target"] != "_blank" or sp["kroky"] != 3:
+                raise Zlyhanie(f"sprievodca po Publikovať nesedí: {sp}")
+            if not sp["vidno"] or sp["badge"] != f"⚠️ v{v + 1} ešte nie je na webe (web má v{v})":
+                raise Zlyhanie(f"značka verzie v admin lište nesedí: {sp}")
+            self.snimka(page, "s-sprievodca-publikovat-pc")
+            page.route("**/version.txt*", lambda r: r.fulfill(status=200, content_type="text/plain", body=str(v + 1)))
+            page.evaluate("() => (sledujWebVer())")
+            page.wait_for_function("() => (document.getElementById('webVerBadge').hidden)", timeout=CAKANIE_MS)
+            page.click("#pubMo >> text=Zavrieť")
+            popis.append("sprievodca + značka verzie")
+            self.over_chyby(page, "admin SK (lokálna kópia)")
+        finally:
+            ctx.close()
+        # ---------------- SK, mobil: 5 polí + tlačidlá bez „Viac“, ⤒⤓ v jednom riadku
+        ctx = self.kontext(mobil=True)
+        try:
+            page = self.admin_prihlas(ctx, kopia["sk"])
+            self.t41_pripravit(page, True)
+            page.wait_for_timeout(300)
+            m = page.evaluate("""() => { const c = document.querySelector('#main .card-link'); const b = c.querySelector('.card-admin-bar');
+              const r = b.getBoundingClientRect(); const t = [...b.querySelectorAll('.ibtn')].map(x => x.getBoundingClientRect());
+              return {n: t.length, vyska: r.height, riadky: new Set(t.map(x => Math.round(x.top))).size, min: Math.min(...t.map(x => Math.min(x.width, x.height)))}; }""")
+            if m["n"] != 6 or m["riadky"] != 1 or m["min"] < 38:
+                raise Zlyhanie(f"mobil: lišta karty nemá 6 tlačidiel v jednom riadku ≥ 38 px: {m}")
+            self.snimka(page, "s-karty-mobil")
+            self.okno_otvor(page)
+            ok = page.evaluate("""() => { const v = id => { const r = document.getElementById(id).getBoundingClientRect(); return r.top >= 0 && r.bottom <= innerHeight; };
+              return {polia: ['nUrl','nName','nDesc','nNameEn','nDescEn'].every(v), save: v('nSave'), next: v('nSaveNext'), viac: document.getElementById('nViac').open}; }""")
+            if not ok["polia"] or not ok["save"] or not ok["next"] or ok["viac"]:
+                self.snimka(page, "s-okno-mobil-chyba")
+                raise Zlyhanie(f"mobil: bez otvorenia „Viac“ nevidno 5 polí + tlačidlá: {ok}")
+            self.snimka(page, "s-okno-zbalene-mobil")
+            page.click("#nViac summary")
+            page.wait_for_timeout(200)
+            self.snimka(page, "s-okno-viac-mobil")
+            page.click("#nodeMo >> text=Zrušiť")
+            self.over_chyby(page, "admin SK mobil (lokálna kópia)")
+            popis.append("mobil: 5 polí + ⤒⤓ v riadku")
+        finally:
+            ctx.close()
+        # ---------------- EN: ⤒⤓ menia order_en (order nie), nová linka dostane SK order aj order_en
+        ctx = self.kontext(okno=(1366, 768))
+        try:
+            page = self.admin_prihlas(ctx, kopia["en"])
+            self.t41_pripravit(page, False)
+            page.wait_for_timeout(300)
+            posledna = page.evaluate("id => { const c = getChildren(id); return c[c.length - 1].id; }", self.T41)
+            page.click(f"#main .card-link:has(button[onclick*=\"'{posledna}'\"]) .ibtn.kraj >> nth=0")
+            page.wait_for_timeout(300)
+            stav = self.t41_stav(page)
+            if stav != [["Ilava", 2, 0], ["Hodonín", 0, 1], ["Chomutov", 1, 2]]:
+                raise Zlyhanie(f"⤒ na EN nesedí (má meniť len order_en): {stav}")
+            page.click(f"#main .card-link:has(button[onclick*=\"'{posledna}'\"]) .ibtn.kraj >> nth=1")
+            page.wait_for_timeout(300)
+            stav = self.t41_stav(page)
+            if stav != [["Hodonín", 0, 0], ["Chomutov", 1, 1], ["Ilava", 2, 2]]:
+                raise Zlyhanie(f"⤓ na EN nesedí: {stav}")
+            popis.append("⤒/⤓ EN (order_en)")
+            # nová linka na EN webe, abecedne: SK order podľa slovenskej abecedy (Hodonín › Hrabušice › Chomutov › Ilava),
+            # order_en podľa anglického kľúča v EN poradí (Hodonín › Chomutov › Hrabušice › Ilava)
+            self.okno_otvor(page)
+            if page.evaluate("() => (document.getElementById('nZarad').value)") != "abc":
+                raise Zlyhanie("EN: abecedný priečinok nemá predvoľbu abecedne")
+            self.okno_vyplnit(page, "https://hrabusice.example/", "Hrabušice", nazov_en="Hrabusice")
+            d = self.uloz(page)
+            stav = self.t41_stav(page)
+            ocak = [["Hodonín", 0, 0], ["Chomutov", 2, 1], ["Hrabušice", 1, 2], ["Ilava", 3, 3]]
+            if d or stav != ocak:
+                raise Zlyhanie(f"EN: nová linka nedostala SK order aj order_en podľa voľby: {stav} ≠ {ocak} ({d})")
+            # linka ligy na EN: order −1 aj order_en −1
+            self.okno_otvor(page)
+            self.okno_vyplnit(page, "https://liga-en.example/", "League test", viac={"nTyp": "-1"})
+            d = self.uloz(page)
+            stav = self.t41_stav(page)
+            if d or stav[0] != ["League test", -1, -1]:
+                raise Zlyhanie(f"EN: linka ligy nemá order aj order_en −1: {stav[:2]}")
+            # sprievodca aj na EN webe vedie do sport-linky
+            with page.expect_download() as dl:
+                page.click("#adminBar >> text=Publikovať")
+            page.wait_for_selector("#pubMo.open", state="visible")
+            if page.evaluate("() => (document.getElementById('pubGh').getAttribute('href'))") != self.GITHUB_UPLOAD:
+                raise Zlyhanie("EN: sprievodca nevedie na nahrávanie do sport-linky")
+            page.click("#pubMo >> text=Zavrieť")
+            self.over_chyby(page, "admin EN (lokálna kópia)")
+            popis.append("EN: SK order + order_en, sprievodca → sport-linky")
+        finally:
+            ctx.close()
+        return "ok", "; ".join(popis)
+
     # ------------------------------------------------ hlavný beh
     def spusti(self, od):
         self.cakaj_na_nasadenie(od)
@@ -1911,8 +2401,10 @@ class Test:
                 self.kontrola("p) Mobil: hlavička sa pri posune zbalí a hore rozbalí", self.hlavicka_mobil)
                 self.kontrola("q) Stĺpce: pás pod hlavičkou (prepnutie, príchod, Späť/Vpred)", self.stlpce_posun)
                 self.kontrola("r) Obľúbené ★ (hviezdička, hlavička, panel, ?oblubene, admin)", self.oblubene)
+                self.kontrola("s) Admin v lokálnej kópii: okno linky, ⤒⤓, prekrytie na PC, sprievodca", self.admin_okno)
             finally:
                 self.browser.close()
+                self.uprac_kopiu()
 
     def zhrnutie(self):
         ikona = {"ok": "✅", "warn": "⚠️", "fail": "❌"}
