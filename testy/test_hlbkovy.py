@@ -45,8 +45,9 @@ KONTROLY
      renderLevel) proti kartám statickej stránky. Statické karty nemajú id, párujú sa
      podľa poradia: karta priečinka = adresa jeho stránky, karta linky = adresa linky
      (safeUrl / safe_url). Porovnáva sa ZOZNAM v poradí (nie množina), takže duplicitné
-     linky v jednom priečinku nič nepokazia. Stránky sa znova nesťahujú (berú sa
-     z kontroly a). Pri odhade nad 10 min len náhodná vzorka 200 stránok. Rozdiel = ❌;
+     linky v jednom priečinku nič nepokazia. Pri kartách priečinkov sa porovnáva aj text
+     počtov „X sekcií · Y liniek“ (bod 27 previerky 3: folderCountText ↔ folder_count_text).
+     Stránky sa znova nesťahujú (berú sa z kontroly a). Pri odhade nad 10 min len náhodná vzorka 200 stránok. Rozdiel = ❌;
      výnimka: stránka Aktuálne (Live This Week) — statické HTML je z nočného buildu,
      appka počíta s dnešným dátumom (položka mohla medzitým začať/skončiť) → len ⚠️.
      Zámerné rozdiely sa nehlásia, lebo ich robia obe strany rovnako: enOnly / en:false
@@ -196,18 +197,20 @@ def id_stranky(text):
 
 
 def karty_stranky(text, url):
-    """h) Karty statickej stránky v poradí: ("f", cesta stránky priečinka) alebo
-    ("l", adresa linky). Bez obsahu <script> (tam sú len texty kódu)."""
+    """h) Karty statickej stránky v poradí: ("f", cesta stránky priečinka, text počtov)
+    alebo ("l", adresa linky, ""). Text počtov = <div class="ct"> na karte priečinka
+    („3 sekcie · 120 liniek“, bod 27 previerky 3). Bez obsahu <script> (tam sú len texty kódu)."""
     bez = re.sub(r"<script\b.*?</script>", "", text, flags=re.S | re.I)
     karty = []
-    for tag in re.findall(r'<a class="card"[^>]*>', bez):
+    for tag, vnutro in re.findall(r'(<a class="card"[^>]*>)(.*?)</a>', bez, flags=re.S):
         a = atributy(tag)
         href = a.get("href", "")
         if a.get("target") == "_blank":
-            karty.append(("l", href))
+            karty.append(("l", href, ""))
         else:
+            m = re.search(r'<div class="ct">(.*?)</div>', vnutro, flags=re.S)
             karty.append(("f", urllib.parse.unquote(urllib.parse.urlsplit(
-                urllib.parse.urljoin(url, href)).path)))
+                urllib.parse.urljoin(url, href)).path), html.unescape(m.group(1)) if m else ""))
     return karty
 
 
@@ -729,7 +732,8 @@ class Test:
         const k = kids.filter(x => x.type === 'folder').concat(kids.filter(x => x.type === 'link'));
         out[id] = {name: nName(n), live: id === LIVE_ID,
                    karty: k.map(x => [x.type === 'folder' ? 'f' : 'l', x.id, nName(x),
-                                      x.type === 'folder' ? urlForId(x.id) : safeUrl(x.url)])};
+                                      x.type === 'folder' ? urlForId(x.id) : safeUrl(x.url),
+                                      x.type === 'folder' ? folderCountText(x) : ''])};
       }
       return out;
     }"""
@@ -769,7 +773,7 @@ class Test:
                 rozdiely.append(f"{fid} {cesta}: statická stránka je, appka taký priečinok nepozná")
                 continue
             # adresy v appke aj statike porovnávať v rovnakom tvare (diakritika, %C3%A1…)
-            karty_a = [(t, urllib.parse.unquote(k) if t == "f" else k) for t, _, _, k in a["karty"]]
+            karty_a = [(t, urllib.parse.unquote(k) if t == "f" else k, c) for t, _, _, k, c in a["karty"]]
             kariet += len(karty_a)
             if karty_a == karty_s:
                 zhoda += 1
@@ -797,17 +801,18 @@ class Test:
         def popis(i, zoznam):
             if i >= len(zoznam):
                 return "(nič)"
-            t, k = zoznam[i]
-            return ("priečinok " if t == "f" else "linka ") + k
+            t, k, c = zoznam[i]
+            return ("priečinok " if t == "f" else "linka ") + k + (f" [{c}]" if c else "")
         if len(a) != len(s) or sorted(a) != sorted(s):
             # rozdiel s počtom výskytov (duplicitná linka v priečinku sa ráta 2×)
             chyba_a = list((collections.Counter(a) - collections.Counter(s)).elements())[:3]
             chyba_s = list((collections.Counter(s) - collections.Counter(a)).elements())[:3]
-            text = f"kariet appka {len(a)} ≠ statika {len(s)}"
+            text = (f"kariet appka {len(a)} ≠ statika {len(s)}" if len(a) != len(s)
+                    else "iná adresa alebo iný počet „X sekcií · Y liniek“ na karte")
             if chyba_a:
-                text += "; len v appke: " + ", ".join(k for _, k in chyba_a)
+                text += "; len v appke: " + ", ".join(f"{k} [{c}]" if c else k for _, k, c in chyba_a)
             if chyba_s:
-                text += "; len v statike: " + ", ".join(k for _, k in chyba_s)
+                text += "; len v statike: " + ", ".join(f"{k} [{c}]" if c else k for _, k, c in chyba_s)
             return text
         i = next(i for i, (x, y) in enumerate(zip(a, s, strict=True)) if x != y)
         meno = f"{karty_app[i][1]} „{karty_app[i][2]}“"
@@ -833,7 +838,7 @@ class Test:
         self.kontrola("e) Presmerovania http→https, www→bez www", self.presmerovania)
         self.kontrola("f) Ikonky /ikony/ a vlajky /vlajky/", self.ikony_vlajky)
         self.kontrola("g) Appka ↔ generátor: adresy a titulky všetkých stránok", self.zrkadlo)
-        self.kontrola("h) Obsah stránok appka ↔ statika: zoznam a poradie kariet", self.obsah)
+        self.kontrola("h) Obsah stránok appka ↔ statika: zoznam, poradie a počty kariet", self.obsah)
 
     def zhrnutie(self, trvanie):
         ikona = {"ok": "✅", "warn": "⚠️", "fail": "❌"}
