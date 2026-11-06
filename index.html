@@ -93,8 +93,10 @@ header{
    do ďalšieho stĺpca vpravo, linka ukáže popis v paneli. Pás stĺpcov je prilepený pod
    hlavičkou (top a výšku nastavuje colsLayout podľa okna; obal .cols-box má výšku prilepeného
    pásu, aby sa stránka dala posunúť presne po prilepenie), pri hĺbke sa posúva vodorovne
-   (ako Finder) — bez pásikov, bez samoposunu stránky, bez auto-rolovania. ===== */
-main.cols-mode{max-width:1800px;padding-bottom:0} /* pás si necháva miesto na pätičku (colsLayout) — stránka sa nedá posunúť ďalej, než kde sa pás prilepí */
+   (ako Finder) — bez pásikov, bez samoposunu stránky pri pohybe myšou, bez auto-rolovania.
+   Zadanie 38a: len pri prepnutí na stĺpce / príchode / Späť-Vpred sa stránka raz posunie,
+   aby pás začínal pod hlavičkou (colsStick); prvý stĺpec nikdy s vlastnou lištou. ===== */
+main.cols-mode{max-width:1800px;padding-top:6px;padding-bottom:0} /* Zadanie 38a: horný okraj 24 → 6 px (medzera nad stĺpcami); pás si necháva miesto na pätičku (colsLayout) — stránka sa nedá posunúť ďalej, než kde sa pás prilepí */
 body.cols-on footer{margin-top:10px}
 .cols{display:flex;gap:8px;align-items:flex-start;overflow-x:auto;overflow-y:hidden;padding-bottom:6px;position:sticky;scroll-behavior:smooth;overscroll-behavior:contain}
 @media (prefers-reduced-motion: reduce){.cols{scroll-behavior:auto}}
@@ -1601,7 +1603,11 @@ function navigate(id, fromPopState){
   // posun nemeníme (prehliadač si ho pamätá). V stĺpcoch je pás prilepený pod
   // hlavičkou (Zadanie 26b) — skok hore netreba, colsAfterNav len doladí polohu.
   if(!fromPopState && !(viewMode==='cols' && colsAllowed())){ try{ window.scrollTo(0,0); }catch(e){} }
-  if(viewMode==='cols' && colsAllowed()) colsAfterNav(); // stĺpce: názvy pod hlavičkou viditeľné, pás posunutý na koniec
+  if(viewMode==='cols' && colsAllowed()){
+    colsAfterNav(); // stĺpce: názvy pod hlavičkou viditeľné, pás posunutý na koniec
+    // Zadanie 38a: pri Späť/Vpred bez posunu navyše — len keby bol pás nižšie ako pod hlavičkou
+    if(fromPopState) colsStick(false);
+  }
   // Bod 13: kurzor klávesnice na nadpis sekcie (čítačka ohlási, kde je človek)
   focusHeading();
   // Bod 12: GoatCounter — každé preklikanie v appke je zobrazenie stránky.
@@ -2154,7 +2160,8 @@ var _promoEl = null, _promoSrc = '';   // promo blok práve v #main (viď vyšš
 //  3. Prekresľujú sa len stĺpce od zmenenej úrovne doprava; ostatné si držia posun,
 //     len sa im prepne označenie. Promo blok je mimo pásu (reklama sa nenačítava nanovo).
 //  4. Pás stĺpcov je prilepený pod hlavičkou (sticky), výška podľa okna (colsLayout);
-//     stránka sa sama neposúva, auto-rolovanie nie je. Koliesko: pás ešte neprilepený
+//     pri pohybe myšou sa stránka sama neposúva, auto-rolovanie nie je (jednorazový posun
+//     pod hlavičku pri prepnutí/príchode/Späť-Vpred — Zadanie 38a, colsStick). Koliesko: pás ešte neprilepený
 //     → posúva stránku; prilepený → roluje stĺpec; krátky stĺpec / začiatok stĺpca →
 //     stránku (colsWheel).
 //  5. Počet a šírka stĺpcov podľa šírky okna, pri hĺbke sa pás plynulo posúva vodorovne.
@@ -2187,7 +2194,8 @@ function setViewMode(m){
   updateViewSwitch();
   colPath = null; colHover = null; colCancel();
   render();
-  if(viewMode==='cols' && colsAllowed()) colsAfterNav();
+  _colsHoldUntil = 0;
+  if(viewMode==='cols' && colsAllowed()){ colsAfterNav(); colsStick(true); } // Zadanie 38a: pás plynulo pod hlavičku
 }
 function colNode(id){ return DB.nodes.find(n=>n.id===id); }
 function colCnt(n){
@@ -2287,11 +2295,58 @@ function colsLayout(){
   // pod hlavičku spolu s <main> (sticky prvok nemôže opustiť svojho rodiča)
   const foot = document.querySelector('footer');
   const reserve = foot ? foot.offsetHeight + (parseFloat(getComputedStyle(foot).marginTop) || 0) : 0;
-  const hStuck = Math.max(240, window.innerHeight - top0 - reserve);   // výška prilepeného pásu
+  // Zadanie 38a (poistka): pás nikdy nižší ako celý prvý stĺpec (hlavné sekcie) — ten nesmie
+  // mať vlastnú posuvnú lištu; pri malom okne sa radšej posunie celá stránka
+  const need = Math.max(240, colsNeedH(wrap));
+  const hStuck = Math.max(need, window.innerHeight - top0 - reserve);   // výška prilepeného pásu
   const box = document.getElementById('colsBox'); if(box) box.style.height = hStuck + 'px';
   const top = wrap.getBoundingClientRect().top;
-  wrap.style.height = Math.max(240, Math.min(hStuck, window.innerHeight - top - reserve)) + 'px';
+  wrap.style.height = Math.max(need, Math.min(hStuck, window.innerHeight - top - reserve)) + 'px';
 }
+// výška pásu, pri ktorej sa prvý stĺpec zmestí celý: jeho obsah + jeho rámik + spodný okraj
+// pásu + vodorovný posuvník pásu (ak je)
+function colsNeedH(wrap){
+  const c = wrap.querySelector('.col[data-lv="0"]'); if(!c) return 0;
+  const pb = parseFloat(getComputedStyle(wrap).paddingBottom) || 0;
+  return c.scrollHeight + (c.offsetHeight - c.clientHeight) + pb + (wrap.offsetHeight - wrap.clientHeight) + 1;
+}
+// Zadanie 38a: jednorazový posun stránky tak, aby pás stĺpcov začínal tesne pod hlavičkou
+// (prilepený, plná výška). Len NADOL — keď je stránka už posunutá nižšie, nerobí nič.
+// smooth = plynulo (klik na prepínač; pri prefers-reduced-motion okamžite), inak okamžite.
+// Nie je to samoposun pri pohybe myšou (Zadanie 26) — volá sa len pri prepnutí na stĺpce,
+// príchode na stránku a Späť/Vpred.
+let _colsHoldUntil = 0;   // do kedy (ms) sa pás po príchode drží pod hlavičkou (dočítaná lišta Aktuálne)
+function colsStick(smooth){
+  if(viewMode !== 'cols' || !colsAllowed()) return;
+  const wrap = document.getElementById('colsWrap'); if(!wrap) return;
+  colsLayout();
+  const d = Math.round(wrap.getBoundingClientRect().top - colsStickTop());
+  if(d <= 1) return;
+  const sm = smooth && !matchMedia('(prefers-reduced-motion: reduce)').matches;
+  try{ window.scrollTo({top: window.scrollY + d, behavior: sm ? 'smooth' : 'auto'}); }
+  catch(e){ try{ window.scrollBy(0, d); }catch(_){} }
+}
+// Príchod na stránku so zapamätanými stĺpcami: posun hneď + krátko (COLS_HOLD_MS) pás
+// podrží pod hlavičkou, keby ho nadol odsunulo neskôr dočítané (lišta Aktuálne,
+// celé dáta). Akýkoľvek vlastný pohyb človeka (koliesko, klávesa, myš, dotyk) držanie zruší.
+const COLS_HOLD_MS = 6000;
+function colsArrive(){
+  if(viewMode !== 'cols' || !colsAllowed() || !document.getElementById('colsWrap')) return;
+  colsStick(false);
+  _colsHoldUntil = performance.now() + COLS_HOLD_MS;
+}
+function colsHoldCheck(){
+  if(!_colsHoldUntil) return;
+  if(performance.now() > _colsHoldUntil){ _colsHoldUntil = 0; return; }
+  colsStick(false);
+}
+['wheel', 'keydown', 'mousedown', 'touchstart'].forEach(t => window.addEventListener(t, () => { _colsHoldUntil = 0; }, {passive: true, capture: true}));
+try{
+  if(window.ResizeObserver){
+    const ro = new ResizeObserver(() => colsHoldCheck());
+    ['header', '#breadcrumb', '.banner-wrap', '#aktualneWrap', '#main'].forEach(s => { const e = document.querySelector(s); if(e) ro.observe(e); });
+  }
+}catch(e){}
 function colsStickTop(){ return document.querySelector('header').offsetHeight + 8; }
 // pás posunúť vodorovne tak, aby bol najnovší stĺpec aj panel vidno (plynulo; vyvolá
 // scroll → colMarkShift, takže posun obsahu pod myšou nič neotvorí)
@@ -4420,6 +4475,7 @@ function initApp(){
   renderAktualne();
   startBanners(); // rotácia bannerov musí bežať hneď od načítania stránky
   checkAdminHash();
+  colsArrive(); // Zadanie 38a: zapamätané stĺpce — pás hneď pod hlavičku
   if(_adminPending && !DATA_FAIL){ _adminPending = false; toggleAdmin(); } // Admin čakal na „Skúsiť znova“ (bod 3)
 }
 
@@ -4460,6 +4516,7 @@ if(BOOT && BOOT.nodes && PATH_ROUTING && !(location.hash && location.hash.indexO
       // pozícia posunu zo statickej stránky (návštevník už stihol posúvať)
       const sy = +window.__PAGE_SCROLL || 0;
       if(sy > 0){ try{ window.scrollTo(0, sy); }catch(e){} }
+      colsArrive(); // Zadanie 38a: zapamätané stĺpce — pás hneď pod hlavičku (len nadol)
     }
   }catch(e){ bootShown = false; }
 }

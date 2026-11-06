@@ -51,6 +51,11 @@ VLASTNÝ banner musí mať odkaz (nie „#") a obrázok (načítaný) alebo text
 aktualne.json až 15 s; appka, ktorá kód pre aktualne.json má, ale súbor nestiahne = ❌ (lišta
 Aktuálne by chýbala); stará appka bez aktualne.json = ✅ s poznámkou (nie je to chyba webu).
 
+Kontrola q) (6.11.2026, Zadanie 38a): stĺpcové zobrazenie (okná 1366×768 a 1280×720, domov a
+jedna hlboká stránka, plná lišta Aktuálne = 20 podstrčených položiek len v prehliadači testu) —
+po kliku na „▥ Stĺpce“, pri príchode so zapamätanými stĺpcami aj po Späť/Vpred začína pás
+tesne pod hlavičkou a prvý stĺpec (hlavné sekcie) nemá vlastnú posuvnú lištu; návrat do dlaždíc.
+
 Spustenie (lokálne):  python testy/test_webu.py --url https://sportlinky.sk/
 Voliteľne:  --od 2026-11-02T02:30:00Z  (počkaj, kým živý web nemá novšiu verziu)
             --vystup test-vystup        (priečinok na snímky a zoznam chýb)
@@ -163,13 +168,14 @@ class Test:
             return route.continue_(headers={**req.headers, "x-test": X_TEST["X-Test"]})
         return route.continue_()
 
-    def kontext(self, mobil=False):
+    def kontext(self, mobil=False, okno=None):
         if mobil:
             ctx = self.browser.new_context(viewport={"width": 390, "height": 844},
                                            device_scale_factor=2, is_mobile=True,
                                            has_touch=True, user_agent=UA_MOBIL)
         else:
-            ctx = self.browser.new_context(viewport={"width": 1366, "height": 900},
+            w, h = okno or (1366, 900)
+            ctx = self.browser.new_context(viewport={"width": w, "height": h},
                                            user_agent=UA_PC)
         ctx.set_default_navigation_timeout(NAVIGACIA_MS)
         ctx.set_default_timeout(CAKANIE_MS)
@@ -1115,6 +1121,15 @@ class Test:
                 page.wait_for_timeout(250)
             page.click("#vSwitch button[data-mode=cols]")
             page.wait_for_selector("#colsWrap .col[data-lv='0'] .cit[data-t='f']", state="visible")
+            # Zadanie 38a: po prepnutí sa stránka plynulo posunie (pás pod hlavičku) — počkaj, kým
+            # sa posun zastaví (počas posunu sa pohyb myši nad posúvaným obsahom zámerne ignoruje)
+            y0, koniec = -1, time.time() + 5
+            while time.time() < koniec:
+                page.wait_for_timeout(200)
+                y = page.evaluate("window.scrollY")
+                if y == y0:
+                    break
+                y0 = y
 
             def cesta():
                 # názvy v jazyku webu (nName) — porovnávajú sa s textom položiek na obrazovke (EN web: name_en)
@@ -1202,6 +1217,104 @@ class Test:
         return "ok", (f"„{meno_koren} › {meno_druha}“ otvorené myšou; koliesko (posun stĺpca {posun} px"
                       f"{'' if roluje else ', stĺpec krátky'}), 2 px pohyb ani posun stránky nič neotvorili"
                       f"{', 10 px pohyb otvoril „' + pod + '“' if pod else ''}")
+
+    # ------------------------------------------------ q) stĺpce: pás pod hlavičkou (Zadanie 38a)
+    def stlpce_posun(self, pokus):
+        """Po kliknutí na „▥ Stĺpce“ aj pri príchode so zapamätanými stĺpcami sa stránka
+        (raz) posunie tak, že pás stĺpcov začína tesne pod hlavičkou (colsStickTop ± 2 px);
+        prvý stĺpec (hlavné sekcie) nemá vlastnú posuvnú lištu; návrat do dlaždíc funguje;
+        Späť/Vpred nechá pás pod hlavičkou. Lišta Aktuálne je plná (20 podstrčených
+        položiek LEN v prehliadači testu — web ani aktualne.json sa nemenia). Reklamy sú
+        blokované (žiadne falošné zobrazenia)."""
+        polozky = [{"id": f"q{i}", "order": i, "icon": "⚽", "name": f"TEST Aktuálne položka {i + 1}",
+                    "name_en": f"TEST live item {i + 1}", "url": f"https://test.invalid/q{i}",
+                    "addedAt": int(time.time() * 1000) - 5 * 86400_000} for i in range(20)]
+        telo = json.dumps({"version": 1, "items": polozky}, ensure_ascii=False)
+        stranky = [self.base] + self.ligy[:1]
+        info = []
+
+        def stav(page):
+            return page.evaluate("""() => { const w = document.getElementById('colsWrap'); if(!w) return null;
+                const c = w.querySelector('.col[data-lv="0"]'); const k = [...document.querySelectorAll('#aktualneScroll .akt-card')];
+                return {top: Math.round(w.getBoundingClientRect().top), stick: colsStickTop(),
+                        ch: c ? c.clientHeight : 0, sh: c ? c.scrollHeight : 0, sy: Math.round(scrollY),
+                        riadky: new Set(k.map(e => e.offsetTop)).size}; }""")
+
+        def over(page, kde):
+            # plynulý posun / dočítaná lišta Aktuálne — počkaj, kým sa pás ustáli pod hlavičkou
+            koniec = time.time() + 6
+            s, pred = stav(page), None
+            while s and (abs(s["top"] - s["stick"]) > 2 or s != pred) and time.time() < koniec:
+                page.wait_for_timeout(250)
+                s, pred = stav(page), s
+            if not s:
+                raise Zlyhanie(f"{kde}: pás stĺpcov (#colsWrap) chýba")
+            if abs(s["top"] - s["stick"]) > 2:
+                raise Zlyhanie(f"{kde}: pás začína na {s['top']} px, má byť pod hlavičkou na {s['stick']} px")
+            if s["sh"] > s["ch"] + 1:
+                raise Zlyhanie(f"{kde}: prvý stĺpec (hlavné sekcie) má vlastnú posuvnú lištu ({s['ch']}/{s['sh']} px)")
+            return s
+
+        def otvor(ctx, url):
+            page = self.stranka(ctx)
+            page.route("**/aktualne.json*", lambda r: r.fulfill(status=200, content_type="application/json", body=telo,
+                                                                headers={"Access-Control-Allow-Origin": "*"}))
+            page.goto(url, wait_until="load")
+            self.cakaj_na_appku(page)
+            koniec = time.time() + CAKANIE_MS / 1000
+            while not page.evaluate("typeof DB !== 'undefined' && !!DB.nodes && DB.nodes.length > 100 && !DB._partial"):
+                if time.time() > koniec:
+                    raise Zlyhanie("appka nenačítala celé dáta (data.json) do limitu")
+                page.wait_for_timeout(250)
+            page.wait_for_timeout(800)
+            return page
+
+        for okno in ((1366, 768), (1280, 720)):
+            ctx = self.kontext(okno=okno)
+            try:
+                for url in stranky:
+                    kde = f"{okno[0]}×{okno[1]} {urllib.parse.urlsplit(url).path}"
+                    page = otvor(ctx, url)
+                    if not page.evaluate("typeof colsStick === 'function'"):
+                        page.close()
+                        return "ok", "appka na webe je staršia verzia bez posunu stĺpcov (Zadanie 38a) — preskočené"
+                    page.click("#vSwitch button[data-mode=cols]")
+                    s = over(page, kde + " po kliku na Stĺpce")
+                    page.click("#vSwitch button[data-mode=tiles]")
+                    page.wait_for_timeout(500)
+                    if page.locator("#colsWrap").count() or not page.locator("#main a[href]:visible").count():
+                        raise Zlyhanie(f"{kde}: po návrate do dlaždíc ostal pás stĺpcov alebo nie sú dlaždice")
+                    self.over_chyby(page, kde)
+                    # dlaždice sa zapamätali — pre príchod nižšie znova zapamätaj stĺpce
+                    page.evaluate("localStorage.setItem('sportStromView', 'cols')")
+                    page.close()
+                    # príchod so zapamätaným režimom stĺpcov (localStorage z kliku vyššie)
+                    page = otvor(ctx, url)
+                    s2 = over(page, kde + " pri príchode so zapamätanými stĺpcami")
+                    # Späť/Vpred: preklik do priečinka v 2. stĺpci (ak je), posun hore, Späť → pás opäť pod hlavičkou
+                    pol = page.locator("#colsWrap .col[data-lv='1'] .cit[data-t='f']")
+                    if pol.count():
+                        adresa = page.evaluate("location.pathname")
+                        pol.first.click()
+                        page.wait_for_timeout(600)
+                        page.evaluate("window.scrollTo(0, 0)")
+                        page.wait_for_timeout(400)
+                        page.go_back()
+                        page.wait_for_timeout(600)
+                        if page.evaluate("location.pathname") != adresa:
+                            raise Zlyhanie(f"{kde}: Späť neviedlo na {adresa}")
+                        over(page, kde + " po Späť")
+                        page.go_forward()
+                        page.wait_for_timeout(600)
+                        over(page, kde + " po Vpred")
+                    if okno == (1366, 768):
+                        self.snimka(page, "14-stlpce-pod-hlavickou" + ("" if url == self.base else "-hlbka"))
+                    self.over_chyby(page, kde + " (príchod)")
+                    page.close()
+                    info.append(f"{kde}: pás {s['top']}/{s2['top']} px (hlavička {s['stick']}), 1. stĺpec {s2['ch']}/{s2['sh']}, Aktuálne {s2['riadky']} riadky")
+            finally:
+                ctx.close()
+        return "ok", "; ".join(info)
 
     # ------------------------------------------------ n) – p) Zadanie 34 (previerka 3, body 6, 28, 30)
     def pristupnost(self, pokus):
@@ -1427,6 +1540,7 @@ class Test:
                 self.kontrola("n) Prístupnosť: klávesnica a oblasti stránky", self.pristupnost)
                 self.kontrola("o) Ikonky FB/IG: klikacia plocha ≥ 24×24 px", self.socs_plocha)
                 self.kontrola("p) Mobil: hlavička sa pri posune zbalí a hore rozbalí", self.hlavicka_mobil)
+                self.kontrola("q) Stĺpce: pás pod hlavičkou (prepnutie, príchod, Späť/Vpred)", self.stlpce_posun)
             finally:
                 self.browser.close()
 
