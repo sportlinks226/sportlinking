@@ -497,6 +497,7 @@ a.akt-head[href]:hover #aktHeadTxt{text-decoration:underline}
 }
 .empty .e-icon{font-size:3rem;margin-bottom:12px}
 .empty p{font-size:0.9rem}
+.empty .sr-tip{margin-top:8px;font-size:0.82rem} /* bod 49: tip pri prázdnom hľadaní */
 
 /* ===== SCROLLBAR ===== */
 /* PULSE ANIMÁCIA */
@@ -1800,7 +1801,7 @@ function renderIcon(icon, flagSize){
     // srcset 2x: na iPhone a retina displejoch sa načíta dvojnásobná vlajka (ostrejšia).
     // Chýbajúcu vlajku nahradí generator.py priehľadným obrázkom — rozbitý obrázok nebude.
     const s2 = (w*2) + 'x' + (h*2), v = BASE_PATH + 'vlajky/';
-    return `<img src="${v}${s}/${icon}.png" srcset="${v}${s2}/${icon}.png 2x" width="${w}" height="${h}" alt="" loading="lazy" style="border-radius:2px;vertical-align:middle">`;
+    return `<img src="${v}${s}/${icon}.png" srcset="${v}${s2}/${icon}.png 2x" width="${w}" height="${h}" alt="" loading="lazy" decoding="async" style="border-radius:2px;vertical-align:middle">`;
   }
   return `<span aria-hidden="true">${attrEsc(icon)}</span>`; // bod 25: emoji je ozdoba, čítačka ho nečíta
 }
@@ -2317,7 +2318,7 @@ function colDetailHtml(){
   }
   const last = colPath && colPath.length ? colNode(colPath[colPath.length-1]) : null;
   if(last) return `<h3>${iconText(renderIcon(nodeIcon(last),'24x18')||'', attrEsc(nName(last)))}</h3><p>${attrEsc(nDesc(last))}</p><div class="empty-hint">${colCnt(last)}</div>`;
-  return `<div class="empty-hint">${IS_EN?'Move the mouse over a section on the left…':'Prejdi myšou po sekcii vľavo…'}</div>`;
+  return `<div class="empty-hint">${IS_EN?'Hover over a section on the left…':'Prejdi myšou po sekcii vľavo…'}</div>`;
 }
 
 // ---- myš ----
@@ -2665,6 +2666,7 @@ function searchCountText(n){
   const f = n.toLocaleString('sk-SK');
   return n === 1 ? 'Nájdený 1 výsledok' : (n >= 2 && n <= 4) ? 'Nájdené ' + f + ' výsledky' : 'Nájdených ' + f + ' výsledkov';
 }
+const NAJBLIZSIE_MAX = 3;   // bod 49: počet najbližších zhôd pri prázdnom hľadaní
 function renderSearch(q){
   const nq = norm(q);
   let pool = DB.nodes;
@@ -2696,40 +2698,42 @@ function renderSearch(q){
     }
     return c;
   };
-  // Zhoda na ZAČIATKU slova (aby „slovan" nenašlo „juhoslovanského")
-  const esc = nq.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
-  let wordRe;
-  try{ wordRe = new RegExp('(^|[^\\p{L}\\p{N}])'+esc,'u'); }
-  catch(e){ wordRe = new RegExp('(^|[^a-z0-9])'+esc); }
-  // Viac slov („dac dun“): každé slovo sa hľadá samostatne, na začiatku slova, v ľubovoľnom poradí
-  const words = nq.trim().split(/\s+/).filter(Boolean);
-  const wRes = words.map(w=>{ const e=w.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
-    try{ return new RegExp('(^|[^\\p{L}\\p{N}])'+e,'u'); }catch(_){ return new RegExp('(^|[^a-z0-9])'+e); } });
-  const allIn = (t)=> words.length>1 && wRes.every(r=>r.test(t));
-  // Skóre: 0 = názov začína hľadaným textom, 1 = slovo v názve začína,
-  // 2 = všetky slová v názve, 3 = slovo v popise začína (zmienka),
-  // 4 = kdekoľvek v názve (aj v strede slova), -1 = nič.
-  // Bod 4 (previerka 3): zhoda v strede slova (4) ide AŽ za zhody na začiatku
-  // slova a za popisy — „slovan“ už nemá ako prvý výsledok „Veslovanie“.
-  const score = (n)=>{ const c = srchText(n);
-    if(c.name.startsWith(nq)) return 0;
-    if(wordRe.test(c.name)) return 1;
-    if(allIn(c.name)) return 2;                  // všetky slová v názve
-    if(words.length>1 && wRes.some(r=>r.test(c.name))    // napr. „slovan hokej“ — šport je v ceste
-       && allIn(c.name+' '+norm(pathOf(n.parentId).map(p=>nName(p)).join(' ')))) return 2;
-    if(wordRe.test(c.desc)) return 3;
-    if(allIn(c.name+' '+c.desc)) return 3;       // slová rozdelené medzi názov a popis
-    if(c.name.includes(nq)) return 4;            // kdekoľvek v názve — až na koniec
-    return -1; };
-  const scored = [];
-  pool.forEach(n=>{ const sc = score(n); if(sc>=0) scored.push({n,sc}); });
-  scored.sort((x,y)=>x.sc-y.sc); // stabilné triedenie — v rámci skóre ostáva poradie stromu
+  // Bod 49 (previerka 3): hľadanie je funkcia dopytu — pri prázdnom výsledku sa
+  // zavolá znova so skráteným dopytom (najbližšie zhody).
+  const najdi = (nq)=>{
+    // Zhoda na ZAČIATKU slova (aby „slovan" nenašlo „juhoslovanského")
+    const esc = nq.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+    let wordRe;
+    try{ wordRe = new RegExp('(^|[^\\p{L}\\p{N}])'+esc,'u'); }
+    catch(e){ wordRe = new RegExp('(^|[^a-z0-9])'+esc); }
+    // Viac slov („dac dun“): každé slovo sa hľadá samostatne, na začiatku slova, v ľubovoľnom poradí
+    const words = nq.trim().split(/\s+/).filter(Boolean);
+    const wRes = words.map(w=>{ const e=w.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+      try{ return new RegExp('(^|[^\\p{L}\\p{N}])'+e,'u'); }catch(_){ return new RegExp('(^|[^a-z0-9])'+e); } });
+    const allIn = (t)=> words.length>1 && wRes.every(r=>r.test(t));
+    // Skóre: 0 = názov začína hľadaným textom, 1 = slovo v názve začína,
+    // 2 = všetky slová v názve, 3 = slovo v popise začína (zmienka),
+    // 4 = kdekoľvek v názve (aj v strede slova), -1 = nič.
+    // Bod 4 (previerka 3): zhoda v strede slova (4) ide AŽ za zhody na začiatku
+    // slova a za popisy — „slovan“ už nemá ako prvý výsledok „Veslovanie“.
+    const score = (n)=>{ const c = srchText(n);
+      if(c.name.startsWith(nq)) return 0;
+      if(wordRe.test(c.name)) return 1;
+      if(allIn(c.name)) return 2;                  // všetky slová v názve
+      if(words.length>1 && wRes.some(r=>r.test(c.name))    // napr. „slovan hokej“ — šport je v ceste
+         && allIn(c.name+' '+norm(pathOf(n.parentId).map(p=>nName(p)).join(' ')))) return 2;
+      if(wordRe.test(c.desc)) return 3;
+      if(allIn(c.name+' '+c.desc)) return 3;       // slová rozdelené medzi názov a popis
+      if(c.name.includes(nq)) return 4;            // kdekoľvek v názve — až na koniec
+      return -1; };
+    const scored = [];
+    pool.forEach(n=>{ const sc = score(n); if(sc>=0) scored.push({n,sc}); });
+    scored.sort((x,y)=>x.sc-y.sc); // stabilné triedenie — v rámci skóre ostáva poradie stromu
+    return {scored, words};
+  };
+  const {scored, words} = najdi(nq);
   const main = document.getElementById('main');
   srAnnounce(searchCountText(scored.length));
-  if(scored.length === 0){
-    main.innerHTML = `<div class="empty"><div class="e-icon">🔍</div><p>${IS_EN?'No results for':'Žiadne výsledky pre'} "<strong>${attrEsc(q)}</strong>"</p></div>`;
-    return;
-  }
   const hits     = scored.filter(x=>x.sc<3).map(x=>x.n);   // zhoda v názve
   const mentions = scored.filter(x=>x.sc===3).map(x=>x.n); // len zmienka v popise
   const partial  = scored.filter(x=>x.sc===4).map(x=>x.n); // časť slova v názve (bod 4)
@@ -2754,6 +2758,23 @@ function renderSearch(q){
         </a>${socs}</div>`;
   };
   const card = (n, snip)=> n.type==='folder' ? folderCard(n, snip) : linkCard(n, snip);
+  // Bod 49 (previerka 3): nič sa nenašlo → tip a 2–3 najbližšie zhody. Dopyt sa skracuje
+  // odzadu po jednom znaku, najviac na prvé 3 znaky; prvé skrátenie, ktoré niečo nájde,
+  // dá NAJBLIZSIE_MAX najlepších výsledkov (rovnaké karty ako bežné výsledky).
+  if(scored.length === 0){
+    let blizke = [];
+    const z = Array.from(nq.trim());
+    for(let k = z.length - 1; k >= 3 && !blizke.length; k--){
+      const kratsi = z.slice(0, k).join('').trim();
+      if(kratsi.length < 3) break;
+      blizke = najdi(kratsi).scored.slice(0, NAJBLIZSIE_MAX).map(x=>x.n);
+    }
+    main.innerHTML = `<div class="empty"><div class="e-icon">🔍</div><p>${IS_EN?'No results for':'Žiadne výsledky pre'} "<strong>${attrEsc(q)}</strong>"</p>`
+      + `<p class="sr-tip">${IS_EN?'Try a shorter word or just the beginning of the name.':'Skús kratšie slovo alebo len začiatok názvu.'}</p></div>`
+      + (blizke.length ? `<div class="section-label">${IS_EN?'Closest matches':'Najbližšie zhody'}</div><div class="grid-deep">`
+          + blizke.map(n=>card(n, false)).join('') + `</div>` : '');
+    return;
+  }
   const section = (label, arr, first, snip)=>{
     if(!arr.length) return '';
     return `<div class="section-label"${first?'':' style="margin-top:20px"'}>${label} (${arr.length})</div><div class="grid-deep">`
@@ -2790,9 +2811,9 @@ function socHtml(n, host){
   const ig = IG_HOST.test(host) ? n.url : (n.ig || '');
   if(!fb && !ig) return '';
   const ico = (u, dom, label) => u
-    ? `<a class="si" href="${attrEsc(safeUrl(u))}" target="_blank" rel="noopener" title="${label}" aria-label="${label}"><img src="${IKONY}${dom}.png" alt="" loading="lazy" onerror="this.parentNode.textContent='${dom[0]}'"/></a>`
+    ? `<a class="si" href="${attrEsc(safeUrl(u))}" target="_blank" rel="noopener" title="${label}" aria-label="${label}"><img src="${IKONY}${dom}.png" alt="" loading="lazy" decoding="async" onerror="this.parentNode.textContent='${dom[0]}'"/></a>`
     : `<span class="ph"></span>`;
-  return `<span class="socs">${ico(fb,'facebook.com',IS_EN?'Club Facebook':'Facebook klubu')}${ico(ig,'instagram.com',IS_EN?'Club Instagram':'Instagram klubu')}</span>`;
+  return `<span class="socs">${ico(fb,'facebook.com',IS_EN?'Facebook page':'Facebook')}${ico(ig,'instagram.com',IS_EN?'Instagram profile':'Instagram')}</span>`;
 }
 // SYSTÉM ZNAČIEK NA DLAŽDICI (Miro 5.10.2026, variant 3): logo klubu = vlastný web;
 // klub bez vlastného webu (hlavná linka FB, IG, X, YouTube, TikTok, Wikipédia)
@@ -2823,6 +2844,9 @@ function sportFav(n){ return `<span class="fav-fb fav-sport" aria-hidden="true">
 //  - fav-wait: obrázok je neviditeľný, kým sa nenačíta — 1×1 px ani prázdny
 //    štvorček sa pred výmenou za ikonu športu neukáže (nič nebliká)
 const IKONA_HOST = /^[a-z0-9.-]+$/;
+// bod 32 (previerka 3): hosty bez vlastnej ikonky — zoznam "_noIcon" pribalí generátor
+// do BOOT (hosty_bez_ikonky v generator.py). Bez BOOT (súbor z disku) prázdny → po starom.
+const NO_ICON = new Set((BOOT && Array.isArray(BOOT._noIcon)) ? BOOT._noIcon : []);
 function favHtml(n, host){
   if(NO_FAVICON_HOSTS.test(host)){
     const r = renderIcon(n.icon,'24x18');
@@ -2830,7 +2854,10 @@ function favHtml(n, host){
   }
   if(SOCIAL_FAV.test(host)) return sportFav(n);
   if(!IKONA_HOST.test(host)) return favFallbackHtml(n.icon||'', favSport(n)); // zlá adresa → bez požiadavky
-  return `<img class="fav fav-wait" src="${IKONY}${host}.png" alt="" loading="lazy" data-fallback="${attrEsc(n.icon||'')}" data-sport="${attrEsc(favSport(n))}" onload="favLoad(this)" onerror="favError(this)"/>`;
+  // bod 32 (previerka 3): web bez ikonky (v /ikony/ len 1×1 px) — emoji športu hneď, bez
+  // sťahovania; výsledok ROVNAKÝ ako favSportSwap() po stiahnutí 1×1 obrázka
+  if(NO_ICON.has(host)) return `<span class="fav-fb fav-sport" aria-hidden="true">${attrEsc(favSport(n)||'🔗')}</span>`;
+  return `<img class="fav fav-wait" src="${IKONY}${host}.png" alt="" loading="lazy" decoding="async" data-fallback="${attrEsc(n.icon||'')}" data-sport="${attrEsc(favSport(n))}" onload="favLoad(this)" onerror="favError(this)"/>`;
 }
 function favLoad(img){
   if(img.naturalWidth <= 1){ favSportSwap(img); return; } // web ikonku nemá
@@ -3771,7 +3798,7 @@ function liveFit(head, list, tail, max){
   return used;
 }
 function liveTitle(){
-  const base = IS_EN ? 'Live scores this week' : 'Aktuálne live výsledky', suf = ' — ' + LIVE_SITE;
+  const base = IS_EN ? 'Live This Week — live scores' : 'Aktuálne live výsledky', suf = ' — ' + LIVE_SITE;
   const used = liveFit(base + ': ', liveSportList(), suf, LIVE_TITLE_MAX);
   return used.length ? base + ': ' + used.join(', ') + suf : base + suf;
 }
@@ -4311,7 +4338,7 @@ function renderAktualne(){
   const count  = document.getElementById('aktualneCount');
   count.textContent = items.length ? `(${items.length})` : '';
   if(!items.length){
-    scroll.innerHTML='<span style="font-size:0.78rem;color:var(--muted);padding:6px 0">'+(IS_EN?'No current events':'Žiadne aktuálne udalosti')+'</span>';
+    scroll.innerHTML='<span style="font-size:0.78rem;color:var(--muted);padding:6px 0">'+(IS_EN?'No live events right now':'Žiadne aktuálne udalosti')+'</span>';
     updateAktFade();
     return;
   }

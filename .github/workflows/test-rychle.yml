@@ -3,6 +3,7 @@
 #     bod 41) pre SK aj EN a overí, že výstup je escapovaný a zlé adresy sú „#".
 #     Dáta: data.json z repozitára; kde nie je (EN repozitár), stiahne sa zo sportlinky.sk.
 #   - testy/test_strazca.py: test strážcu liniek (len ak je v repozitári strazca_liniek.py).
+#   - testy/test_ikony.py: denný limit obnovy ikoniek v ikony.py (bez siete, v dočasnom priečinku).
 # Beží pri pull requeste alebo pushi do main, ktorý mení generátor, appku alebo testy,
 # a ručne (Actions → „Rýchle testy" → Run workflow). Nič nemení ani necommituje.
 # Súbor je ROVNAKÝ v sport-linky aj sportlinking.
@@ -45,3 +46,7 @@ jobs:
           else
             echo "Strážca liniek v tomto repozitári nie je — test preskočený."
           fi
+
+      - name: Test denného limitu obnovy ikoniek (ikony.py)
+        if: ${{ !cancelled() }}
+        run: python testy/test_ikony.py

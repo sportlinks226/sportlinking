@@ -100,7 +100,7 @@ UI = {
         "ad": "Advertisement",
         "meta_folder": "{name}{ctx} — sports links: {nfold} subcategories, {nlink} links.",
         "footer": "A clear directory of sports websites. The link database is protected by database rights (Directive 96/9/EC); copying or systematic extraction without the operator's consent is prohibited.",
-        "aktualne": "Live this week",
+        "aktualne": "Live This Week",
         "skip": "Skip to content",
         "crumbs": "Breadcrumb",
     },
@@ -419,7 +419,7 @@ LIVE_TXT = {
            "fallback": "Live výsledky a výsledkové servisy športov, ktoré sa práve hrajú.",
            "none": "Práve teraz nie je nič aktívne, pozrite sa neskôr.",
            "footer": "Aktuálne – live výsledky", "head": "Aktuálne"},
-    "en": {"base": "Live scores this week", "lead": " Live now: ",
+    "en": {"base": "Live This Week — live scores", "lead": " Live now: ",
            "fallback": "Live scores and results for the sports being played right now.",
            "none": "Nothing is live right now — check back later.",
            "footer": "Live This Week", "head": "Live This Week"},
@@ -773,7 +773,50 @@ def build_boot(data: dict, children: dict, lcnt: dict) -> dict:
     # load_aktualne(). Appka si aj tak hneď stiahne čerstvý aktualne.json.
     boot["aktualne"] = akt_for_web(AKT_ITEMS)
     boot.update(gen_meta(n["id"] for n in nodes))   # bod 21 + 23 (viď SLUG_FIX, TITLE_NOSPORT)
+    no_icon = hosty_bez_ikonky(children)
+    if no_icon:
+        boot["_noIcon"] = no_icon
     return boot
+
+
+# WEBY BEZ IKONKY (bod 32 previerky 3): ikony.py pre web bez ikonky uloží do ikony/
+# priehľadný obrázok 1×1 px. Appka ho doteraz stiahla a až potom (favLoad: šírka ≤ 1)
+# vymenila za emoji športu — ~243 zbytočných požiadaviek. Generátor preto pribalí
+# zoznam takých hostov do BOOT (kľúč "_noIcon"): BOOT je v index.html, ktorý má
+# návštevník po 1. stránke v pamäti prehliadača, a je k dispozícii už pri prvom
+# vykreslení (odľahčený data.json príde až po ňom). Appka pre ne rovno vykreslí emoji.
+# Zoznam vzniká z AKTUÁLNYCH súborov v ikony/ — v build.yml beží ikony.py pred
+# generátorom. Súbory 1×1 sa z /ikony/ NEMAŽÚ (staré odkazy, cache).
+def _png_sirka(cesta: str) -> int:
+    """Šírka PNG z hlavičky (IHDR); -1 ak súbor nie je PNG alebo sa nedá prečítať."""
+    try:
+        with open(cesta, "rb") as f:
+            b = f.read(24)
+    except OSError:
+        return -1
+    if len(b) < 24 or b[:8] != b"\x89PNG\r\n\x1a\n":
+        return -1
+    return int.from_bytes(b[16:20], "big")
+
+
+def _host_z_url(url) -> str:
+    """Host tak, ako ho vráti new URL(url).hostname v appke (= názov súboru v ikony/)."""
+    try:
+        h = (urlsplit(str(url or "").strip()).hostname or "").lower()
+        return h.encode("idna").decode("ascii") if h and not h.isascii() else h
+    except (ValueError, UnicodeError):
+        return ""
+
+
+def hosty_bez_ikonky(children: dict, adr: str = "ikony") -> list:
+    """Hosty liniek tohto webu (a Aktuálnych), ktorých ikony/<host>.png má šírku ≤ 1 px."""
+    if not os.path.isdir(adr):
+        return []
+    hosty = {_host_z_url(n.get("url")) for kids in children.values() for n in kids
+             if n.get("type") == "link"}
+    hosty |= {_host_z_url(a.get("url")) for a in AKT_ITEMS if isinstance(a, dict)}
+    hosty.discard("")
+    return sorted(h for h in hosty if 0 <= _png_sirka(os.path.join(adr, h + ".png")) <= 1)
 
 
 def link_counts(children: dict) -> dict:
@@ -994,7 +1037,7 @@ def akt_static_html(aktualne: list):
     now_ms = int(time.time() * 1000)
     items = akt_public(akt_norm(aktualne))
     if not items:
-        txt = "No current events" if LANG == "en" else "Žiadne aktuálne udalosti"
+        txt = "No live events right now" if LANG == "en" else "Žiadne aktuálne udalosti"
         return "", f'<span style="font-size:0.78rem;color:var(--muted);padding:6px 0">{txt}</span>'
     parts = []
     for a in items:
@@ -1067,6 +1110,17 @@ def admin_bar_html(i: str, titulky: bool) -> str:
     return '<div class="card-admin-bar">\n' + "".join(riadky) + f"{ind}</div>"
 
 
+def folder_count_text(fid, children: dict, lcnt: dict) -> str:
+    """Text počtov na karte priečinka: „3 sekcie · 120 liniek“; bez podpriečinkov len
+    linky, bez liniek len sekcie. ZRKADLO folderCountText() v index.html (čísla bez
+    medzier tisícov — ako appka). Domov aj karty priečinkov statických stránok (bod 27)."""
+    total = lcnt.get(fid, 0)
+    sub = sub_count(fid, children, lcnt)
+    sek = f"{sub} {skl(sub, 'sekcia', 'sekcie', 'sekcií')}"
+    lin = f"{total} {skl(total, 'linka', 'linky', 'liniek')}"
+    return f"{sek} · {lin}" if (sub > 0 and total > 0) else (sek if sub > 0 else lin)
+
+
 def home_static_html(children: dict, paths: dict, lcnt: dict):
     """Vráti (HTML do #main, HTML do #hSports) PRESNE v značkovaní renderLevel()
     (domov, bežný režim — vrátane skrytej admin lišty, aby bol obsah zhodný
@@ -1090,11 +1144,7 @@ def home_static_html(children: dict, paths: dict, lcnt: dict):
         main += '<div class="grid-root anim">' if big else '<div class="grid-deep anim">'
         for n in folders:
             i = n["id"]
-            total = lcnt.get(i, 0)
-            sub = sub_count(i, children, lcnt)
-            sek = f"{sub} {skl(sub, 'sekcia', 'sekcie', 'sekcií')}"
-            lin = f"{total} {skl(total, 'linka', 'linky', 'liniek')}"
-            c = f"{sek} · {lin}" if (sub > 0 and total > 0) else (sek if sub > 0 else lin)
+            c = folder_count_text(i, children, lcnt)
             name = escape(node_name(n), quote=True)
             if big:
                 main += f"""
@@ -1237,6 +1287,7 @@ h2{font-size:1.05rem;color:__ACCENT_TEXT__;margin:26px 0 10px;text-transform:upp
 @media(hover:hover){.card:hover{border-color:#e84242;transform:translateY(-1px)}}
 .card .nm{font-weight:600}
 .card .ds{font-size:.85rem;color:#8fa3b3;margin-top:3px}
+.card .ct{font-size:.78rem;color:#8396a8;margin-top:2px}
 .card .ur{font-size:.78rem;color:#8396a8;margin-top:3px;word-break:break-all}
 .appbtn{display:inline-block;background:__ACCENT_STRONG__;color:#fff;border-radius:8px;padding:10px 18px;font-weight:600;margin-top:30px}
 .appbtn:hover{background:#c73535}
@@ -1331,6 +1382,7 @@ PAGE = """<!DOCTYPE html>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <!--CSP-->
+{preload}
 <title>{title}</title>
 <meta name="description" content="{meta_desc}">
 {favicons}
@@ -1486,13 +1538,21 @@ function __dyn(){
     })(0);
   }).catch(function(e){});
 }
-</script>
+</script>"""
+# PREVZATIE APPKOU (TAKEOVER vyššie): statická stránka (ktorú vidí Google) sa hneď
+# po načítaní nahradí plnou interaktívnou aplikáciou. Adresa v prehliadači sa NEMENÍ,
+# návštevník z Googlu tak skončí rovno v appke bez jediného kliknutia. Ak sa to
+# z akéhokoľvek dôvodu nepodarí, ukáže sa pôvodné tlačidlo a dokreslia sa bannery
+# + Aktuálne tak ako predtým. (Bod 38 previerky 3: tento text bol HTML komentárom
+# v každej statickej stránke — aj v 1 544 anglických; teraz je len tu.)
 
-<!-- PREVZATIE APPKOU: statická stránka (ktorú vidí Google) sa hneď po načítaní
-     nahradí plnou interaktívnou aplikáciou. Adresa v prehliadači sa NEMENÍ,
-     návštevník z Googlu tak skončí rovno v appke bez jediného kliknutia.
-     Ak sa to z akéhokoľvek dôvodu nepodarí, ukáže sa pôvodné tlačidlo
-     a dokreslia sa bannery + Aktuálne tak ako predtým. -->"""
+# PRELOAD APPKY (bod 32 previerky 3): <link rel="preload" … as="fetch" crossorigin>
+# v <head> začne sťahovať index.html hneď, nie až keď prehliadač dočíta stránku
+# po TAKEOVER na konci <body>. fetch() v TAKEOVER (mode cors, credentials
+# same-origin = crossorigin="anonymous") túto požiadavku prevezme — v Playwright
+# (Chromium) overené: index.html sa stiahne len RAZ. Adresa MUSÍ byť rovnaká ako
+# vo fetch("__ROOT__index.html").
+PRELOAD = '<link rel="preload" href="__ROOT__index.html" as="fetch" crossorigin>'
 
 # __ROOT__ = relatívna cesta ku koreňu, odkiaľ sa stiahne appka.
 # Koreň webu už má appka zapísaný v sebe (dopĺňa ho main() pri kopírovaní),
@@ -1650,7 +1710,7 @@ def icon_html(icon: str, size: str = "24x18") -> str:
         s2 = f"{int(w) * 2}x{int(h) * 2}"
         v = SITE_ABS_ROOT + "vlajky/"
         return (f'<img src="{v}{size}/{icon}.png" srcset="{v}{s2}/{icon}.png 2x" width="{w}" height="{h}" '
-                f'alt="" loading="lazy" style="border-radius:2px;vertical-align:middle">')
+                f'alt="" loading="lazy" decoding="async" style="border-radius:2px;vertical-align:middle">')
     # bod 25: emoji je len ozdoba — čítačka ho nečíta (rovnako renderIcon v index.html)
     return f'<span aria-hidden="true">{escape(icon)}</span>'
 
@@ -1794,7 +1854,7 @@ def compute_titles(folder_ids, by_id, site_title: str, home: str):
             {fid for fid in folder_ids if level[fid] == 2})
 
 
-def render_page(node, path, children, by_id, paths, site_title, alt_url=None, page_boot=""):
+def render_page(node, path, children, by_id, paths, site_title, alt_url=None, page_boot="", lcnt=None):
     depth = len(path)
     root = "../" * depth
     name = escape(node_name(node))
@@ -1825,15 +1885,20 @@ def render_page(node, path, children, by_id, paths, site_title, alt_url=None, pa
 
     fold_cards = ""
     if folders:
+        if lcnt is None:
+            lcnt = link_counts(children)
         cards = []
         for f in folders:
             slug = paths[f["id"]][-1]
             d = escape(node_desc(f))
             fic = icon_html(f.get("icon", ""), "20x15")
             ds = f'<div class="ds">{d}</div>' if d else ""
+            # bod 27 (previerka 3): rovnaký počet ako karta v appke („X sekcií · Y liniek“)
+            ct = escape(folder_count_text(f["id"], children, lcnt))
             cards.append(
                 f'<a class="card" href="{slug}/">'
-                f'<div class="nm">{fic + " " if fic else ""}{escape(node_name(f))}</div>{ds}</a>'
+                f'<div class="nm">{fic + " " if fic else ""}{escape(node_name(f))}</div>'
+                f'<div class="ct">{ct}</div>{ds}</a>'
             )
         fold_cards = f'<h2>{T["folders"]}</h2><div class="grid">' + "".join(cards) + "</div>"
 
@@ -1985,6 +2050,7 @@ def render_page(node, path, children, by_id, paths, site_title, alt_url=None, pa
         site_title=escape(site_title),
         dyn_js=dyn_js,
         takeover=takeover,
+        preload=PRELOAD.replace("__ROOT__", root),
         page_boot=(f'<script type="application/json" id="pageBoot">{page_boot}</script>\n'
                    if page_boot else ""),
     )
@@ -2172,7 +2238,7 @@ def main():
         alt_url = (f'{ALT_BASE_URL}/{"/".join(paths_alt[fid])}/'
                    if fid in paths_alt else None)
         html = render_page(by_id[fid], path, children, by_id, paths, site_title, alt_url,
-                           build_page_boot(by_id[fid], children, by_id, boot_ids, lcnt))
+                           build_page_boot(by_id[fid], children, by_id, boot_ids, lcnt), lcnt)
         with open(os.path.join(d, "index.html"), "w", encoding="utf-8") as f:
             f.write(html)
         count += 1
@@ -2254,14 +2320,24 @@ def main():
                     ('<span class="wm-w">ŠPORTOVÉ</span><span class="wm-r">LINKY</span>',
                      '<span class="wm-w">SPORT</span><span class="wm-r">LINKING</span>'),
                     ('Naviguj sa cez kategórie', 'Navigate through the categories'),
-                    ('🔍  Hľadaj kdekoľvek v strome...', '🔍  Search anywhere in the tree...'),
-                    ('aria-label="Hľadaj v strome"', 'aria-label="Search the tree"'),
+                    ('🔍  Hľadaj kdekoľvek v strome...', '🔍  Search all sports links...'),
+                    ('aria-label="Hľadaj v strome"', 'aria-label="Search all sports links"'),
                     ('aria-label="Heslo"', 'aria-label="Password"'),
                     # Zadanie 33 (bod 38): prepínač ▦/▥ a krížik okna hesla
                     ('aria-label="Zobrazenie"', 'aria-label="View"'),
                     ('id="pwClose" aria-label="Zavrieť" title="Zavrieť"',
                      'id="pwClose" aria-label="Close" title="Close"'),
                     ('aria-label="Zobraziť ďalšie linky"', 'aria-label="Show more links"'),
+                    # Zadanie 37 (bod 38): logo v hlavičke a pätičke, lišta športov a prepínač
+                    # ▦/▥ už v statickom HTML (initViewMode ich prepína až po spustení JS)
+                    ('onclick="return navClick(event,null)" title="Domov"',
+                     'onclick="return navClick(event,null)" title="Home"'),
+                    ('<nav class="h-sports" id="hSports" aria-label="Športy">',
+                     '<nav class="h-sports" id="hSports" aria-label="Sports">'),
+                    ('title="Dlaždice" onclick="setViewMode(\'tiles\')">▦ Dlaždice</button>',
+                     'title="Tiles" onclick="setViewMode(\'tiles\')">▦ Tiles</button>'),
+                    ('title="Stĺpce — priečinky sa otvárajú myšou" onclick="setViewMode(\'cols\')">▥ Stĺpce</button>',
+                     'title="Columns — folders open on mouse hover" onclick="setViewMode(\'cols\')">▥ Columns</button>'),
                     # Zadanie 34 (bod 30, bod 6): celé atribúty/značky, nie samotné slová
                     ('<a class="skip-link" href="#main">Preskočiť na obsah</a>',
                      '<a class="skip-link" href="#main">Skip to content</a>'),
