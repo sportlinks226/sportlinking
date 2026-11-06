@@ -220,7 +220,7 @@
   "askoepurgstall.at": {"datum": "2026-11-03", "vysledok": "ok", "zdroj": "google"},
   "asobal.es": {"datum": "2026-11-03", "vysledok": "ok", "zdroj": "google"},
   "assat.com": {"datum": "2026-11-03", "vysledok": "ok", "zdroj": "google"},
-  "assbasketball.ma": {"datum": "2026-11-03", "vysledok": "ok", "zdroj": "google"},
+  "assbasketball.ma": {"datum": "2026-11-03", "nevideny_od": "2026-11-06", "vysledok": "ok", "zdroj": "google"},
   "assyriska.se": {"datum": "2026-11-03", "vysledok": "ok", "zdroj": "google"},
   "astanabasket.kz": {"datum": "2026-11-03", "vysledok": "ok", "zdroj": "yandex"},
   "astanatimes.com": {"datum": "2026-11-03", "vysledok": "ok", "zdroj": "yandex"},
