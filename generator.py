@@ -114,6 +114,9 @@ ACCENT_HOVER = "#c73535" if LANG == "sk" else "#2f6bc4"
 # text na tmavom pozadí a tmavší akcent pre pozadie pod bielym textom
 ACCENT_TEXT = "#ef5a5a" if LANG == "sk" else "#5b9bf0"
 ACCENT_STRONG = "#d63333" if LANG == "sk" else "#2a6fd6"
+# Zadanie 47b (🟢3): „LINKY“/„LINKING“ v logu a číslo počítadla v hlavičke appky —
+# kontrast s najsvetlejším miestom hlavičky (#1a2a3a) ≥ 4,5 : 1 (SK 4,62, EN 4,76)
+ACCENT_LOGO = "#f06262" if LANG == "sk" else "#5294ee"
 
 # EN PORADIE KRAJÍN (Zadanie 33, bod 17 previerky 3): deti kontinentov sa na EN
 # webe radia takto — najprv PINNED_EN (podľa order), potom ostatné podľa anglickej
@@ -1275,11 +1278,11 @@ h1 .ic{margin-right:8px}
 .promo-ban img{max-width:100%;display:block}
 .promo-ban[hidden]{display:none}
 .promo-txt{flex:1;min-width:0}
-.promo-tag{font-size:.65rem;letter-spacing:1px;color:#8fa3b3;margin-bottom:8px}
+.promo-tag{font-size:.75rem;letter-spacing:1px;color:#8fa3b3;margin-bottom:8px}
 .promo-txt h3{margin:0 0 10px;font-size:1.25rem;line-height:1.25;color:#fff}
 .promo-txt p{margin:0 0 10px;font-size:.9rem;line-height:1.55}
 .promo-btn{display:inline-block;background:__ACCENT_STRONG__;color:#fff!important;font-weight:700;font-size:.9rem;padding:10px 18px;border-radius:8px;margin-top:6px;text-decoration:none}
-.promo-warn{font-size:.7rem;color:#8fa3b3;border-top:1px solid #2a3642;padding-top:10px;margin-top:22px}
+.promo-warn{font-size:.8rem;color:#8fa3b3;border-top:1px solid #2a3642;padding-top:10px;margin-top:22px}
 @media(max-width:560px){.promo{flex-direction:column;padding:14px;gap:12px}.promo-ban{align-self:center;width:100%;max-width:300px}}
 h2{font-size:1.05rem;color:__ACCENT_TEXT__;margin:26px 0 10px;text-transform:uppercase;letter-spacing:.05em}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px}
@@ -1546,13 +1549,18 @@ function __dyn(){
 # + Aktuálne tak ako predtým. (Bod 38 previerky 3: tento text bol HTML komentárom
 # v každej statickej stránke — aj v 1 544 anglických; teraz je len tu.)
 
-# PRELOAD APPKY (bod 32 previerky 3): <link rel="preload" … as="fetch" crossorigin>
-# v <head> začne sťahovať index.html hneď, nie až keď prehliadač dočíta stránku
-# po TAKEOVER na konci <body>. fetch() v TAKEOVER (mode cors, credentials
-# same-origin = crossorigin="anonymous") túto požiadavku prevezme — v Playwright
-# (Chromium) overené: index.html sa stiahne len RAZ. Adresa MUSÍ byť rovnaká ako
-# vo fetch("__ROOT__index.html").
-PRELOAD = '<link rel="preload" href="__ROOT__index.html" as="fetch" crossorigin>'
+# PRELOAD APPKY (bod 32 previerky 3): <link rel="preload" … as="fetch"> v <head> začne
+# sťahovať index.html hneď, nie až keď prehliadač dočíta stránku po TAKEOVER na konci
+# <body>. fetch() v TAKEOVER túto požiadavku prevezme, LEN keď sa zhoduje adresa aj
+# režim požiadavky. Zadanie 47b (🟠2): pôvodný variant s „crossorigin“ (fetch v režime
+# cors) Safari/WebKit nespároval a index.html stiahol DVAKRÁT. Preload BEZ crossorigin
+# + fetch(…, {mode:"no-cors", credentials:"include"}) spáruje Chromium aj WebKit —
+# overené v Playwright: index.html sa stiahne len RAZ, bez varovania „preloaded but not
+# used“. Súbor je z tej istej domény, takže appka obsah prečíta aj v režime no-cors;
+# keby odpoveď nečitateľná predsa bola (type "opaque" / prázdny text), TAKEOVER si
+# index.html stiahne znova obyčajným fetch (poistka). Adresa aj voľby MUSIA byť rovnaké
+# ako vo fetch v TAKEOVER.
+PRELOAD = '<link rel="preload" href="__ROOT__index.html" as="fetch">'
 
 # __ROOT__ = relatívna cesta ku koreňu, odkiaľ sa stiahne appka.
 # Koreň webu už má appka zapísaný v sebe (dopĺňa ho main() pri kopírovaní),
@@ -1626,9 +1634,16 @@ TAKEOVER = """<script>
     }catch(e){ return ""; }
   }
   try{
-    fetch("__ROOT__index.html").then(function(r){
+    fetch("__ROOT__index.html", {mode:"no-cors", credentials:"include"}).then(function(r){
+      if(r.type === "opaque") return "";
       if(!r.ok) throw new Error("app");
       return r.text();
+    }).then(function(h){
+      if(h) return h;
+      return fetch("__ROOT__index.html").then(function(r){
+        if(!r.ok) throw new Error("app");
+        return r.text();
+      });
     }).then(function(h){
       if(h.indexOf("let SITE_ROOT =")<0) throw new Error("marker");
       done=true;
@@ -2354,6 +2369,7 @@ def main():
                      f'https://{GOAT}.goatcounter.com/count'),
                     ('e84242', ACCENT[1:]),       # akcent
                     ('ef5a5a', ACCENT_TEXT[1:]),  # akcent pre text (kontrast)
+                    ('f06262', ACCENT_LOGO[1:]),  # logo a počítadlo v hlavičke (Zadanie 47b)
                     ('d63333', ACCENT_STRONG[1:]),  # silný akcent pod bielym textom
                     ('#c03030', ACCENT_HOVER),    # tmavší odtieň akcentu
                     ('232,66,66', '66,135,232'),  # rgba() odtiene akcentu

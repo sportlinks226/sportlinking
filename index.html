@@ -28,7 +28,10 @@
 :root{
   color-scheme:dark; /* natívne prvky (kalendárik, scrollbar) v tmavej téme */
   --bg:#0f1923;--surface:#1a2a3a;--surface2:#22334a;--border:#2a3a4a;
-  --accent:#e84242;--accent2:#c03030;--accent-text:#ef5a5a;--accent-strong:#d63333;--text:#e8eaf0;--muted:#90a5b7;
+  --accent:#e84242;--accent2:#c03030;--accent-text:#ef5a5a;--accent-strong:#d63333;
+  /* Zadanie 47b (🟢3): „LINKY“ v logu a číslo počítadla v hlavičke — o odtieň svetlejšie,
+     kontrast s pozadím hlavičky aj v jej najsvetlejšom mieste ≥ 4,5 : 1 (EN: modrá, generator.py) */
+  --accent-logo:#f06262;--text:#e8eaf0;--muted:#90a5b7;
   --green:#2ecc71;--red:#e74c3c;--radius:12px;
 }
 body{font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
@@ -51,10 +54,10 @@ header{
   letter-spacing:1px;line-height:1.1;transition:opacity .15s;white-space:nowrap; /* Zadanie 34: len opacity — veľkosť písma sa pri zbalení hlavičky mení naraz */
 }
 .h-wordmark .wm-w{color:#fff}
-.h-wordmark .wm-r{color:var(--accent)}
+.h-wordmark .wm-r{color:var(--accent-logo)}
 .h-subtitle{font-size:0.78rem;color:var(--muted);margin-top:2px;line-height:1.1}
-.h-count{font-size:0.72rem;color:var(--muted);margin-top:2px;line-height:1;display:flex;align-items:baseline;gap:5px}
-.h-count b{color:#e84242;font-weight:700;font-size:24px;line-height:1;font-variant-numeric:tabular-nums}
+.h-count{font-size:0.75rem;color:var(--muted);margin-top:2px;line-height:1;display:flex;align-items:baseline;gap:5px}
+.h-count b{color:var(--accent-logo);font-weight:700;font-size:24px;line-height:1;font-variant-numeric:tabular-nums}
 .h-search{flex:1;max-width:420px;min-width:230px;margin-left:auto}
 .h-search input{
   width:100%;padding:9px 16px;border-radius:30px;
@@ -186,12 +189,12 @@ a.card-root,a.card-folder,a.bc-item,a.h-left,a.f-wordmark{color:inherit;text-dec
 .promo-ban img{max-width:100%;display:block}
 .ad-fail .promo-ban-ad{display:none}   /* Zadanie 32: reklama partnera neprišla — okienko zbalené */
 .promo-txt{flex:1;min-width:0}
-.promo-tag{font-size:0.65rem;letter-spacing:1px;color:var(--muted);margin-bottom:8px}
+.promo-tag{font-size:0.75rem;letter-spacing:1px;color:var(--muted);margin-bottom:8px}
 .promo-txt h3{margin:0 0 10px;font-size:1.25rem;line-height:1.25;color:#fff}
 .promo-txt p{margin:0 0 10px;font-size:0.9rem;line-height:1.55;color:var(--text)}
 .promo-btn{display:inline-block;background:var(--accent-strong);color:#fff!important;font-weight:700;font-size:0.9rem;padding:10px 18px;border-radius:8px;margin-top:6px;text-decoration:none}
 .promo-btn:hover{background:#c73535}
-.promo-warn{font-size:0.7rem;color:var(--muted);border-top:1px solid var(--border);padding-top:10px;margin-top:22px}
+.promo-warn{font-size:0.8rem;color:var(--muted);border-top:1px solid var(--border);padding-top:10px;margin-top:22px}
 .promo-edit-btn{display:none;margin-top:10px;font-size:0.72rem;background:none;border:1px dashed var(--border);color:var(--muted);padding:4px 10px;border-radius:6px;cursor:pointer}
 .admin-mode .promo-edit-btn{display:inline-block}
 .promo-list-row{display:flex;align-items:center;gap:8px;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:0.8rem}
@@ -330,6 +333,10 @@ a.akt-head[href]:hover #aktHeadTxt{text-decoration:underline}
 /* štítok LIGA/LEAGUE — linky líg (order -1) v priečinkoch klubov; federácie (order 0) ho nemajú */
 .liga-tag{position:absolute;top:0;right:0;background:var(--accent-strong);color:#fff;font-size:0.55rem;font-weight:800;letter-spacing:.5px;padding:2px 7px;line-height:1.5;border-radius:0 9px 0 8px;pointer-events:none;z-index:2}
 .admin-mode .liga-tag{display:none}
+/* Zadanie 47b (🟢4): názov linky so štítkom nechá vpravo miesto na štítok (rastie s písmom — v rem),
+   aby ho štítok neprekryl ani pri systémovom písme 130 %; popis pod ním má plnú šírku */
+.card-link:has(>.liga-tag) .cl-name{padding-right:calc(2.3rem + 6px)}
+.admin-mode .card-link:has(>.liga-tag) .cl-name{padding-right:0}
 /* ikonky FB/IG na pravom okraji dlaždice klubu (polia fb/ig v uzle linky) — FB vždy horný roh, IG vždy dolný */
 .card-link .socs{position:absolute;right:4px;top:0;bottom:0;width:18px;display:flex;flex-direction:column;justify-content:space-between;align-items:center;padding:5px 0;z-index:2}
 .card-link .socs a.si{display:block;flex:none;width:15px;height:15px;overflow:visible;border-radius:3px;transition:.15s}
@@ -384,7 +391,7 @@ a.akt-head[href]:hover #aktHeadTxt{text-decoration:underline}
 #favPanel{position:fixed;z-index:60;width:300px;max-width:calc(100vw - 16px);background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:0 12px 30px rgba(0,0,0,.5);overflow:auto;padding:6px 0}
 #favPanel[hidden]{display:none}
 .fp-head{display:flex;align-items:center;justify-content:space-between;padding:6px 8px 6px 14px;font-weight:700;font-size:.92rem}
-.fp-x{background:none;border:0;color:var(--muted);font-size:1.3rem;line-height:1;cursor:pointer;width:36px;height:36px;border-radius:8px}
+.fp-x{background:none;border:0;color:var(--muted);font-size:1.3rem;line-height:1;cursor:pointer;width:44px;height:44px;border-radius:8px} /* Zadanie 47b (🟢7): 44×44 */
 .fp-x:hover,.fp-x:focus-visible{color:var(--text);background:var(--surface2)}
 .fp-row{display:flex;align-items:center;border-top:1px solid var(--border)}
 .fp-row>a{display:flex;align-items:center;gap:10px;flex:1;min-width:0;padding:8px 4px 8px 14px}
@@ -438,6 +445,9 @@ a.akt-head[href]:hover #aktHeadTxt{text-decoration:underline}
 #favUndo button{background:none;border:0;color:#f5c518;font-weight:700;font-size:.88rem;padding:0 10px;min-height:40px;cursor:pointer;font-family:inherit;border-radius:8px}
 @media(hover:hover){#favUndo button:hover{background:var(--surface)}}
 @media(max-width:560px){.fv-clear-btn,.fv-no,.fv-yes,#favUndo button{min-height:44px}}
+/* Zadanie 47b (🟠5): políčka hľadania na dotykových zariadeniach vždy 16 px — aj na šírku
+   (iPhone pri ťuknutí do políčka s menším písmom stránku sám priblíži) */
+@media(hover:none){.h-search input,.fv-srch{font-size:16px}}
 @media(max-width:560px){.fv-srch{font-size:16px;max-width:none}.fv-close{height:40px;padding:0 12px}.fv-close .fl{display:none}.fv-close .fs{display:inline}}
 
 /* ===== ANIMÁCIA KARIET — jemné vynorenie pri vstupe do sekcie ===== */
@@ -580,7 +590,11 @@ a.akt-head[href]:hover #aktHeadTxt{text-decoration:underline}
   padding:30px;width:300px;text-align:center;
 }
 .pw-box{position:relative}
-.pw-x{position:absolute;top:8px;right:10px;background:none;border:none;color:var(--muted);font-size:1.3rem;line-height:1;cursor:pointer;padding:4px 8px;border-radius:6px}
+.pw-x{position:absolute;top:4px;right:4px;background:none;border:none;color:var(--muted);font-size:1.3rem;line-height:1;cursor:pointer;width:44px;height:44px;padding:0;border-radius:8px;display:flex;align-items:center;justify-content:center}
+/* Zadanie 47b (🟢5): „Prihlásiť“ aspoň 44 px; na nízkej obrazovke (mobil na šírku) je okno hore,
+   aby klávesnica neprekryla políčko hesla */
+#pwBtn{min-height:44px;justify-content:center}
+@media(max-height:500px){#pwScreen{align-items:flex-start;padding-top:10px;overflow-y:auto}}
 .pw-x:hover,.pw-x:focus-visible{color:var(--text)}
 .pw-box h3{margin-bottom:16px}
 /* bod 13 (previerka 2): text len pre čítačku (oznam výsledkov hľadania) */
@@ -609,6 +623,8 @@ a.akt-head[href]:hover #aktHeadTxt{text-decoration:underline}
 }
 .empty .e-icon{font-size:3rem;margin-bottom:12px}
 .empty p{font-size:0.9rem}
+.empty .load-slow{margin:10px auto 0;max-width:340px;font-size:0.82rem;line-height:1.45} /* Zadanie 47b: veta pri pomalom načítaní */
+.empty .load-slow[hidden]{display:none}
 .empty .sr-tip{margin-top:8px;font-size:0.82rem} /* bod 49: tip pri prázdnom hľadaní */
 
 /* ===== SCROLLBAR ===== */
@@ -682,19 +698,8 @@ button#aktMoreBadge{-webkit-appearance:none;appearance:none;margin:0;border:0;fo
   .h-search input{font-size:16px}
   /* bod 10: hlavička ostáva prilepená, ale bez podnadpisu a s menším počítadlom (menej miesta) */
   .h-subtitle{display:none}
-  .h-count{font-size:.65rem}
+  .h-count{font-size:.75rem} /* Zadanie 47b (🟢2): „overených liniek“ aspoň 12 px */
   .h-count b{font-size:16px}
-  /* Zadanie 34 (bod 6 previerky 3): po posune nadol sa hlavička zbalí na jeden riadok
-     (menšie logo + lupa). Ušetrené miesto ostáva pod hlavičkou ako okraj (margin-bottom
-     nastaví skript), takže obsah stránky sa pri zbalení/rozbalení nepohne. */
-  body.hdr-min header{padding:4px 6px 4px 14px;flex-wrap:nowrap}
-  body.hdr-min .h-wordmark{font-size:1rem}
-  body.hdr-min .h-count,body.hdr-min .h-search{display:none}
-  body.hdr-min .h-lupa{display:flex;align-items:center;justify-content:center;position:relative;margin-left:auto;width:44px;height:44px;padding:0;border:0;border-radius:50%;background:transparent;color:var(--text);font-size:20px;line-height:1;cursor:pointer;animation:hdrIn .15s ease-out}
-  body.hdr-min.has-fav .h-lupa{margin-left:4px}
-  body.hdr-min .h-fav{height:40px;animation:hdrIn .15s ease-out}
-  /* v hľadaní je text (kurzor už v ňom nie je) — červená bodka na lupe */
-  body.hdr-min .h-lupa.has-q::after{content:'';position:absolute;top:9px;right:8px;width:9px;height:9px;border-radius:50%;background:#e84242;box-shadow:0 0 0 2px #0f1923}
   main{padding:16px 12px 100px}
   .grid-root{gap:10px}
   .card-root{flex:0 1 150px;min-width:130px}
@@ -732,15 +737,20 @@ button#aktMoreBadge{-webkit-appearance:none;appearance:none;margin:0;border:0;fo
   #aktualneWrap{padding:10px 14px 0;position:relative}
   /* Gradient na pravom okraji — naznačí, že riadok pokračuje doprava */
   #aktualneWrap.has-more::after{
-    content:'';position:absolute;right:14px;bottom:0;width:44px;height:48px;
+    content:'';position:absolute;right:66px;bottom:0;width:32px;height:48px;
     background:linear-gradient(90deg,rgba(15,25,35,0),var(--bg));pointer-events:none;
   }
+  /* Zadanie 47b (🟠7): pás Aktuálnych končí 8 px pred štítkom „+N ›“ (orezanie, nemení
+     šírku pásu) — štítok sa nedotýka karty ani ju neprekrýva; okraje hore/dole/vľavo
+     nechávajú vidieť štítok NEW a tiene */
+  #aktualneWrap.has-more #aktualneScroll{clip-path:inset(-12px 52px -12px -12px)}
   /* Červený štítok "+N ›" — počet skrytých liniek, klik doscrolluje (len mobil) */
   #aktualneWrap.has-more #aktMoreBadge{
     display:flex;align-items:center;
-    position:absolute;right:14px;bottom:12px;z-index:2;
-    background:var(--accent-strong);color:#fff;font-size:0.68rem;font-weight:800;
-    padding:3px 8px;border-radius:10px;white-space:nowrap;cursor:pointer;
+    position:absolute;right:14px;bottom:24px;z-index:2;justify-content:center;
+    min-width:44px;height:32px;
+    background:var(--accent-strong);color:#fff;font-size:0.75rem;font-weight:800;
+    padding:0 8px;border-radius:16px;white-space:nowrap;cursor:pointer;
     box-shadow:0 2px 6px rgba(0,0,0,.4);
   }
 
@@ -750,6 +760,59 @@ button#aktMoreBadge{-webkit-appearance:none;appearance:none;margin:0;border:0;fo
   /* Karty na mobile */
   .card-root{padding:16px 10px}
   .card-root .c-icon{font-size:2rem}
+}
+/* Zadanie 34 (bod 6 previerky 3): po posune nadol sa hlavička zbalí na jeden riadok
+   (menšie logo + ★ + lupa). Ušetrené miesto ostáva pod hlavičkou ako okraj (margin-bottom
+   nastaví skript), takže obsah stránky sa pri zbalení/rozbalení nepohne.
+   Zadanie 47b (🟠4): zbaľuje sa aj mobil NA ŠÍRKU (nízke okno na dotykovom zariadení).
+   Podmienka MUSÍ sedieť s HDR_PODMIENKA v JS (hdrMobil). Počítač (myš) bez zmeny. */
+@media(max-width:560px),(max-height:500px) and (hover:none){
+  body.hdr-min header{padding:4px 6px 4px 14px;flex-wrap:nowrap}
+  body.hdr-min .h-wordmark{font-size:1rem}
+  body.hdr-min .h-count,body.hdr-min .h-search,body.hdr-min .h-subtitle{display:none}
+  body.hdr-min .h-fav{order:1;margin-left:auto;height:40px;animation:hdrIn .15s ease-out}
+  body.hdr-min .h-lupa{order:2;display:flex;align-items:center;justify-content:center;position:relative;margin-left:auto;width:44px;height:44px;flex-shrink:0;padding:0;border:0;border-radius:50%;background:transparent;color:var(--text);font-size:20px;line-height:1;cursor:pointer;animation:hdrIn .15s ease-out}
+  body.hdr-min.has-fav .h-lupa{margin-left:4px}
+  /* v hľadaní je text (kurzor už v ňom nie je) — červená bodka na lupe */
+  body.hdr-min .h-lupa.has-q::after{content:'';position:absolute;top:9px;right:8px;width:9px;height:9px;border-radius:50%;background:#e84242;box-shadow:0 0 0 2px #0f1923}
+}
+/* Zadanie 47b (🟠3): veľmi úzky displej (Android s veľkým systémovým písmom ~277 px) —
+   „☆ 0“ ostáva vedľa loga (nie vo vlastnom riadku), logo je o kúsok menšie, v hľadaní
+   kratší text (skript pri hdrMobil); v zbalenej hlavičke sa lupa zmestí celá. */
+@media(max-width:330px){
+  header{padding:10px 10px;gap:8px}
+  .h-wordmark{font-size:1.05rem;letter-spacing:.5px}
+  .h-fav{padding:0 9px;gap:4px}
+  body.hdr-min header{padding:4px 2px 4px 10px}
+  body.hdr-min .h-wordmark{font-size:.92rem}
+  body.hdr-min .h-fav{padding:0 8px}
+  body.hdr-min.has-fav .h-lupa{margin-left:2px}
+}
+/* Zadanie 47b (🟠7): väčšie dotykové plochy na mobile a dotykových zariadeniach.
+   Počítač s myšou (širší ako 560 px) ostáva bez zmeny. */
+@media(max-width:560px),(hover:none){
+  /* ★ na karte: zóna 44×36 px v ľavom dolnom rohu pod ikonkou + 5 px „mŕtvy“ pás nad ňou
+     (::after karty leží nad odkazom — ťuk tesne nad hviezdičku neotvorí web klubu).
+     Ikonka ostáva zvislo v strede karty: výška karty 98 px = ikonka 24 + 2 × 36 (zóna) + rámik 2 —
+     mŕtvy pás zasahuje najviac 5 px do spodku ikonky (tam sa ťuk len ignoruje). */
+  .card-link.has-star{min-height:98px}
+  .card-link .star{left:2px;width:44px;height:36px;font-size:17px}
+  .card-link.has-star::after{content:'';position:absolute;left:2px;bottom:36px;width:44px;height:5px;z-index:2}
+  .admin-mode .card-link.has-star::after{display:none}
+  /* FB/IG: plocha 36×36 px — FB od horného okraja karty, IG od dolného (karta s ikonkami
+     má aspoň 72 px, takže sa plochy neprekrývajú); doľava len do odsadenia hlavnej linky */
+  .card-link.has-soc:not(.has-star){min-height:72px}
+  .card-link .socs{width:24px;right:3px;padding:3px 0}
+  .card-link .socs a.si img{width:20px;height:20px}
+  .card-link .socs a.si,.card-link .socs .ph{width:24px;height:24px;padding:2px;line-height:20px;font-size:12px}
+  .card-link .socs a.si::before{left:-9px;right:-3px}
+  .card-link .socs a.si:first-child::before{top:-3px;bottom:-9px}
+  .card-link .socs a.si:last-child::before{top:-9px;bottom:-3px}
+  .card-link.has-soc>a{padding-right:24px}
+  /* drobčeky: každá položka aspoň 32 px na výšku */
+  #breadcrumb{row-gap:4px}
+  #breadcrumb .bc-item{min-height:32px}
+  .bc-back{min-height:32px}
 }
 </style>
 </head>
@@ -1743,6 +1806,8 @@ window.addEventListener('pageshow', function(e){
 let NAVIGOVANE = false; // bod 5: už sa preklikalo v appke (hreflang zo statickej stránky neplatí)
 function navigate(id, fromPopState){
   hdrSet(false); // Zadanie 34: po prekliku plná hlavička
+  const fpZaznam = !fromPopState && favPanelHist(); // Zadanie 47b: navrchu je záznam panela → prepísať
+  if(!fromPopState) _fpDupTu = false;
   favPanelClose(false);
   if(!fromPopState) FAV_VIEW = false; // pri Späť/Vpred nastavuje popstate
   curId = id;
@@ -1753,8 +1818,9 @@ function navigate(id, fromPopState){
   if(!fromPopState){
     saveScrollState(); // bod 1: posun opúšťanej stránky do jej záznamu histórie
     const url = urlForId(id) + (PATH_ROUTING && id !== null ? searchBezQ() : '');
-    try{ history.pushState({curId: id}, '', url); }
-    catch(e){ history.pushState({curId: id}, '', ''); }
+    const zapis = (fpZaznam ? history.replaceState : history.pushState).bind(history);
+    try{ zapis({curId: id}, '', url); }
+    catch(e){ zapis({curId: id}, '', ''); }
   }
   render();
   renderBannerSlot(); // cielenie bannera na sekciu — prehodnotiť pri každej navigácii
@@ -1785,6 +1851,7 @@ function focusHeading(){
 }
 
 window.addEventListener('popstate', function(e){
+  if(favPanelPop(e)) return; // Zadanie 47b: Späť/Vpred len zavrel/otvoril panel obľúbených
   if(e.state && e.state.curId !== undefined) CESTA_CELA = true; // záznam zapísala appka — adresa sedí
   clearTimeout(_scrollT); // neskorý zápis posunu z opúšťanej stránky nesmie prepísať tento záznam
   const id = (e.state && e.state.curId !== undefined) ? e.state.curId
@@ -2067,9 +2134,24 @@ function updateHead(){
 }
 
 // text počas doťahovania celých dát (hĺbka 2+ a hľadanie pred príchodom data.json)
+// Zadanie 47b (🟠1 a): keď „Načítavam…“ trvá dlhšie ako 2 s (pomalé pripojenie), doplní sa
+// veta, že to môže chvíľu trvať. Čas sa meria od PRVÉHO zobrazenia „Načítavam…“ —
+// prekreslenie (napr. ďalšie písmeno v hľadaní) ho nevynuluje.
+let LOAD_T0 = 0, _loadSlowT = null;
+const LOAD_SLOW_MS = 2000;
 function loadingHtml(){
   if(DATA_FAIL) return failHtml();
-  return `<div class="empty"><div class="e-icon">⏳</div><p>${IS_EN?'Loading…':'Načítavam…'}</p></div>`;
+  const now = Date.now();
+  if(!LOAD_T0) LOAD_T0 = now;
+  const ost = LOAD_T0 + LOAD_SLOW_MS - now;
+  if(ost > 0 && !_loadSlowT) _loadSlowT = setTimeout(function(){
+    _loadSlowT = null;
+    document.querySelectorAll('.load-slow').forEach(function(e){ e.hidden = false; });
+  }, ost + 20);
+  return `<div class="empty"><div class="e-icon">⏳</div><p>${IS_EN?'Loading…':'Načítavam…'}</p>`
+       + `<p class="load-slow"${ost > 0 ? ' hidden' : ''}>${IS_EN
+           ? 'Loading the full list of links — on a slow connection this can take up to 10 seconds.'
+           : 'Načítavam celý zoznam liniek — na pomalom pripojení to môže trvať do 10 sekúnd.'}</p></div>`;
 }
 // Bod 3 (previerka 2): data.json sa nepodarilo stiahnuť (výpadok, slabý signál).
 // Namiesto večného „Načítavam…“ správa a tlačidlo, ktoré sťahovanie zopakuje.
@@ -2801,10 +2883,26 @@ let _srchT = null;
 // stránky nepohne a výška stránky ostáva rovnaká (žiadna slučka zbal → posun → rozbaľ,
 // ani na krátkych stránkach). Nezbaľuje sa: v admin režime, kým je kurzor v hľadaní.
 // Text v hľadaní (bez kurzora) = zbalí sa, na lupe svieti červená bodka.
+// Zadanie 47b (🟠4): zbaľuje sa aj mobil NA ŠÍRKU — nízke okno (do 500 px) na dotykovom
+// zariadení. Podmienka MUSÍ sedieť s CSS (@media pri „body.hdr-min“). Počítač bez zmeny.
+var HDR_PODMIENKA = '(max-width:560px), (max-height:500px) and (hover:none)';
 var HDR_DOLE = 150, HDR_HORE = 60, hdrMin = false, hdrLastY = 0, hdrTick = false, HDR_MQ = null;
 function hdrMobil(){
-  try{ if(!HDR_MQ) HDR_MQ = window.matchMedia('(max-width:560px)'); return HDR_MQ.matches; }catch(e){ return false; }
+  try{ if(!HDR_MQ) HDR_MQ = window.matchMedia(HDR_PODMIENKA); return HDR_MQ.matches; }catch(e){ return false; }
 }
+// Zadanie 47b (🟠3): na veľmi úzkom displeji (do 330 px — napr. Android s veľkým písmom)
+// kratší text v políčku hľadania, aby nebol orezaný. Pri rozšírení okna sa vráti pôvodný.
+(function(){
+  try{
+    var s = document.getElementById('srch'), mq = window.matchMedia('(max-width:330px)');
+    if(!s) return;
+    var plny = s.getAttribute('placeholder') || '';
+    var kratky = (typeof SITE_LANG !== 'undefined' && SITE_LANG === 'en') ? '🔍 Search…' : '🔍 Hľadaj…';
+    var nastav = function(){ s.setAttribute('placeholder', mq.matches ? kratky : plny); };
+    nastav();
+    if(mq.addEventListener) mq.addEventListener('change', nastav); else if(mq.addListener) mq.addListener(nastav);
+  }catch(e){}
+})();
 function hdrSet(min){
   min = !!min;
   if(min === !!hdrMin) return;
@@ -3171,7 +3269,26 @@ function favNodes(){
 // ---- panel v hlavičke ----
 function favPanelOpen(){ const p = document.getElementById('favPanel'); return !!p && !p.hidden; }
 function favPanelToggle(){ if(favPanelOpen()) favPanelClose(true); else favPanelShow(); }
-function favPanelShow(){
+// Zadanie 47b (🟢1): SPÄŤ PRI OTVORENOM PANELI. Otvorenie panela pridá do histórie
+// „neviditeľný“ záznam s tou istou adresou (značka favP). Späť (gesto/tlačidlo) sa vráti
+// na pôvodný záznam a appka v popstate LEN zavrie panel — stránka sa neprekreslí a posun
+// ostane. Zavretie krížikom / Escape / klikom vedľa urobí jeden krok späť samo (záznam
+// zmizne, ďalší Späť nebude naprázdno). Preklik z otvoreného panela záznam PREPÍŠE
+// (navigate / favViewOpen použijú replaceState). Vpred po zavretí cez Späť panel znova
+// otvorí. Pôvodný záznam dostane rovnakú značku (fpBase) — tak appka spozná, že Späť
+// mieri práve naň. Obnovenie stránky (F5) pri otvorenom paneli značku zmaže (nižšie).
+let _fpTok = 0, _fpSkipPop = false, _fpDupTu = false;
+function favPanelHist(){ return !!(_fpTok && history.state && history.state.favP === _fpTok); }
+function favPanelPush(){
+  try{
+    saveScrollState(); // posun pôvodnej stránky do jej záznamu (+ scrollRestoration manual)
+    _fpTok = Date.now();
+    const st = history.state || {};
+    history.replaceState(Object.assign({}, st, {fpBase: _fpTok}), '');
+    history.pushState(Object.assign({}, st, {fpBase: undefined, favP: _fpTok}), '', location.href);
+  }catch(e){ _fpTok = 0; }
+}
+function favPanelShow(bezHistorie){
   const p = document.getElementById('favPanel'), b = document.getElementById('hFav');
   if(!p || !b || adminMode) return;
   FAV = favRead();
@@ -3179,14 +3296,49 @@ function favPanelShow(){
   p.hidden = false;
   b.setAttribute('aria-expanded', 'true');
   favPanelPlace();
+  if(!bezHistorie && !favPanelHist()) favPanelPush();
   try{ p.querySelector('.fp-x').focus({preventScroll: true}); }catch(e){}
 }
-function favPanelClose(vratFokus){
+function favPanelClose(vratFokus, bezSpat){
   const p = document.getElementById('favPanel'), b = document.getElementById('hFav');
   if(!p || p.hidden) return;
   p.hidden = true;
   if(b){ b.setAttribute('aria-expanded', 'false'); if(vratFokus && !b.hidden){ try{ b.focus({preventScroll: true}); }catch(e){} } }
+  // záznam panela z histórie preč — AŽ po dokončení kliknutia: ak medzitým prebehol
+  // preklik (navigate/favViewOpen záznam prepísal), niet čo vracať. bezSpat = klik na odkaz,
+  // ktorý otvára stránku v tej istej karte — krok späť by ten prechod zrušil.
+  if(bezSpat) return;
+  setTimeout(function(){
+    if(favPanelHist() && !favPanelOpen()){ _fpSkipPop = true; try{ history.back(); }catch(e){ _fpSkipPop = false; } }
+  }, 0);
 }
+// popstate pre panel (volá ho hlavný popstate ako PRVÝ). true = vybavené, ďalej nič.
+function favPanelPop(e){
+  const st = e.state || {};
+  if(_fpSkipPop){ // krok späť, ktorý urobila appka sama po zavretí panela
+    _fpSkipPop = false;
+    if(favPanelOpen() && !favPanelHist()) favPanelPush(); // medzitým sa panel znova otvoril
+    return true;
+  }
+  // po F5 pri otvorenom paneli: Späť z tohto záznamu by ukázal TÚ ISTÚ stránku (pôvodný
+  // záznam panela) — preskoč ho ďalším krokom späť, aby Späť nebol naprázdno
+  if(_fpDupTu){
+    _fpDupTu = false;
+    if(st.fpBase && !st.favP && st.curId === curId && !favPanelOpen()){ try{ history.back(); return true; }catch(_){} }
+  }
+  if(favPanelOpen() && _fpTok && st.fpBase === _fpTok){ favPanelClose(true); return true; } // Späť: len zavri
+  if(!favPanelOpen() && _fpTok && st.favP === _fpTok && !adminMode){ favPanelShow(true); return true; } // Vpred: znova otvor
+  return false;
+}
+// F5 / potiahnutie nadol pri otvorenom paneli: značka panela sa hneď zmaže (panel je zavretý,
+// nič sa neprekresľuje) a prvý Späť preskočí pôvodný záznam s tou istou stránkou (favPanelPop)
+try{
+  if(history.state && (history.state.favP || history.state.fpBase)){
+    _fpDupTu = !!history.state.favP;
+    const st0 = Object.assign({}, history.state); delete st0.favP; delete st0.fpBase;
+    history.replaceState(st0, '');
+  }
+}catch(e){}
 // poloha: počítač — pod tlačidlom, zarovnané vpravo; mobil — pod hlavičkou cez celú šírku (CSS)
 function favPanelPlace(){
   const p = document.getElementById('favPanel'), b = document.getElementById('hFav'), h = document.querySelector('header');
@@ -3232,7 +3384,8 @@ document.addEventListener('click', e => {
   if(p.contains(e.target) || (b && b.contains(e.target))) return;
   // Zadanie 39a2: klik na hviezdičku (karta, tlačidlo v stĺpcoch) panel NEZATVORÍ — prekreslí sa (favRefresh)
   if(e.target.closest && e.target.closest('[data-fid]')) return;
-  favPanelClose(false);
+  const odk = e.target.closest && e.target.closest('a[href]');
+  favPanelClose(false, !!(odk && odk.target !== '_blank')); // Zadanie 47b: viď favPanelClose
 }, true);
 window.addEventListener('resize', favPanelPlace);
 window.addEventListener('scroll', favPanelPlace, {passive: true});
@@ -3247,12 +3400,14 @@ function favInUrl(){
 function favViewOpen(ev){
   if(ev && (ev.ctrlKey || ev.metaKey || ev.shiftKey || ev.button === 1)) return true;
   if(ev) ev.preventDefault();
+  const fpZaznam = favPanelHist(); // Zadanie 47b: z otvoreného panela — jeho záznam sa prepíše
+  _fpDupTu = false;
   favPanelClose(false);
   hdrSet(false);
   saveScrollState();
   curId = null; FAV_VIEW = true; _favFilter = ''; NAVIGOVANE = true; CESTA_CELA = true;
   document.getElementById('srch').value = '';
-  try{ history.pushState({curId: null, fav: true, zWeb: true}, '', favUrl()); }catch(e){} // zWeb: Zavrieť = Späť
+  try{ history[fpZaznam ? 'replaceState' : 'pushState']({curId: null, fav: true, zWeb: true}, '', favUrl()); }catch(e){} // zWeb: Zavrieť = Späť
   render();
   renderBannerSlot();
   try{ window.scrollTo(0, 0); }catch(e){}
@@ -5254,7 +5409,9 @@ function updateAktFade(){
   if(more){
     // spočítaj karty, ktoré za pravým okrajom nie sú vidieť celé — skryté aj
     // orezané (bod 8, previerka 3: predtým len celé skryté, pri 3 kartách „›“ bez čísla)
-    const rightEdge = s.getBoundingClientRect().right;
+    // Zadanie 47b: na mobile pás končí 8 px pred štítkom (clip-path v CSS) — počíta sa po tú hranicu
+    const bdg = document.getElementById('aktMoreBadge').getBoundingClientRect();
+    const rightEdge = bdg.width ? bdg.left - 8 : s.getBoundingClientRect().right;
     let hidden = 0;
     s.querySelectorAll('.akt-card').forEach(c=>{ if(c.getBoundingClientRect().right > rightEdge + 1) hidden++; });
     const badge = document.getElementById('aktMoreBadge');
