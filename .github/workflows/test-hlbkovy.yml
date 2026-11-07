@@ -3,12 +3,18 @@
 # robots.txt, verziu data.json, presmerovania http→https a www→bez www, ikonky a vlajky,
 # a porovná adresy, titulky a obsah stránok (zoznam a poradie kariet) z appky (index.html)
 # s generátorom (generator.py).
+# Kontrola i) Mobilné zariadenia (Zadanie 48a): Android (Chromium) a iPhone (WebKit = jadro
+# Safari) na výšku aj na šírku, veľké písmo a pomalý Android — pretečenie do strany, chyby
+# v konzole, prevzatie appkou, Späť, hľadanie 16 px, zbalenie hlavičky, okno s heslom, panel
+# obľúbených (❌); dotykové plochy, malé písmo, kontrast, výkon (⚠️). Tabuľka zariadenie ×
+# stránka je v Summary, snímky z každého zariadenia v prílohe „test-hlbkovy".
 # Nič nemení. Pri chybe: červený krížik v Actions (a e-mail od GitHubu). Výsledok
 # s ✅/⚠️/❌ je rovno na stránke behu (Summary), úplný zoznam chýb v prílohe
 # „test-hlbkovy" (Artifacts, 14 dní).
 # Súbor je ROVNAKÝ v sport-linky aj sportlinking — adresu webu zistí configure-pages,
 # jazyk webu zistí skript sám.
-# Ručné spustenie: Actions → „Hĺbkový test webu" → Run workflow.
+# Ručné spustenie: Actions → „Hĺbkový test webu" → Run workflow. Voľba „len_mobil" = áno
+# spustí len mobilnú kontrolu i) (~5–10 min) — na rýchle overenie po zmene webu.
 name: Hĺbkový test webu
 
 on:
@@ -16,6 +22,12 @@ on:
     # denne 05:30 UTC — po nočných buildoch (SK ~23:17 UTC, EN hneď po ňom)
     - cron: "30 5 * * *"
   workflow_dispatch:
+    inputs:
+      len_mobil:
+        description: "Len mobilná kontrola i) (rýchle overenie po zmene webu)"
+        type: choice
+        options: ["nie", "áno"]
+        default: "nie"
   # pull request, ktorý mení testy — overí ich proti živému webu
   pull_request:
     paths: [testy/**, .github/workflows/test-hlbkovy.yml]
@@ -34,7 +46,7 @@ concurrency:
 jobs:
   test:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45   # celý test vrátane mobilnej časti i) (tá ~5–10 min)
     steps:
       # skript testu z tejto vetvy (pri PR nová verzia testu)
       - uses: actions/checkout@v7
@@ -73,10 +85,28 @@ jobs:
         if: steps.pw-cache.outputs.cache-hit == 'true'
         run: python -m playwright install-deps chromium
 
+      # kontrola i): WebKit (jadro Safari = iPhone) z vlastnej pamäte — iný kľúč, takže
+      # pamäť Chromia ostáva nedotknutá (rovnaká ako v test-webu.yml)
+      - name: Pamäť prehliadača WebKit (cache)
+        id: wk-cache
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/ms-playwright/webkit-*
+          key: playwright-webkit-${{ runner.os }}-${{ env.PW_VERSION }}
+
+      - name: Stiahni WebKit (prehliadač nie je v pamäti)
+        if: steps.wk-cache.outputs.cache-hit != 'true'
+        run: python -m playwright install --with-deps webkit
+
+      - name: Doinštaluj systémové knižnice WebKitu (prehliadač je z pamäte)
+        if: steps.wk-cache.outputs.cache-hit == 'true'
+        run: python -m playwright install-deps webkit
+
       - name: Hĺbkový test živého webu
         env:
           WEB_URL: ${{ steps.pages.outputs.base_url }}
           REPO_DATA_JSON: main-repo/data.json
+          LEN_MOBIL: ${{ github.event.inputs.len_mobil == 'áno' && 'áno' || 'nie' }}
         run: python testy/test_hlbkovy.py --url "$WEB_URL" --vystup test-hlbkovy-vystup
 
       - name: Ulož zoznam chýb
