@@ -4414,6 +4414,38 @@ function eligibleBanners(slotNum){
   return (DB.banners||[]).filter(b=>(b.lang||'sk')===SITE_LANG && b.active!==false && bannerSlotNum(b)===slotNum && bannerDateOk(b) && bannerSectionOk(b, curId));
 }
 function bannerWeight(b){ return Math.max(1, Math.min(10, parseInt(b.weight)||1)); }
+// Zadanie 49: na mobile je #bannerSlot2 skrytý (CSS @media(max-width:560px)) — bannery
+// slotu 2 by mobilný návštevník nevidel. Pri zapnutej rotácii preto slot 1 strieda
+// SPOLOČNÝ zoznam: vhodné bannery slotu 1, potom slotu 2 (každý banner len raz, váhy
+// ako inde). Podmienka = TÁ ISTÁ šírka ako v CSS; pri zmene šírky / otočení sa slot
+// prekreslí (poslucháč nižšie). Rotácia vypnutá alebo počítač → bez zmeny (len slot 1).
+const BANNER_MOBIL_MQ = window.matchMedia ? window.matchMedia('(max-width:560px)') : null;
+function bannerMobilMix(){
+  return !!(BANNER_MOBIL_MQ && BANNER_MOBIL_MQ.matches && DB.bannerSettings && DB.bannerSettings.rotate);
+}
+function slot1Banners(){
+  const b1 = eligibleBanners(1);
+  if(!bannerMobilMix()) return b1;
+  const videne = new Set(), spolu = [];
+  for(const b of b1.concat(eligibleBanners(2))){
+    const k = String(b.id);
+    if(videne.has(k)) continue;
+    videne.add(k); spolu.push(b);
+  }
+  // Zadanie 32 + 49: reklama partnera v tejto návšteve nejde (AD_FAIL) → jej bannery
+  // sa preskočia a rotujú sa ostatné. Ak sú v zozname LEN bannery partnera, zoznam
+  // ostáva celý a slot sa zbalí ako doteraz.
+  if(AD_FAIL){
+    const vlastne = spolu.filter(b => !(b.html && adNeedsFrame(b.html)));
+    if(vlastne.length) return vlastne;
+  }
+  return spolu;
+}
+if(BANNER_MOBIL_MQ){
+  const naZmenu = () => { try{ if(DB && DB.bannerSettings) renderBannerSlot(); }catch(e){} };
+  if(BANNER_MOBIL_MQ.addEventListener) BANNER_MOBIL_MQ.addEventListener('change', naZmenu);
+  else if(BANNER_MOBIL_MQ.addListener) BANNER_MOBIL_MQ.addListener(naZmenu);   // starší Safari
+}
 
 // ============================================================
 // BOD 16 (3.11.2026): CUDZÍ REKLAMNÝ KÓD V UZAVRETOM OKIENKU
@@ -4474,12 +4506,16 @@ window.addEventListener('message', e=>{
       document.documentElement.classList.add('ad-fail');
       const box = f.closest('.banner-slot, .promo-ban');
       if(box) box.style.display = 'none';
+      // Zadanie 49: mobil + spoločný zoznam → slot 1 hneď prejde na ďalší vlastný banner
+      // (ak je v zozname len reklama partnera, vyberie sa tá istá a slot ostane zbalený)
+      try{ if(bannerMobilMix()) renderOneSlot(document.getElementById('bannerSlot'), 1); }catch(err){}
       return;
     }
   }
 });
 
-// Vykreslí jeden slot — každý slot rotuje len svoje vlastné bannery
+// Vykreslí jeden slot — každý slot rotuje len svoje vlastné bannery (Zadanie 49: na mobile
+// pri rotácii slot 1 strieda aj bannery slotu 2 — slot1Banners vyššie)
 // Zadanie 34 (bod 30 previerky 3): odkaz v banneri bez čitateľného textu (napr. EN banner
 // „Live This Week“ = <a href><svg> — čítačka ho ohlási len ako „odkaz“) dostane
 // aria-label: alt bannera → text nápisov v SVG → názov bannera. Dáta sa nemenia.
@@ -4502,7 +4538,7 @@ function bannerA11y(el, banner){
   }catch(e){}
 }
 function renderOneSlot(el, slotNum){
-  const banners = eligibleBanners(slotNum);
+  const banners = slotNum === 1 ? slot1Banners() : eligibleBanners(slotNum);   // Zadanie 49
   if(!banners.length){
     if(el.dataset.bid !== 'ph'){ el.dataset.bid = 'ph'; el.style.display = ''; el.innerHTML = '<div class="banner-placeholder">📢 Banner 468 × 60</div>'; }
     return;
@@ -4549,7 +4585,15 @@ function renderBannerSlot(){
   if(!DB.banners) DB.banners = [];
   if(!DB.bannerSettings) DB.bannerSettings = { rotate:false, interval:30, activeId:null };
   renderOneSlot(document.getElementById('bannerSlot'), 1);
-  renderOneSlot(document.getElementById('bannerSlot2'), 2);
+  // Zadanie 49: na mobile je slot 2 skrytý (CSS) → nevykresľovať ho vôbec (žiadne okienko
+  // partnera, žiadne neviditeľné zobrazenia reklamy). Značka 'skryty' sa nezhoduje so žiadnym
+  // bannerom ani s 'ph', takže po návrate na šírku > 560 px sa slot hneď vykreslí znova.
+  const s2 = document.getElementById('bannerSlot2');
+  if(BANNER_MOBIL_MQ && BANNER_MOBIL_MQ.matches){
+    if(s2.dataset.bid !== 'skryty'){ s2.dataset.bid = 'skryty'; s2.innerHTML = ''; }
+  } else {
+    renderOneSlot(s2, 2);
+  }
 }
 
 // bod 21: interval rotácie v sekundách — chýbajúci alebo 0 = 30 (žiadne delenie nulou)
