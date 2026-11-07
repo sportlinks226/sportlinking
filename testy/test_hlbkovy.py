@@ -54,9 +54,43 @@ KONTROLY
      (skryté v danom jazyku), prázdne priečinky (bez karty aj bez stránky), Aktuálne bez
      položiek (stránka nie je). Domov sa neporovnáva (dlaždice, lišta Aktuálne s „+N ›",
      bannery) — ten kontroluje test_webu.py.
+  i) Mobilné zariadenia — Android + iPhone (Zadanie 48a, 82 % návštev je z mobilu). Strážia
+     opravy zo Zadania 47b. Prehliadače: Chromium s mobilným UA = Android, WebKit (jadro Safari)
+     = iPhone; všetko is_mobile + has_touch, správne DPR. Zariadenia (každé je samostatný riadok
+     a pri ❌ sa skúsi ešte raz samo):
+       A Android 360×800 (DPR 3) · B Android s veľkým písmom 130 % (stránka „vidí“ 277×615, DPR 3,9
+       — ako nový Chrome) · C Android na šírku 800×360 · D iPhone SE 375×667 (DPR 2) · E iPhone 15
+       393×852 (DPR 3) · E′ iPhone 15 na šírku 852×393 · F pomalý Android (A + procesor 4× +
+       „Slow 4G“ — len meranie výkonu).
+     Stránky: domov, šport, krajina (Slovensko), liga s dlhými názvami (MOL liga ženy), Bangladéš,
+     Správy & Médiá, Aktuálne, Tipovanie (len SK), vyhľadávanie („slovan“, „brondby“, nič sa
+     nenašlo) — adresy vypočíta appka (urlForId), takže na EN webe vyjde /football/ atď.; navyše
+     denne iná náhodná vzorka 12 hlbokých stránok zo sitemap.xml na A aj na E (len pretečenie a
+     konzola — za pár týždňov sa prejde celý web). Na C a E′ (na šírku) len domov, liga, Bangladéš,
+     hľadanie, hlavička, admin (C aj panel obľúbených).
+     ❌: vodorovné pretečenie (stránka sa hýbe do strany); chyby v konzole a porušenia CSP; appka
+     neprevezme stránku; Späť (A, E): domov → šport → krajina → liga, na lige Späť pri otvorenom
+     paneli obľúbených len zavrie panel, potom 3× Späť krok po kroku s obnoveným posunom; písmo
+     v hľadaní < 16 px (iPhone by priblížil) aj na šírku; hlavička sa po posune nezbalí (aj na
+     šírku), lupa v zbalenej hlavičke nie je celá na obrazovke, na B „☆ N“ nie je vedľa loga;
+     okno s heslom (/#admin, BEZ prihlásenia) sa nezmestí / nejde zavrieť / na šírku nie je hore;
+     panel obľúbených (2× ★ len v prehliadači testu) sa nezmestí / nejde zavrieť krížikom.
+     ⚠️: dotykové plochy pod mierou zo 47b (★ 44×36, FB/IG 36×36 kde to výška karty dovolí,
+     drobčeky výška 32, „+N ›“ 44×32, krížiky 44×44 — zoznam s rozmermi v Summary); písmo < 12 px
+     (štítok LIGA/LEAGUE smie byť menší); kontrast počítadla a „LINKY“ v logu < 4,5 : 1; štítok
+     LIGA prekrýva názov (B); plná hlavička > 30 % výšky; Safari (WebKit) stiahne index.html viac
+     ako raz; výkon na F (domov a krajina „z Googlu“) horší ako prahy MOBIL_PRAH_* (z merania 47a
+     s rezervou). Reklama Tipsport a GoatCounter BLOKOVANÉ (BLOKOVANE) — žiadne falošné zobrazenia
+     ani návštevy; na Tipovaní sa kontroluje len pretečenie (prázdny/zbalený slot nič nerozbije).
+     Snímky (zmenšené, CSS pixely): z každého zariadenia domov, liga, hľadanie (aj keď je všetko
+     OK) + miesto chyby → príloha „test-hlbkovy“. V Summary tabuľka zariadenie × stránka.
 
 Spustenie (lokálne):  python testy/test_hlbkovy.py --url https://sportlinky.sk/
 Voliteľne:  --vystup test-hlbkovy-vystup   (priečinok na zoznam chýb)
+            --len-mobil                    (len kontrola i) — rýchlo po zmene webu; aj LEN_MOBIL=áno)
+            --zariadenia A,E,F             (i) len vybrané zariadenia)
+Lokálne skúšanie: CHROMIUM_PATH = vlastný Chromium; MOBIL_SK_ZDROJ = adresa kópie SK webu, odkiaľ
+si EN web berie Aktuálne (inak https://sportlinky.sk/).
 Premenná REPO_DATA_JSON = cesta k data.json z repozitára (kontrola d na SK webe,
 predvolene data.json v aktuálnom priečinku). Zhrnutie sa zapíše aj do súboru
 z premennej GITHUB_STEP_SUMMARY (stránka behu v Actions).
@@ -102,6 +136,186 @@ SOCIAL_FAV = re.compile(r'(^|\.)(facebook\.com|fb\.com|instagram\.com|x\.com|twi
 NO_FAVICON_HOSTS = re.compile(r'(^|\.)(vereine\.oefb\.at|vereine\.fussballoesterreich\.at)$')
 SAFE_HOST = re.compile(r'^[a-z0-9](?:[a-z0-9-]{0,62})(?:\.[a-z0-9-]{1,63})*$')
 VLAJKA_RE = re.compile(r'[^"\s,]*/vlajky/\d+x\d+/[a-z0-9_-]+\.png')
+
+# ---------------------------------------------------------------- i) mobil (Zadanie 48a)
+UA_ANDROID = ("Mozilla/5.0 (Linux; Android 14; SM-S911B) AppleWebKit/537.36 "
+              "(KHTML, like Gecko) Chrome/130.0.0.0 Mobile Safari/537.36")
+UA_IPHONE = ("Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 "
+             "(KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1")
+# pevné stránky: kľúč → (id priečinka v data.json, názov stĺpca). Adresu vypočíta appka
+# (urlForId), takže na EN webe vyjde /football/, /live-this-week/ … (LIVE = stránka Aktuálne).
+MOBIL_STRANKY = {
+    "sport": ("f_fut", "Šport"), "krajina": ("f_fut_klu_eu_svk", "Krajina"),
+    "liga": ("f_had_cze_l3", "Liga (MOL ženy)"), "bangl": ("f_bgd_l1", "Bangladéš"),
+    "spravy": ("f_med", "Správy & Médiá"), "aktualne": ("LIVE", "Aktuálne"),
+    "tipovanie": ("f_tip", "Tipovanie"), "spat_liga": ("f_svk_l1", "liga pre Späť"),
+}
+# stĺpce tabuľky v Summary (v tomto poradí)
+MOBIL_STLPCE = {"domov": "Domov", **{k: v for k, (_, v) in MOBIL_STRANKY.items() if k != "spat_liga"},
+                "hladanie": "Hľadanie", "hlavicka": "Hlavička", "spat": "Späť", "admin": "Admin",
+                "oblubene": "Obľúbené", "plochy": "Dotyk ⚠️", "vzorka": "Vzorka"}
+_VSETKY = ["domov", "sport", "krajina", "liga", "bangl", "spravy", "aktualne", "tipovanie", "hladanie"]
+_NA_SIRKU = ["domov", "liga", "bangl", "hladanie"]
+# B = Android s veľkým systémovým písmom 130 %: nový Chrome ho prenáša do priblíženia
+# stránky — stránka „vidí“ displej 360 / 1,3 = 277 px (výška 800 / 1,3 = 615), DPR 3 × 1,3
+# (rovnaká simulácia ako v Zadaní 47a/47b).
+MOBIL_ZARIADENIA = [
+    {"kod": "A", "nazov": "Android malý 360×800", "prehliadac": "chromium", "okno": (360, 800), "dpr": 3,
+     "ua": UA_ANDROID, "stranky": _VSETKY, "pismo": True, "kontrast": True, "admin": True, "spat": True, "oblubene": True},
+    {"kod": "B", "nazov": "Android veľké písmo 130 % (277×615)", "prehliadac": "chromium", "okno": (277, 615), "dpr": 3.9,
+     "ua": UA_ANDROID, "stranky": _VSETKY, "pismo": True, "kontrast": False, "admin": True, "spat": False, "oblubene": True},
+    {"kod": "C", "nazov": "Android na šírku 800×360", "prehliadac": "chromium", "okno": (800, 360), "dpr": 3,
+     "ua": UA_ANDROID, "stranky": _NA_SIRKU, "pismo": False, "kontrast": False, "admin": True, "spat": False, "oblubene": True},
+    {"kod": "D", "nazov": "iPhone SE 375×667 (WebKit)", "prehliadac": "webkit", "okno": (375, 667), "dpr": 2,
+     "ua": UA_IPHONE, "stranky": _VSETKY, "pismo": False, "kontrast": False, "admin": True, "spat": False, "oblubene": False},
+    {"kod": "E", "nazov": "iPhone 15 393×852 (WebKit)", "prehliadac": "webkit", "okno": (393, 852), "dpr": 3,
+     "ua": UA_IPHONE, "stranky": _VSETKY, "pismo": True, "kontrast": False, "admin": True, "spat": True, "oblubene": True},
+    {"kod": "E′", "nazov": "iPhone 15 na šírku 852×393 (WebKit)", "prehliadac": "webkit", "okno": (852, 393), "dpr": 3,
+     "ua": UA_IPHONE, "stranky": _NA_SIRKU, "pismo": False, "kontrast": False, "admin": True, "spat": False, "oblubene": False},
+]
+for _z in MOBIL_ZARIADENIA:   # názov súboru snímky bez znaku ′ (E′ → E2)
+    _z["subor"] = _z["kod"].replace("′", "2")
+MOBIL_POMALY = {"kod": "F", "nazov": "Android pomalý (A + procesor 4× + Slow 4G)", "okno": (360, 800), "dpr": 3, "ua": UA_ANDROID}
+MOBIL_VZORKA = 12           # náhodných hlbokých stránok denne na A aj na E (iné na každom)
+# „Slow 4G“ presne ako v DevTools (Chrome): 1,6 Mb/s dole, 750 kb/s hore, odozva 562,5 ms
+SLOW_4G = {"offline": False, "latency": 562.5, "downloadThroughput": 180_000, "uploadThroughput": 84_375,
+           "connectionType": "cellular4g"}
+# prahy výkonu na F (⚠️, nie ❌) — Zadanie 47a namerala FCP 0,7–0,9 s, prevzatie domov
+# 0,7–1,0 s / hlboká 2,3–2,9 s, celé dáta 9,4–13,8 s, stiahnuté 1,27–1,35 MB; prahy majú
+# rezervu, lebo živý web kolíše
+MOBIL_PRAH_FCP = 2.5
+MOBIL_PRAH_APP_DOMOV = 3.0
+MOBIL_PRAH_APP_HLBOKA = 6.0
+MOBIL_PRAH_DATA = 20.0
+MOBIL_PRAH_MB = 1.7
+
+# appka prevzala stránku (statická stránka appku nemá)
+MOBIL_APPKA = "() => typeof urlForId === 'function' && !!document.getElementById('srch') && !!document.getElementById('main')"
+MOBIL_CELE_DATA = "() => typeof DB !== 'undefined' && !!DB && !!DB.nodes && DB.nodes.length > 100 && !DB._partial"
+# ❌ 1) vodorovné pretečenie: šírka obsahu > obrazovka, alebo viditeľný prvok presahuje
+# okraj obrazovky a nič ho neoreže (vodorovne posuvný pás Aktuálne ho oreže — to je OK)
+MOBIL_PRETECENIE_JS = """(vw) => {
+  const de = document.documentElement, b = document.body, out = [], hlasene = [];
+  const popis = el => el.tagName.toLowerCase() + (el.id ? '#' + el.id : '')
+    + (typeof el.className === 'string' && el.className.trim() ? '.' + el.className.trim().split(/\\s+/).slice(0, 2).join('.') : '');
+  for (const el of b.querySelectorAll('*')) {
+    const r = el.getBoundingClientRect();
+    if (!r.width || !r.height) continue;
+    if (!(r.right > vw + 1 && r.left < vw) && !(r.left < -1 && r.right > 0)) continue;
+    if (hlasene.some(h => h.contains(el))) continue;
+    if (getComputedStyle(el).visibility === 'hidden') continue;
+    let p = el.parentElement, orez = false;
+    while (p && p !== b) {
+      const ps = getComputedStyle(p);
+      if (ps.overflowX !== 'visible' || ps.clipPath !== 'none') {
+        const pr = p.getBoundingClientRect();
+        if (pr.right <= vw + 1 && pr.left >= -1) { orez = true; break; }
+      }
+      p = p.parentElement;
+    }
+    if (orez) continue;
+    hlasene.push(el);
+    out.push(popis(el) + ' (' + Math.round(r.left) + '–' + Math.round(r.right) + ' px)');
+    if (out.length >= 4) break;
+  }
+  return {sw: Math.max(de.scrollWidth, b.scrollWidth), iw: innerWidth, prvky: out};
+}"""
+# ⚠️ 10) viditeľný text menší ako 12 px (štítok LIGA/SCORES/LEAGUE smie byť menší)
+MOBIL_PISMO_JS = """() => {
+  const out = new Set(), w = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+  let n;
+  while ((n = w.nextNode())) {
+    const t = n.nodeValue.trim();
+    const el = n.parentElement;
+    if (!t || !el || el.closest('.liga-tag, script, style, noscript, .sr-only, [hidden]')) continue;
+    const r = el.getBoundingClientRect();
+    if (!r.width || !r.height) continue;
+    const s = getComputedStyle(el);
+    if (s.visibility === 'hidden' || parseFloat(s.opacity) === 0) continue;
+    const px = parseFloat(s.fontSize);
+    if (px < 11.95) {
+      const k = (typeof el.className === 'string' && el.className.trim() ? '.' + el.className.trim().split(/\\s+/)[0] : el.tagName.toLowerCase());
+      out.add(k + ' „' + t.slice(0, 24) + '“ ' + px.toFixed(1) + ' px');
+    }
+  }
+  return [...out];
+}"""
+# ⚠️ 10) kontrast čísla počítadla a „LINKY“ v logu proti pozadiu hlavičky (aj najsvetlejšej
+# farbe jej prechodu)
+MOBIL_KONTRAST_JS = """() => {
+  const rgb = s => (s.match(/rgba?\\([^)]+\\)/g) || []).map(c => c.match(/[\\d.]+/g).map(Number)).filter(c => c.length < 4 || c[3] > 0);
+  const lum = c => { const f = v => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); };
+    return 0.2126 * f(c[0]) + 0.7152 * f(c[1]) + 0.0722 * f(c[2]); };
+  const kontrast = (a, b) => { const x = lum(a), y = lum(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); };
+  const out = [];
+  for (const sel of ['#linkCount b', '.h-wordmark .wm-r']) {
+    const el = document.querySelector(sel);
+    if (!el || !el.getBoundingClientRect().width) continue;
+    const fg = rgb(getComputedStyle(el).color)[0];
+    let p = el, poz = [];
+    while (p && !poz.length) { const s = getComputedStyle(p); poz = rgb(s.backgroundImage).concat(rgb(s.backgroundColor)); p = p.parentElement; }
+    if (!fg || !poz.length) continue;
+    out.push({text: el.textContent.trim().slice(0, 20), k: Math.min(...poz.map(c => kontrast(fg, c)))});
+  }
+  return out;
+}"""
+# ⚠️ 9) dotyková plocha = kam až ťuk naozaj trafí prvok (elementFromPoint od stredu na
+# všetky 4 strany) — započíta aj neviditeľné zväčšenie (::before) a „mŕtvy“ pás nad ★
+MOBIL_PLOCHY_JS = """() => {
+  const out = [];
+  const vid = el => el && el.getBoundingClientRect().width > 0 && getComputedStyle(el).visibility !== 'hidden';
+  const plocha = el => {
+    el.scrollIntoView({block: 'center'});
+    const r = el.getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+    const ok = (x, y) => { const e = document.elementFromPoint(x, y); return !!e && (e === el || el.contains(e)); };
+    if (!ok(cx, cy)) return null;
+    let l = 0, p = 0, h = 0, d = 0;
+    while (l < 80 && ok(cx - l - 1, cy)) l++;
+    while (p < 80 && ok(cx + p + 1, cy)) p++;
+    while (h < 80 && ok(cx, cy - h - 1)) h++;
+    while (d < 80 && ok(cx, cy + d + 1)) d++;
+    return [l + p + 1, h + d + 1];
+  };
+  const pridaj = (co, el, mw, mh) => { const s = plocha(el); if (s) out.push({co, w: s[0], h: s[1], mw, mh}); };
+  [...document.querySelectorAll('#main .card-link > .star')].filter(vid).slice(0, 3).forEach(e => pridaj('★ na karte', e, 44, 36));
+  [...document.querySelectorAll('#main .card-link .socs a.si')].filter(vid).slice(0, 4).forEach(e => {
+    const k = e.closest('.card-link').getBoundingClientRect().height;   // FB hore + IG dole v jednej karte
+    pridaj(/instagram/.test(e.href) ? 'IG na karte' : 'FB na karte', e, 36, Math.min(36, Math.floor(k / 2) - 1));
+  });
+  [...document.querySelectorAll('#breadcrumb a.bc-item')].filter(vid).slice(0, 2).forEach(e => pridaj('drobček', e, 0, 32));
+  const plus = document.getElementById('aktMoreBadge');
+  if (vid(plus) && getComputedStyle(plus).display !== 'none') pridaj('„+N ›“ pri Aktuálnych', plus, 44, 32);
+  scrollTo(0, 0);
+  return out;
+}"""
+# ⚠️ 11) štítok LIGA/LEAGUE prekrýva text názvu linky
+MOBIL_STITOK_JS = """() => {
+  const out = [];
+  for (const c of document.querySelectorAll('#main .card-link')) {
+    const t = c.querySelector(':scope > .liga-tag'), n = c.querySelector('.cl-name');
+    if (!t || !n) continue;
+    const tr = t.getBoundingClientRect(), rg = document.createRange();
+    rg.selectNodeContents(n);
+    for (const r of rg.getClientRects()) {
+      if (r.width && r.right > tr.left + 0.5 && r.left < tr.right - 0.5 && r.bottom > tr.top + 0.5 && r.top < tr.bottom - 0.5) {
+        out.push(n.textContent.trim().slice(0, 40)); break; }
+    }
+  }
+  return out;
+}"""
+MOBIL_HLAVICKA_JS = """() => {
+  const h = document.querySelector('header'), l = document.getElementById('hLupa').getBoundingClientRect(),
+        f = document.getElementById('hFav').getBoundingClientRect(), g = document.querySelector('header .h-wordmark').getBoundingClientRect();
+  return {min: document.body.classList.contains('hdr-min'), h: h.offsetHeight, vh: innerHeight,
+          lupa: [Math.round(l.left), Math.round(l.right), Math.round(l.top), Math.round(l.bottom)].join('/') + ' px',
+          lupaCela: l.width > 0 && l.left >= -0.5 && l.right <= innerWidth + 0.5 && l.top >= -0.5,
+          favPriLogu: f.width > 0 && f.top < g.bottom && f.bottom > g.top};
+}"""
+# ⚠️ 13) meranie na F: čas od začiatku načítania (performance.now)
+MOBIL_VYKON_JS = """() => { const p = performance.getEntriesByName('first-contentful-paint')[0];
+  return {t: performance.now(), fcp: p ? p.startTime : null,
+          app: typeof urlForId === 'function' && !!document.getElementById('srch'),
+          full: typeof DB !== 'undefined' && !!DB && !!DB.nodes && DB.nodes.length > 100 && !DB._partial}; }"""
 
 
 # ---------------------------------------------------------------- pomocníci
@@ -234,6 +448,9 @@ class Test:
         self.adresy = []        # <loc> zo sitemap.xml (v poradí)
         self.stranky = {}       # adresa → {kod, title, canonical, hreflang, id, vlajky}
         self.cas_stranky = 0.0  # priemerný čas na stránku (odhad trvania párov)
+        self.len_mobil = False  # --len-mobil: len kontrola i)
+        self.mobil_vyber = None  # --zariadenia A,E: len vybrané zariadenia (lokálne skúšanie)
+        self.mobil_matica = {}   # i) zariadenie → {stránka: (stav, poznámka)}
 
     # ------------------------------------------------ spúšťanie kontrol
     def kontrola(self, nazov, fn, pri_chybe="fail"):
@@ -819,6 +1036,702 @@ class Test:
         return (f"iné PORADIE od karty č. {i + 1}: appka {meno} = {popis(i, a)}, statika {popis(i, s)} "
                 f"(appka [{', '.join(x[2] for x in karty_app[i:i + 4])}…])")
 
+    # ------------------------------------------------ i) mobilné zariadenia (Zadanie 48a)
+    # Celá kontrola beží v čistých prehliadačoch testu: Chromium (Android) a WebKit (jadro
+    # Safari = iPhone). Štatistiky a reklamy sú blokované (BLOKOVANE) — žiadne falošné
+    # návštevy ani zobrazenia reklamy. Obľúbené (★) sa pridávajú LEN v prehliadači testu,
+    # do admina sa test NEPRIHLASUJE (len otvorí a zavrie okno s heslom).
+    def mobil_priprav(self):
+        """Adresy pevných stránok (vypočíta ich appka sama — urlForId, takže SK aj EN)
+        a náhodná vzorka hlbokých stránok zo sitemap.xml (na každý deň iná)."""
+        if not self.adresy:   # --len-mobil: kontrola a) nebežala — stačí zoznam adries
+            kod, _, text = stiahni(self.base + "sitemap.xml", cache_bust=True)
+            if kod != 200:
+                raise Zlyhanie(f"sitemap.xml vrátil HTTP {kod}")
+            self.adresy = [(e.text or "").strip() for e in ET.fromstring(text.encode("utf-8")).iter(SM_NS + "loc")]
+        cesty = {urllib.parse.unquote(self.cesta(u)) for u in self.adresy}
+        with self.mobil_prehliadac("chromium") as browser:
+            ctx = self.mobil_kontext(browser, MOBIL_ZARIADENIA[0])
+            try:
+                page = ctx.new_page()
+                page.goto(self.base, wait_until="load", timeout=60_000)
+                page.wait_for_function(MOBIL_CELE_DATA, timeout=90_000)
+                ids = {k: v for k, (v, _) in MOBIL_STRANKY.items() if v}
+                adr = page.evaluate("""(ids) => { const o = {};
+                    for (const [k, v] of Object.entries(ids)) {
+                      const id = v === 'LIVE' ? (typeof LIVE_ID !== 'undefined' ? LIVE_ID : null) : v;
+                      o[k] = id && nodeById(id) ? urlForId(id) : null; }
+                    return o; }""", ids)
+            finally:
+                ctx.close()
+        self.mobil_adresy = {"domov": self.base}
+        vynechane = []
+        for k, cesta in adr.items():
+            if cesta and urllib.parse.unquote(cesta) in cesty:
+                self.mobil_adresy[k] = urllib.parse.urljoin(self.base, cesta)
+            else:   # napr. Tipovanie na EN webe nie je, Aktuálne bez položiek nemá stránku
+                vynechane.append(MOBIL_STRANKY[k][1])
+        pevne = {urllib.parse.unquote(self.cesta(u)) for u in self.mobil_adresy.values()}
+        hlboke = sorted(u for u in self.adresy if self.cesta(u).strip("/").count("/") >= 2
+                        and urllib.parse.unquote(self.cesta(u)) not in pevne)
+        rnd = random.Random(datetime.now(timezone.utc).strftime("%Y-%m-%d"))   # opakovaný pokus = tá istá vzorka
+        vzorka = rnd.sample(hlboke, min(len(hlboke), 2 * MOBIL_VZORKA))
+        self.mobil_vzorky = {"A": vzorka[:MOBIL_VZORKA], "E": vzorka[MOBIL_VZORKA:]}
+        self.info.append(f"**Mobil i):** pevné stránky {len(self.mobil_adresy)}"
+                         + (f" (na tomto webe nie sú: {', '.join(vynechane)})" if vynechane else "")
+                         + f"; náhodná vzorka {len(vzorka)} z {len(hlboke)} hlbokých stránok"
+                         + f" (za ~{len(hlboke) // max(1, len(vzorka)) + 1} dní sa prejde celý web)")
+
+    class _Prehliadac:
+        """with self.mobil_prehliadac('webkit') as browser: … (Playwright sa spustí a zavrie)."""
+        def __init__(self, druh):
+            self.druh = druh
+
+        def __enter__(self):
+            from playwright.sync_api import sync_playwright
+            self.pw = sync_playwright().start()
+            spustit = {}
+            if self.druh == "chromium" and os.environ.get("CHROMIUM_PATH"):   # len pre lokálne skúšanie
+                spustit["executable_path"] = os.environ["CHROMIUM_PATH"]
+            try:
+                self.browser = getattr(self.pw, self.druh).launch(**spustit)
+            except Exception:
+                self.pw.stop()
+                raise
+            return self.browser
+
+        def __exit__(self, *a):
+            try:
+                self.browser.close()
+            finally:
+                self.pw.stop()
+
+    def mobil_prehliadac(self, druh):
+        return self._Prehliadac(druh)
+
+    def mobil_smerovanie(self, route):
+        """Blokuje štatistiky a reklamy; vlastnej doméne pridá hlavičku X-Test (len jej —
+        cudzia hlavička pri požiadavke na druhý web by spustila kontrolu CORS)."""
+        req = route.request
+        host = urllib.parse.urlsplit(req.url).netloc
+        if any(host == b or host.endswith("." + b) for b in BLOKOVANE):
+            return route.abort()
+        nahrada = os.environ.get("MOBIL_SK_ZDROJ")   # len pre lokálne skúšanie: SK web (Aktuálne pre EN) z kópie
+        if nahrada and req.url.startswith(SK_MASTER):
+            return route.fulfill(response=route.fetch(url=nahrada + req.url[len(SK_MASTER):]))
+        if host == self.host:
+            return route.continue_(headers={**req.headers, "x-test": X_TEST["X-Test"]})
+        return route.continue_()
+
+    def mobil_kontext(self, browser, z, cache=True):
+        sirka, vyska = z["okno"]
+        ctx = browser.new_context(viewport={"width": sirka, "height": vyska}, screen={"width": sirka, "height": vyska},
+                                  device_scale_factor=z["dpr"], is_mobile=True, has_touch=True,
+                                  user_agent=z["ua"], locale="sk-SK" if self.lang == "sk" else "en-US")
+        ctx.set_default_timeout(20_000)
+        ctx.set_default_navigation_timeout(45_000)
+        if cache:
+            ctx.route("**/*", self.mobil_smerovanie)
+        return ctx
+
+    def mobil_stranka(self, ctx):
+        """Karta, ktorá si zbiera chyby JavaScriptu, chyby v konzole (aj porušenia CSP —
+        prehliadač ich hlási ako chybu v konzole) a chybné súbory vlastného webu.
+        page.mz_chyby sa pred každou stránkou vyprázdni (mobil_otvor)."""
+        page = ctx.new_page()
+        page.mz_chyby = []
+        page.mz_index = 0          # koľkokrát sa stiahol index.html (appka) — bod 12
+
+        def blokovane(t):
+            return any(b in (t or "") for b in BLOKOVANE)
+
+        def on_console(m):
+            if m.type != "error":
+                return
+            miesto = (m.location or {}).get("url", "") if isinstance(m.location, dict) else ""
+            if blokovane(m.text) or blokovane(miesto):
+                return   # zablokovaná reklama/štatistika (zámer testu), nie chyba webu
+            if "aktualne.json" in (m.text + miesto) and "404" in m.text:
+                return   # aktualne.json môže v prechodnom období chýbať (appka berie zálohu)
+            page.mz_chyby.append(("CSP: " if "Content Security Policy" in m.text or "Content-Security-Policy" in m.text
+                                  else "konzola: ") + m.text[:200])
+
+        def on_resp(r):
+            u = urllib.parse.urlsplit(r.url)
+            if u.netloc != self.host:
+                return
+            if u.path.endswith("/index.html"):
+                page.mz_index += 1
+            if r.status >= 400 and not (u.path.endswith("/aktualne.json") and r.status == 404):
+                page.mz_chyby.append(f"súbor {r.status} {u.path}")
+
+        def on_fail(rq):
+            u = urllib.parse.urlsplit(rq.url)
+            f = rq.failure or ""
+            if u.netloc == self.host and "ABORT" not in f.upper() and "cancel" not in f.lower():
+                page.mz_chyby.append(f"súbor nenačítaný ({f}) {u.path}")
+
+        page.on("pageerror", lambda e: page.mz_chyby.append("JavaScript: " + str(e)[:200]))
+        page.on("console", on_console)
+        page.on("response", on_resp)
+        page.on("requestfailed", on_fail)
+        return page
+
+    def mobil_otvor(self, page, url, cakaj_s=25):
+        """Otvorí stránku a počká, kým ju prevezme appka. Vráti zoznam ❌ problémov."""
+        page.mz_chyby = []
+        page.mz_index = 0
+        try:
+            page.goto(url, wait_until="load")
+        except Exception as e:
+            # predošlá stránka mohla ešte dokončiť vlastný krok histórie (zavretie panela
+            # obľúbených robí Späť) — ten otvorenie preruší (ERR_ABORTED); skúsi sa ešte raz
+            if "ABORTED" not in str(e).upper():
+                raise
+            page.wait_for_timeout(1000)
+            page.mz_chyby = []
+            page.goto(url, wait_until="load")
+        try:
+            page.wait_for_function(MOBIL_APPKA, timeout=cakaj_s * 1000)
+        except Exception:
+            return ["appka stránku neprevzala (statická stránka ostala, alebo appka spadla)"]
+        try:
+            page.wait_for_selector("#main a[href], #main .empty", state="visible", timeout=15_000)
+        except Exception:
+            return ["po prevzatí appkou je stránka prázdna (#main bez obsahu)"]
+        page.wait_for_timeout(700)
+        return []
+
+    def mobil_pretecenie(self, page, z):
+        """❌ 1) Vodorovné pretečenie. Vráti text problému alebo ''."""
+        r = page.evaluate(MOBIL_PRETECENIE_JS, z["okno"][0])
+        if r["sw"] > r["iw"] + 1 or r["iw"] > z["okno"][0] + 1 or r["prvky"]:
+            return (f"stránka sa hýbe do strany: šírka obsahu {r['sw']} px > obrazovka {min(r['iw'], z['okno'][0])} px"
+                    + (f"; presahuje: {', '.join(r['prvky'])}" if r["prvky"] else ""))
+        return ""
+
+    @staticmethod
+    def mobil_tukni(page, sel, popis):
+        """Ťuk prstom na prvok; keď sa nedá (prekrytý, mimo obrazovky…), zrozumiteľná ❌."""
+        try:
+            page.locator(sel).first.tap(timeout=8_000)
+        except Exception:
+            raise Zlyhanie(f"na {popis} sa nedá ťuknúť (prvok je prekrytý, mimo obrazovky alebo chýba)") from None
+
+    def mobil_snimka(self, page, meno):
+        """Zmenšená snímka (CSS pixely, nie DPR 3) do prílohy test-hlbkovy."""
+        try:
+            page.screenshot(path=os.path.join(self.vystup, meno + ".png"), scale="css", full_page=False,
+                            animations="disabled", timeout=15_000)
+            self.mobil_snimky += 1
+        except Exception as e:  # snímka je len pomôcka, test kvôli nej nespadne
+            self.log.append(f"snímka {meno} sa nepodarila: {e}")
+
+    def mobil_zariadenie(self, z):
+        """Jedno zariadenie (A–E′): vráti fn(pokus) pre self.kontrola (pri ❌ sa zariadenie
+        skúsi ešte raz celé; v tabuľke ostane výsledok posledného pokusu)."""
+        def fn(pokus):
+            bunky = {}                       # stránka → (stav, poznámka)
+            chyby, varov, plochy = [], [], []
+            self.mobil_matica[z["kod"]] = bunky
+            self.mobil_plochy[z["kod"]] = plochy
+
+            def zapis(k, stav, text=""):
+                st, pozn = bunky.get(k, ("ok", ""))
+                poradie = {"ok": 0, "warn": 1, "fail": 2}
+                if poradie[stav] > poradie[st]:
+                    st = stav
+                if text:
+                    pozn = (pozn + "; " if pozn else "") + text
+                    (chyby if stav == "fail" else varov).append(f"{MOBIL_STLPCE.get(k, k)}: {text}")
+                bunky[k] = (st, pozn)
+
+            def chyba_snimka(page, k):
+                self.mobil_snimka(page, f"i-{z['subor']}-chyba-{k}")
+
+            def cast(k, page, fn, *a):
+                """Jedna časť (hľadanie, hlavička, admin…): nečakaná chyba = ❌ len tejto časti."""
+                try:
+                    fn(*a)
+                except Exception as e:
+                    zapis(k, "fail", (str(e) if isinstance(e, Zlyhanie) else f"{type(e).__name__}: {e}").strip().splitlines()[0][:200])
+                    chyba_snimka(page, k)
+
+            with self.mobil_prehliadac(z["prehliadac"]) as browser:
+                ctx = self.mobil_kontext(browser, z)
+                try:
+                    page = self.mobil_stranka(ctx)
+                    # --- pevné stránky: prevzatie, pretečenie, konzola (+ písmo, plochy, štítok)
+                    for k in z["stranky"]:
+                        url = self.mobil_adresy.get(k)
+                        if not url:
+                            continue
+                        problemy = self.mobil_otvor(page, url)
+                        if not problemy:
+                            p = self.mobil_pretecenie(page, z)
+                            if p:
+                                problemy.append(p)
+                        problemy += page.mz_chyby[:5]
+                        for p in problemy:
+                            zapis(k, "fail", p)
+                        if problemy:
+                            chyba_snimka(page, k)
+                            continue
+                        zapis(k, "ok")
+                        if k in ("domov", "liga"):
+                            self.mobil_snimka(page, f"i-{z['subor']}-{k}")
+                        if k in ("domov", "liga", "tipovanie") and z["pismo"]:
+                            male = page.evaluate(MOBIL_PISMO_JS)
+                            if male:
+                                zapis(k, "warn", "písmo < 12 px: " + ", ".join(male[:6]))
+                        if k == "domov" and z["kontrast"]:
+                            for t in page.evaluate(MOBIL_KONTRAST_JS):
+                                if t["k"] < 4.5:
+                                    zapis(k, "warn", f"kontrast „{t['text']}“ {t['k']:.2f} : 1 (< 4,5)")
+                        if k in ("liga", "bangl", "domov"):
+                            plochy.extend(page.evaluate(MOBIL_PLOCHY_JS))
+                        if k in ("bangl", "liga") and z["kod"] == "B":
+                            prekryv = page.evaluate(MOBIL_STITOK_JS)
+                            if prekryv:
+                                zapis(k, "warn", "štítok LIGA prekrýva názov: " + ", ".join(prekryv[:3]))
+                    # --- hľadanie (celé dáta): „slovan“, „brondby“, nezmysel
+                    if "hladanie" in z["stranky"]:
+                        cast("hladanie", page, self.mobil_hladanie, page, z, zapis, chyba_snimka)
+                    # --- ❌ 6) hlavička sa po posune zbalí, lupa celá na obrazovke, (B) ☆ vedľa loga
+                    cast("hlavicka", page, self.mobil_hlavicka, page, z, zapis, chyba_snimka)
+                    # --- ❌ 5) písmo v hľadaní ≥ 16 px (iPhone by inak pri ťuknutí priblížil)
+                    px = float(page.evaluate("parseFloat(getComputedStyle(document.getElementById('srch')).fontSize)"))
+                    if px < 16:
+                        zapis("hlavicka", "fail", f"písmo v hľadaní {px:g} px (treba ≥ 16 px — iPhone pri ťuknutí stránku priblíži)")
+                    # --- ❌ 7) okno s heslom (admin) — NEPRIHLASUJE sa
+                    if z["admin"]:
+                        cast("admin", page, self.mobil_admin, page, z, zapis, chyba_snimka, plochy)
+                    # --- ❌ 4) Späť krok po kroku + Späť pri paneli obľúbených
+                    if z["spat"]:
+                        self.mobil_spat(ctx, z, zapis)
+                    # --- ❌ 8) panel obľúbených (2× ★ len v prehliadači testu)
+                    if z["oblubene"]:
+                        cast("oblubene", page, self.mobil_oblubene, page, z, zapis, chyba_snimka, plochy)
+                    # --- ❌ vzorka hlbokých stránok: pretečenie a chyby v konzole
+                    vz = self.mobil_vzorky.get(z["kod"]) or []
+                    for url in vz:
+                        problemy = self.mobil_otvor(page, url)
+                        if not problemy:
+                            p = self.mobil_pretecenie(page, z)
+                            if p:
+                                problemy.append(p)
+                        problemy += page.mz_chyby[:3]
+                        for p in problemy:
+                            zapis("vzorka", "fail", f"{urllib.parse.unquote(self.cesta(url))}: {p}")
+                        if problemy:
+                            chyba_snimka(page, "vzorka")
+                    if vz and "vzorka" not in bunky:
+                        zapis("vzorka", "ok")
+                        bunky["vzorka"] = ("ok", f"{len(vz)} stránok")
+                finally:
+                    ctx.close()
+                # --- ⚠️ 12) WebKit: index.html (appka) sa pri príchode z Googlu stiahne len raz
+                if z["prehliadac"] == "webkit" and self.mobil_adresy.get("krajina"):
+                    ctx = self.mobil_kontext(browser, z)
+                    try:
+                        page = self.mobil_stranka(ctx)
+                        self.mobil_otvor(page, self.mobil_adresy["krajina"])
+                        page.wait_for_timeout(1500)
+                        if page.mz_index > 1:
+                            zapis("krajina", "warn", f"Safari stiahol appku index.html {page.mz_index}× (má raz — preload)")
+                        self.mobil_index[z["kod"]] = page.mz_index
+                    finally:
+                        ctx.close()
+            # ⚠️ 9) dotykové plochy pod dohodnutou mierou
+            male = [p for p in plochy if p["w"] < p["mw"] or p["h"] < p["mh"]]
+            for p in self.mobil_unik(male):
+                zapis("plochy", "warn", f"{p['co']} {p['w']}×{p['h']} (má byť ≥ {p['mw']}×{p['mh']})")
+            if "plochy" not in bunky and plochy:
+                bunky["plochy"] = ("ok", "")
+            if chyby:
+                raise Zlyhanie(f"{z['nazov']}: " + " | ".join(chyby[:4]) + (f" … (spolu {len(chyby)})" if len(chyby) > 4 else ""))
+            hotovo = f"{len([b for b in bunky if b not in ('plochy',)])} kontrol OK"
+            if varov:
+                return "warn", f"{hotovo}; ⚠️ " + " | ".join(varov[:4]) + (f" … (spolu {len(varov)})" if len(varov) > 4 else "")
+            return "ok", hotovo
+        return fn
+
+    @staticmethod
+    def mobil_unik(plochy):
+        """Rovnaký prvok (napr. ★ na viacerých kartách) len raz — s najmenšími rozmermi."""
+        out = {}
+        for p in plochy:
+            k = p["co"]
+            if k not in out or p["w"] * p["h"] < out[k]["w"] * out[k]["h"]:
+                out[k] = p
+        return list(out.values())
+
+    def mobil_hladanie(self, page, z, zapis, chyba_snimka):
+        problemy = []
+        page.mz_chyby = []
+        page.goto(self.base, wait_until="load")
+        try:
+            page.wait_for_function(MOBIL_CELE_DATA, timeout=60_000)
+        except Exception:
+            zapis("hladanie", "fail", "appka do 60 s nestiahla celé dáta (hľadanie by ukazovalo len „Načítavam…“)")
+            chyba_snimka(page, "hladanie")
+            return
+        vysl = []
+        for q, cakam in (("slovan", True), ("brondby", True), ("qxzw9vbk", False)):
+            page.fill("#srch", q)
+            try:
+                page.wait_for_function("""(c) => { const m = document.getElementById('main');
+                    return c ? m.querySelectorAll('a[href]').length > 0 && !m.querySelector('.empty')
+                             : !!m.querySelector('.empty'); }""", arg=cakam, timeout=10_000)
+            except Exception:
+                problemy.append(f"„{q}“: " + ("žiadny výsledok" if cakam else "chýba veta „nič sa nenašlo“"))
+                continue
+            page.wait_for_timeout(400)
+            p = self.mobil_pretecenie(page, z)
+            if p:
+                problemy.append(f"„{q}“: {p}")
+            if q == "slovan":
+                self.mobil_snimka(page, f"i-{z['subor']}-hladanie")
+            vysl.append(f"{q} {page.locator('#main a[href]').count()}" if cakam else "nič")
+        problemy += page.mz_chyby[:3]
+        page.fill("#srch", "")
+        for p in problemy:
+            zapis("hladanie", "fail", p)
+        if problemy:
+            chyba_snimka(page, "hladanie")
+        else:
+            zapis("hladanie", "ok")
+            bunky_pozn = ", ".join(vysl)
+            self.mobil_matica[z["kod"]]["hladanie"] = ("ok", bunky_pozn)
+
+    def mobil_hlavicka(self, page, z, zapis, chyba_snimka):
+        """❌ 6) Hlavička sa po posune zbalí (aj na šírku), lupa v zbalenej hlavičke je celá
+        na obrazovke, na úzkom displeji (B) je „☆ N“ vedľa loga. ⚠️ hlavička > 30 % výšky."""
+        for k in ("bangl", "liga", "krajina", "domov"):
+            if not self.mobil_adresy.get(k):
+                continue
+            if self.mobil_otvor(page, self.mobil_adresy[k]):
+                continue
+            if page.evaluate("document.documentElement.scrollHeight - innerHeight") > 450:
+                break
+        else:
+            zapis("hlavicka", "warn", "žiadna stránka nie je dosť dlhá na posun — zbalenie nekontrolované")
+            return
+        s0 = page.evaluate(MOBIL_HLAVICKA_JS)
+        if s0["min"]:
+            zapis("hlavicka", "fail", "hlavička je zbalená už na vrchu stránky")
+        if z["kod"] == "B" and not s0["favPriLogu"]:
+            zapis("hlavicka", "fail", "„☆ N“ nie je vedľa loga (spadlo do vlastného riadku)")
+        if s0["h"] > 0.3 * s0["vh"]:
+            zapis("hlavicka", "warn", f"plná hlavička zaberá {100 * s0['h'] / s0['vh']:.0f} % výšky ({s0['h']} px)")
+        for y in range(0, 401, 50):          # posun nadol po krokoch ako prstom
+            page.evaluate("y => scrollTo(0, y)", y)
+            page.wait_for_timeout(60)
+        page.wait_for_timeout(300)
+        s1 = page.evaluate(MOBIL_HLAVICKA_JS)
+        if not s1["min"]:
+            zapis("hlavicka", "fail", f"po posune o 400 px sa hlavička nezbalila (výška {s0['h']} px)")
+            chyba_snimka(page, "hlavicka")
+        elif not s1["lupaCela"]:
+            zapis("hlavicka", "fail", f"lupa v zbalenej hlavičke nie je celá na obrazovke ({s1['lupa']})")
+            chyba_snimka(page, "hlavicka")
+        else:
+            zapis("hlavicka", "ok")
+            st, pozn = self.mobil_matica[z["kod"]]["hlavicka"]
+            self.mobil_matica[z["kod"]]["hlavicka"] = (st, pozn or f"{s0['h']} → {s1['h']} px")
+        page.evaluate("scrollTo(0, 0)")
+        page.wait_for_timeout(200)
+
+    def mobil_admin(self, page, z, zapis, chyba_snimka, plochy):
+        """❌ 7) /#admin: okno s heslom sa zmestí, na šírku je hore, krížik ho zavrie. Bez prihlásenia."""
+        page.mz_chyby = []
+        page.goto(self.base + "#admin", wait_until="load")
+        try:
+            page.wait_for_selector("#pwScreen", state="visible", timeout=15_000)
+        except Exception:
+            zapis("admin", "fail", "okno s heslom sa po /#admin neotvorilo")
+            chyba_snimka(page, "admin")
+            return
+        page.wait_for_timeout(400)
+        s = page.evaluate("""() => { const b = document.querySelector('#pwScreen .pw-box').getBoundingClientRect(),
+            x = document.getElementById('pwClose').getBoundingClientRect(), i = document.getElementById('pwIn').getBoundingClientRect();
+            return {l: b.left, r: b.right, t: b.top, b: b.bottom, vw: innerWidth, vh: innerHeight,
+                    xw: Math.round(x.width), xh: Math.round(x.height), heslo: Math.round(i.bottom)}; }""")
+        if s["l"] < -1 or s["r"] > s["vw"] + 1 or s["t"] < -1 or s["b"] > s["vh"] + 1:
+            zapis("admin", "fail", f"okno s heslom sa nezmestí na obrazovku ({s['l']:.0f}–{s['r']:.0f} × {s['t']:.0f}–{s['b']:.0f} px)")
+            chyba_snimka(page, "admin")
+        if z["okno"][0] > z["okno"][1] and s["t"] > 0.25 * s["vh"]:
+            zapis("admin", "fail", f"na šírku nie je okno s heslom hore (začína na {s['t']:.0f} px z {s['vh']} — klávesnica by prekryla heslo)")
+            chyba_snimka(page, "admin")
+        plochy.append({"co": "krížik okna s heslom", "w": s["xw"], "h": s["xh"], "mw": 44, "mh": 44})
+        self.mobil_tukni(page, "#pwClose", "krížik okna s heslom")
+        try:
+            page.wait_for_selector("#pwScreen", state="hidden", timeout=5_000)
+        except Exception:
+            zapis("admin", "fail", "krížik okno s heslom nezavrel")
+            chyba_snimka(page, "admin")
+        for p in page.mz_chyby[:3]:
+            zapis("admin", "fail", p)
+        if "admin" not in self.mobil_matica[z["kod"]]:
+            zapis("admin", "ok")
+
+    def mobil_spat(self, ctx, z, zapis):
+        """❌ 4) domov → šport → krajina → liga (s posunom); na lige Späť pri otvorenom paneli
+        obľúbených len zavrie panel (Zadanie 47b); potom 3× Späť vráti krok po kroku aj posun (Zadanie 30)."""
+        kroky = [k for k in ("sport", "krajina", "spat_liga") if self.mobil_adresy.get(k)]
+        if len(kroky) < 3:
+            zapis("spat", "warn", "chýba niektorá stránka cesty — Späť nekontrolované")
+            return
+        page = self.mobil_stranka(ctx)
+        try:
+            page.goto(self.base, wait_until="load")
+            page.wait_for_function(MOBIL_CELE_DATA, timeout=60_000)
+            page.wait_for_timeout(500)
+            cesta = []
+
+            def posun(karta=None):
+                if karta is not None:   # dlaždica dole na obrazovke — ťuk potom stránkou nepohne
+                    karta.evaluate("e => e.scrollIntoView({block: 'end'})")
+                else:
+                    ciel = page.evaluate("Math.max(0, Math.min(500, document.documentElement.scrollHeight - innerHeight - 10))")
+                    page.evaluate("y => scrollTo(0, y)", ciel)
+                page.wait_for_timeout(400)
+                return page.evaluate("[location.pathname, Math.round(scrollY)]")
+
+            for i, k in enumerate(kroky):
+                ciel = urllib.parse.urlsplit(self.mobil_adresy[k]).path
+                karta = page.locator(f'#main a[href="{ciel}"]') if i == 0 else None
+                if karta is not None and karta.count():
+                    cesta.append(posun(karta.first))
+                    karta.first.tap()             # domov → šport ťuknutím na dlaždicu
+                else:
+                    cesta.append(posun())
+                    page.evaluate("id => navigate(id)", MOBIL_STRANKY[k][0])   # ako ťuk na kartu hlbšie
+                page.wait_for_function("p => decodeURI(location.pathname) === decodeURI(p)", arg=ciel, timeout=10_000)
+                page.wait_for_timeout(600)
+            # liga: panel obľúbených otvorený → Späť ho len zavrie, stránka ostane (Zadanie 47b)
+            liga = page.evaluate("location.pathname")
+            self.mobil_tukni(page, "#hFav", "„☆ N“ (obľúbené) v hlavičke")
+            page.wait_for_selector("#favPanel", state="visible", timeout=5_000)
+            page.wait_for_timeout(300)
+            page.evaluate("history.back()")
+            page.wait_for_timeout(1000)
+            st = page.evaluate("[!document.getElementById('favPanel').hidden, location.pathname]")
+            if st[0] or st[1] != liga:
+                raise Zlyhanie(f"Späť pri otvorenom paneli obľúbených: panel {'ostal otvorený' if st[0] else 'sa zavrel'}, "
+                               f"stránka {urllib.parse.unquote(st[1])} (čakám len zavretie panela na {urllib.parse.unquote(liga)})")
+            # 3× Späť krok po kroku s obnoveným posunom (Zadanie 30)
+            for p0, y0 in reversed(cesta):
+                page.evaluate("history.back()")
+                try:
+                    page.wait_for_function("p => decodeURI(location.pathname) === decodeURI(p)", arg=p0, timeout=8_000)
+                except Exception:
+                    raise Zlyhanie(f"Späť nevrátil na {urllib.parse.unquote(p0)} (ostal na "
+                                   f"{urllib.parse.unquote(page.evaluate('location.pathname'))})") from None
+                page.wait_for_timeout(900)
+                y = page.evaluate("Math.round(scrollY)")
+                if abs(y - y0) > 40:
+                    raise Zlyhanie(f"Späť na {urllib.parse.unquote(p0)} neobnovil posun ({y} px, bol {y0} px)")
+            for p in page.mz_chyby[:3]:
+                zapis("spat", "fail", p)
+            if "spat" not in self.mobil_matica[z["kod"]]:
+                zapis("spat", "ok")
+                self.mobil_matica[z["kod"]]["spat"] = ("ok", "panel, potom 3× Späť s posunom")
+        except Zlyhanie as e:
+            zapis("spat", "fail", str(e))
+            self.mobil_snimka(page, f"i-{z['subor']}-chyba-spat")
+        except Exception as e:
+            zapis("spat", "fail", f"{type(e).__name__}: {str(e).splitlines()[0][:200]}")
+            self.mobil_snimka(page, f"i-{z['subor']}-chyba-spat")
+        finally:
+            page.close()
+
+    def mobil_oblubene(self, page, z, zapis, chyba_snimka, plochy):
+        """❌ 8) Na lige pridá ★ dvom linkám (len v prehliadači testu), otvorí panel — zmestí sa —
+        a zavrie ho krížikom."""
+        url = self.mobil_adresy.get("liga") or self.mobil_adresy.get("bangl")
+        if not url:
+            return
+        if self.mobil_otvor(page, url):
+            zapis("oblubene", "fail", "stránka ligy sa neotvorila")
+            return
+        try:
+            page.wait_for_function(MOBIL_CELE_DATA, timeout=60_000)
+            hviezdy = page.locator("#main .card-link > .star")
+            if hviezdy.count() < 2:
+                zapis("oblubene", "warn", "na stránke ligy nie sú 2 hviezdičky — panel nekontrolovaný")
+                return
+            for i in range(2):
+                hviezdy.nth(i).scroll_into_view_if_needed()
+                try:
+                    hviezdy.nth(i).tap(timeout=8_000)
+                except Exception:
+                    raise Zlyhanie(f"na ★ na karte č. {i + 1} sa nedá ťuknúť (prekrytá alebo mimo obrazovky)") from None
+                page.wait_for_timeout(300)
+            n = page.locator("#hFavN").inner_text().strip()
+            if n != "2":
+                zapis("oblubene", "fail", f"po ťuknutí na 2× ★ ukazuje hlavička „{n}“ (čakám 2)")
+            page.evaluate("scrollTo(0, 0)")
+            page.wait_for_timeout(300)
+            self.mobil_tukni(page, "#hFav", "„☆ N“ (obľúbené) v hlavičke")
+            page.wait_for_selector("#favPanel", state="visible", timeout=5_000)
+            page.wait_for_timeout(400)
+            s = page.evaluate("""() => { const p = document.getElementById('favPanel').getBoundingClientRect(),
+                x = document.querySelector('#favPanel .fp-x').getBoundingClientRect();
+                return {l: p.left, r: p.right, t: p.top, vw: innerWidth, vh: innerHeight,
+                        xl: x.left, xr: x.right, xt: x.top, xb: x.bottom, xw: Math.round(x.width), xh: Math.round(x.height),
+                        riadky: document.querySelectorAll('#favPanel a[href]').length}; }""")
+            if s["l"] < -1 or s["r"] > s["vw"] + 1 or s["xl"] < -1 or s["xr"] > s["vw"] + 1 or s["xt"] < -1 or s["xb"] > s["vh"] + 1:
+                zapis("oblubene", "fail", f"panel obľúbených sa nezmestí (panel {s['l']:.0f}–{s['r']:.0f} px, krížik "
+                                          f"{s['xl']:.0f}–{s['xr']:.0f} × {s['xt']:.0f}–{s['xb']:.0f} px, obrazovka {s['vw']}×{s['vh']})")
+                chyba_snimka(page, "oblubene")
+            plochy.append({"co": "krížik panela obľúbených", "w": s["xw"], "h": s["xh"], "mw": 44, "mh": 44})
+            self.mobil_tukni(page, "#favPanel .fp-x", "krížik panela obľúbených")
+            try:
+                page.wait_for_selector("#favPanel", state="hidden", timeout=5_000)
+            except Exception:
+                zapis("oblubene", "fail", "krížik panel obľúbených nezavrel")
+                chyba_snimka(page, "oblubene")
+            page.wait_for_timeout(800)   # zavretie panela urobí krok Späť v histórii — nech dobehne
+            for p in page.mz_chyby[:3]:
+                zapis("oblubene", "fail", p)
+            if "oblubene" not in self.mobil_matica[z["kod"]]:
+                zapis("oblubene", "ok")
+                self.mobil_matica[z["kod"]]["oblubene"] = ("ok", f"2× ★, panel {s['riadky']} riadkov, krížik")
+        except Exception as e:
+            zapis("oblubene", "fail", f"{type(e).__name__}: {str(e).splitlines()[0][:200]}")
+            chyba_snimka(page, "oblubene")
+
+    # ⚠️ 13) výkon na pomalom Androide — prvý obsah, prevzatie appkou, celé dáta, stiahnuté
+    def mobil_vykon_meraj(self, browser, z, url):
+        ctx = browser.new_context(viewport={"width": z["okno"][0], "height": z["okno"][1]},
+                                  device_scale_factor=z["dpr"], is_mobile=True, has_touch=True, user_agent=z["ua"])
+        try:
+            page = ctx.new_page()
+            cdp = ctx.new_cdp_session(page)
+            cdp.send("Network.enable")
+            cdp.send("Network.setCacheDisabled", {"cacheDisabled": True})
+            # blokovanie cez CDP (nie route) — route by obchádzala spomalenie siete
+            cdp.send("Network.setBlockedURLs", {"urls": [f"*{b}*" for b in BLOKOVANE]})
+            cdp.send("Network.emulateNetworkConditions", SLOW_4G)
+            cdp.send("Emulation.setCPUThrottlingRate", {"rate": 4})
+            bajty = [0]
+            cdp.on("Network.loadingFinished", lambda e: bajty.__setitem__(0, bajty[0] + (e.get("encodedDataLength") or 0)))
+            page.goto(url, wait_until="commit", timeout=60_000)
+            vysl = {"fcp": None, "app": None, "data": None, "mb": None}
+            koniec = time.time() + 60
+            while time.time() < koniec:
+                try:
+                    s = page.evaluate(MOBIL_VYKON_JS)
+                except Exception:
+                    page.wait_for_timeout(100)
+                    continue
+                if vysl["fcp"] is None and s["fcp"]:
+                    vysl["fcp"] = s["fcp"] / 1000
+                if vysl["app"] is None and s["app"]:
+                    vysl["app"] = s["t"] / 1000
+                if s["full"]:
+                    vysl["data"] = s["t"] / 1000
+                    break
+                page.wait_for_timeout(100)
+            page.wait_for_timeout(500)
+            vysl["mb"] = bajty[0] / 1e6
+            return vysl
+        finally:
+            ctx.close()
+
+    def mobil_vykon(self, pokus):
+        z = MOBIL_POMALY
+        bunky = {}
+        self.mobil_matica["F"] = bunky
+        ciele = [("domov", self.base, MOBIL_PRAH_APP_DOMOV)]
+        if self.mobil_adresy.get("krajina"):
+            ciele.append(("krajina", self.mobil_adresy["krajina"], MOBIL_PRAH_APP_HLBOKA))
+        varov, texty, chyby = [], [], []
+        with self.mobil_prehliadac("chromium") as browser:
+            for k, url, prah_app in ciele:
+                for _meranie in (1, 2):   # pri prekročení prahu ešte raz (živý web kolíše) — platí druhé meranie
+                    v = self.mobil_vykon_meraj(browser, z, url)
+                    zle = []
+                    if v["app"] is None:
+                        zle.append(("fail", "appka do 60 s stránku neprevzala"))
+                    else:
+                        if v["fcp"] is not None and v["fcp"] > MOBIL_PRAH_FCP:
+                            zle.append(("warn", f"prvý obsah {v['fcp']:.1f} s (> {MOBIL_PRAH_FCP:g} s)"))
+                        if v["app"] > prah_app:
+                            zle.append(("warn", f"prevzatie appkou {v['app']:.1f} s (> {prah_app:g} s)"))
+                        if v["data"] is None or v["data"] > MOBIL_PRAH_DATA:
+                            zle.append(("warn", "celé dáta " + (f"{v['data']:.1f} s" if v["data"] else "nad 60 s")
+                                        + f" (> {MOBIL_PRAH_DATA:g} s)"))
+                        if v["mb"] > MOBIL_PRAH_MB:
+                            zle.append(("warn", f"stiahnuté {v['mb']:.2f} MB (> {MOBIL_PRAH_MB:g} MB)"))
+                    if not zle:
+                        break
+                cisla = (f"FCP {v['fcp']:.1f} s, appka {v['app']:.1f} s, " if v["fcp"] and v["app"] else "") \
+                    + (f"dáta {v['data']:.1f} s, " if v["data"] else "") + f"{v['mb']:.2f} MB"
+                texty.append(f"{MOBIL_STLPCE[k]}: {cisla}")
+                stav = "fail" if any(s == "fail" for s, _ in zle) else ("warn" if zle else "ok")
+                bunky[k] = (stav, cisla + ("; " + "; ".join(t for _, t in zle) if zle else ""))
+                (chyby if stav == "fail" else varov).extend(f"{MOBIL_STLPCE[k]}: {t}" for _, t in zle)
+        self.info.append("**Mobil F (pomalý Android: procesor 4×, Slow 4G):** " + " · ".join(texty)
+                         + f" — prahy ⚠️: FCP {MOBIL_PRAH_FCP:g} s, appka {MOBIL_PRAH_APP_DOMOV:g}/{MOBIL_PRAH_APP_HLBOKA:g} s,"
+                         f" dáta {MOBIL_PRAH_DATA:g} s, {MOBIL_PRAH_MB:g} MB (Zadanie 47a: 0,7–0,9 s, 0,7–2,9 s, 9,4–13,8 s, 1,3 MB)")
+        if chyby:
+            raise Zlyhanie("; ".join(chyby))
+        if varov:
+            return "warn", "; ".join(varov)
+        return "ok", " · ".join(texty)
+
+    def mobil(self):
+        """i) Mobilné zariadenia — každé zariadenie je samostatný riadok (a pri ❌ sa skúsi
+        ešte raz samo, nie celá mobilná časť)."""
+        t0 = time.time()
+        self.mobil_matica, self.mobil_plochy, self.mobil_index = {}, {}, {}
+        self.mobil_snimky = 0
+        self.mobil_adresy, self.mobil_vzorky = {}, {}
+        vyber = set(self.mobil_vyber or [z["kod"] for z in MOBIL_ZARIADENIA] + ["F"])
+        try:
+            self.mobil_priprav()
+        except Exception as e:
+            self.vysledky.append(("fail", "i) Mobil — príprava (adresy stránok)", f"{type(e).__name__}: {e}"[:400]))
+            self.log.append(traceback.format_exc())
+            return
+        for z in MOBIL_ZARIADENIA:
+            if z["kod"] in vyber:
+                self.kontrola(f"i) Mobil {z['kod']} — {z['nazov']}", self.mobil_zariadenie(z))
+        if "F" in vyber:
+            self.kontrola(f"i) Mobil F — {MOBIL_POMALY['nazov']} (len výkon)", self.mobil_vykon, pri_chybe="fail")
+        self.mobil_cas = time.time() - t0
+        self.info.append(f"**Mobil i):** trvanie {self.mobil_cas / 60:.1f} min, snímok {self.mobil_snimky} (príloha test-hlbkovy)")
+
+    def mobil_tabulka(self):
+        """Tabuľka zariadenie × stránka s ✅/⚠️/❌ (do Summary) + zoznam dotykových plôch."""
+        if not getattr(self, "mobil_matica", None):
+            return []
+        ikona = {"ok": "✅", "warn": "⚠️", "fail": "❌"}
+        stlpce = [k for k in MOBIL_STLPCE if any(k in b for b in self.mobil_matica.values())]
+        r = ["", "### i) Mobilné zariadenia — zariadenie × stránka", "",
+             "| Zariadenie | " + " | ".join(MOBIL_STLPCE[k] for k in stlpce) + " |",
+             "|---|" + "---|" * len(stlpce)]
+        nazvy = {z["kod"]: z["nazov"] for z in MOBIL_ZARIADENIA + [MOBIL_POMALY]}
+        for kod, bunky in self.mobil_matica.items():
+            r.append(f"| **{kod}** {nazvy.get(kod, '')} | " + " | ".join(
+                (ikona[bunky[k][0]] + (" " + bunky[k][1].replace("|", "/")[:120] if bunky[k][0] != "ok" or kod == "F" else ""))
+                if k in bunky else "·" for k in stlpce) + " |")
+        r.append("")
+        r.append("✅ OK · ⚠️ drobnosť (test ostane zelený) · ❌ rozbité · „·“ = na tomto zariadení sa nekontroluje")
+        riadky = []
+        for kod, pl in self.mobil_plochy.items():
+            for p in sorted(self.mobil_unik(pl), key=lambda x: x["co"]):
+                zle = p["w"] < p["mw"] or p["h"] < p["mh"]
+                riadky.append(f"{'⚠️' if zle else '✅'} {kod}: {p['co']} {p['w']}×{p['h']} px (miera {p['mw']}×{p['mh']})")
+        if riadky:
+            self.zoznamy.append((f"i) Dotykové plochy — rozmery ({len(riadky)})", riadky))
+        if self.mobil_index:
+            self.info.append("**Mobil — Safari (WebKit) stiahol appku index.html:** "
+                             + ", ".join(f"{k} {v}×" for k, v in self.mobil_index.items()))
+        return r
+
     # ------------------------------------------------ hlavný beh
     def spusti(self):
         for pokus in (1, 2):
@@ -831,6 +1744,9 @@ class Test:
                     self.vysledky.append(("fail", "Domovská stránka", str(e)[:400]))
                     return
                 time.sleep(5)
+        if self.len_mobil:   # ručné spustenie „len_mobil“: len kontrola i)
+            self.mobil()
+            return
         self.kontrola("a) sitemap.xml a všetky jej adresy (HTTP 200)", self.sitemap)
         self.kontrola("b) Titulok, canonical, hreflang, páry SK ↔ EN", self.hlavicky)
         self.kontrola("c) robots.txt", self.robots)
@@ -839,6 +1755,7 @@ class Test:
         self.kontrola("f) Ikonky /ikony/ a vlajky /vlajky/", self.ikony_vlajky)
         self.kontrola("g) Appka ↔ generátor: adresy a titulky všetkých stránok", self.zrkadlo)
         self.kontrola("h) Obsah stránok appka ↔ statika: zoznam, poradie a počty kariet", self.obsah)
+        self.mobil()
 
     def zhrnutie(self, trvanie):
         ikona = {"ok": "✅", "warn": "⚠️", "fail": "❌"}
@@ -854,6 +1771,7 @@ class Test:
              "| | Kontrola | Výsledok |", "|---|---|---|"]
         for stav, nazov, detail in self.vysledky:
             r.append(f"| {ikona[stav]} | {nazov} | {detail.replace('|', '/')} |")
+        r += self.mobil_tabulka()
         r.append("")
         r += [f"- {i}" for i in self.info]
         r.append(f"- Jazyk webu: **{self.lang}**, čas testu: {datetime.now(timezone.utc):%Y-%m-%d %H:%M} UTC, "
@@ -876,10 +1794,14 @@ def main():
     ap = argparse.ArgumentParser(description="Hĺbkový test živého webu (raz denne).")
     ap.add_argument("--url", default=os.environ.get("WEB_URL", ""), help="adresa webu, napr. https://sportlinky.sk/")
     ap.add_argument("--vystup", default="test-hlbkovy-vystup", help="priečinok na zoznam chýb (chyby.txt)")
+    ap.add_argument("--len-mobil", action="store_true", help="len kontrola i) Mobilné zariadenia (rýchle overenie po zmene webu)")
+    ap.add_argument("--zariadenia", default="", help="i) len tieto zariadenia, napr. A,E,F (predvolene všetky)")
     a = ap.parse_args()
     if not a.url:
         sys.exit("Chýba adresa webu (--url alebo WEB_URL).")
     t = Test(a.url, a.vystup)
+    t.len_mobil = a.len_mobil or os.environ.get("LEN_MOBIL", "").lower() in ("1", "true", "áno", "ano", "yes")
+    t.mobil_vyber = [x.strip() for x in a.zariadenia.split(",") if x.strip()] or None
     t0 = time.time()
     try:
         t.spusti()
