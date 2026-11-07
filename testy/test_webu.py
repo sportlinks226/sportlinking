@@ -85,6 +85,14 @@ aspoň 16 px (iPhone inak pri ťuknutí stránku priblíži), na šírku sa hlav
 Späť pri otvorenom paneli obľúbených len zavrie panel (stránka ostane), zavretie krížikom
 nenechá v histórii záznam navyše a po obnovení stránky (F5) pri otvorenom paneli nie je Späť naprázdno.
 
+Kontrola u) (7.11.2026, Zadanie 49): bannery na mobile — na LOKÁLNEJ KÓPII (ako s), SK aj EN; Tipsport
+a GoatCounter blokované, rotácia zapnutá LEN v prehliadači testu, čas rotácie posunutý len vo vnútri
+kontroly): na 390×844 (slot 2 skrytý) slot 1 strieda spoločný zoznam bannerov slotu 1 + slotu 2 (každý
+raz) a za celé kolo ukáže každý z nich; reklama partnera, ktorá zlyhala (AD_FAIL), sa vtedy preskočí,
+ak sú v zozname aj vlastné bannery; na počítači 1366×768 ostáva v slote 1 len zoznam slotu 1. Skrytý slot 2 je na mobile prázdny (žiadne
+okienko partnera ani iný obsah — žiadne neviditeľné zobrazenia reklamy).
+Appka bez tejto funkcie (starý web) = ✅ s poznámkou.
+
 Spustenie (lokálne):  python testy/test_webu.py --url https://sportlinky.sk/
 Voliteľne:  --od 2026-11-02T02:30:00Z  (počkaj, kým živý web nemá novšiu verziu)
             --vystup test-vystup        (priečinok na snímky a zoznam chýb)
@@ -2470,6 +2478,73 @@ class Test:
             ctx.close()
         return "ok", "; ".join(popis)
 
+    # ------------------------------------------------ u) bannery na mobile (Zadanie 49)
+    # Všetko len v prehliadači testu: rotácia sa zapne v kópii DB, Date.now sa posunie len
+    # počas jedného volania (prejde sa celé kolo rotácie bez čakania 30 s), potom sa vráti.
+    # Reklamy partnera sú blokované (BLOKOVANE) — žiadne falošné zobrazenie.
+    BANNER_MIX_JS = """() => {
+      if(typeof slot1Banners !== 'function') return {stara: true};
+      DB.bannerSettings = Object.assign({}, DB.bannerSettings || {}, {rotate: true});
+      const ids = a => a.map(b => String(b.id));
+      const e1 = ids(eligibleBanners(1)), e2 = ids(eligibleBanners(2)), s1 = ids(slot1Banners());
+      const pool = [];
+      slot1Banners().forEach(b => { for(let i = 0; i < bannerWeight(b); i++) pool.push(String(b.id)); });
+      const el = document.getElementById('bannerSlot'), povodny = Date.now, krok = bannerInterval() * 1000;
+      const videne = [];
+      try{
+        for(let k = 0; k < pool.length; k++){ Date.now = () => k * krok + 1; renderOneSlot(el, 1); videne.push(el.dataset.bid); }
+      } finally { Date.now = povodny; }
+      // AD_FAIL: bez reklamy partnera, ak sú aj vlastné bannery (len čítanie, stav sa vráti)
+      const af = AD_FAIL; AD_FAIL = true;
+      const partner = b => !!(b.html && adNeedsFrame(b.html));
+      const vsetky = slot1Banners(), poFail = ids(slot1Banners());
+      AD_FAIL = af;
+      const vlastne = vsetky.filter(b => !partner(b)).map(b => String(b.id));
+      return {e1, e2, s1, videne, pool, poFail, vlastne,
+              slot2Skryty: getComputedStyle(document.getElementById('bannerSlot2')).display === 'none',
+              slot2Obsah: (() => { const s = document.getElementById('bannerSlot2');
+                return {iframe: s.querySelectorAll('iframe').length, deti: s.children.length,
+                        text: (s.textContent || '').trim().length, bid: s.dataset.bid || ''}; })()};
+    }"""
+
+    def bannery_mobil(self, pokus):
+        kopia = self.lokalna_kopia()
+        popis = []
+        for lang in ("sk", "en"):
+            for okno, mobil, meno in (((390, 844), True, "mobil 390"), ((1366, 768), False, "PC 1366")):
+                ctx = self.kontext(mobil=mobil, okno=okno)
+                try:
+                    page = self.stranka(ctx)
+                    page.goto(kopia[lang], wait_until="load")
+                    self.cakaj_na_appku(page)
+                    r = page.evaluate(self.BANNER_MIX_JS)
+                    if r.get("stara"):
+                        return "ok", "appka bez spoločného zoznamu bannerov (Zadanie 49) — nekontrolujem"
+                    kde = f"{lang.upper()} {meno}"
+                    if mobil:
+                        if not r["slot2Skryty"]:
+                            raise Zlyhanie(f"{kde}: slot 2 nie je skrytý — podmienka mobilu nesedí s CSS")
+                        o2 = r["slot2Obsah"]
+                        if o2["iframe"] or o2["deti"] or o2["text"]:
+                            raise Zlyhanie(f"{kde}: skrytý slot 2 nie je prázdny ({o2}) — reklama by sa načítala neviditeľne")
+                        cakane = list(dict.fromkeys(r["e1"] + r["e2"]))
+                        if r["s1"] != cakane:
+                            raise Zlyhanie(f"{kde}: slot 1 rotuje {r['s1']}, čakal som sloty 1+2 {cakane}")
+                        if r["videne"] != r["pool"] or (cakane and set(r["videne"]) != set(cakane)):
+                            raise Zlyhanie(f"{kde}: za kolo rotácie slot 1 ukázal {r['videne']}, čakal som {r['pool']}")
+                        if r["vlastne"] and r["poFail"] != r["vlastne"]:
+                            raise Zlyhanie(f"{kde}: po zlyhaní reklamy partnera slot 1 rotuje {r['poFail']}, "
+                                           f"čakal som len vlastné {r['vlastne']}")
+                        popis.append(f"{kde}: slot 1 strieda {len(r['e1'])}+{len(r['e2'])} bannerov, slot 2 prázdny")
+                    else:
+                        if r["s1"] != r["e1"] or (r["videne"] and set(r["videne"]) - set(r["e1"])):
+                            raise Zlyhanie(f"{kde}: slot 1 na počítači má {r['s1']}, čakal som len slot 1 {r['e1']}")
+                        popis.append(f"{kde}: slot 1 len vlastné ({len(r['e1'])})")
+                    self.over_chyby(page, kde)
+                finally:
+                    ctx.close()
+        return "ok", "; ".join(popis)
+
     # ------------------------------------------------ hlavný beh
     def spusti(self, od):
         self.cakaj_na_nasadenie(od)
@@ -2514,6 +2589,7 @@ class Test:
                 self.kontrola("r) Obľúbené ★ (hviezdička, hlavička, panel, ?oblubene, admin)", self.oblubene)
                 self.kontrola("s) Admin v lokálnej kópii: okno linky, ⤒⤓, prekrytie na PC, sprievodca", self.admin_okno)
                 self.kontrola("t) Mobil (dotyk): hľadanie 16 px aj na šírku, Späť zavrie panel obľúbených", self.mobil_dotyk)
+                self.kontrola("u) Bannery na mobile: slot 1 strieda bannery slotov 1 aj 2", self.bannery_mobil)
             finally:
                 self.browser.close()
                 self.uprac_kopiu()
