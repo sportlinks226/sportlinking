@@ -80,6 +80,11 @@ linka dostane SK order aj order_en, 1366×768 bez prekrytia názvu, mobil 5 pol�
 sprievodca po 🚀 Publikovať (3 kroky, odkaz na nahrávanie do sport-linky aj z EN webu) a značka
 „⚠️ vN ešte nie je na webe“, ktorá zmizne po novej verzii webu (podstrčený version.txt).
 
+Kontrola t) (7.11.2026, Zadanie 47b): dotykový mobil na výšku aj na šírku — políčko hľadania má
+aspoň 16 px (iPhone inak pri ťuknutí stránku priblíži), na šírku sa hlavička pri posune zbalí;
+Späť pri otvorenom paneli obľúbených len zavrie panel (stránka ostane), zavretie krížikom
+nenechá v histórii záznam navyše a po obnovení stránky (F5) pri otvorenom paneli nie je Späť naprázdno.
+
 Spustenie (lokálne):  python testy/test_webu.py --url https://sportlinky.sk/
 Voliteľne:  --od 2026-11-02T02:30:00Z  (počkaj, kým živý web nemá novšiu verziu)
             --vystup test-vystup        (priečinok na snímky a zoznam chýb)
@@ -201,7 +206,8 @@ class Test:
 
     def kontext(self, mobil=False, okno=None):
         if mobil:
-            ctx = self.browser.new_context(viewport={"width": 390, "height": 844},
+            w, h = okno or (390, 844)   # Zadanie 47b: mobil aj na šírku (okno=(844, 390))
+            ctx = self.browser.new_context(viewport={"width": w, "height": h},
                                            device_scale_factor=2, is_mobile=True,
                                            has_touch=True, user_agent=UA_MOBIL)
         else:
@@ -1531,6 +1537,97 @@ class Test:
             ctx.close()
         return "ok", f"{cesta}: plná {s0['h']} px → zbalená {s1['h']} px (lupa {s1['lupa'][0]}×{s1['lupa'][1]}) → hore {s2['h']} px, obsah bez skoku"
 
+    # ------------------------------------------------ t) mobil — dotyk (Zadanie 47b)
+    PANEL_STAV = """() => ({otvoreny: !document.getElementById('favPanel').hidden, cesta: location.pathname,
+        znacka: !!(history.state && (history.state.favP || 0))})"""
+
+    def mobil_dotyk(self, pokus):
+        """Zadanie 47b (správa 47a, 🟠5, 🟠4, 🟢1): na dotykovom mobile má políčko hľadania
+        aspoň 16 px aj NA ŠÍRKU (iPhone inak stránku pri ťuknutí priblíži) a na šírku sa
+        hlavička pri posune zbalí. Späť pri otvorenom paneli obľúbených (★ v hlavičke) len
+        zavrie panel a stránka ostane; zavretie krížikom nenechá v histórii záznam navyše
+        (ďalší Späť ide o stránku späť); obnovenie stránky (F5) pri otvorenom paneli
+        značku panela zmaže a Späť nie je naprázdno. Len v čistom prehliadači testu."""
+        poz = []
+        for okno, meno in (((390, 844), "na výšku"), ((844, 390), "na šírku")):
+            ctx = self.kontext(mobil=True, okno=okno)
+            try:
+                page = self.stranka(ctx)
+                url = self.ligy[0] if (meno == "na šírku" and self.ligy) else self.base
+                page.goto(url, wait_until="load")
+                self.cakaj_na_appku(page)
+                px = float(page.evaluate("parseFloat(getComputedStyle(document.getElementById('srch')).fontSize)"))
+                if px < 16:
+                    raise Zlyhanie(f"mobil {meno}: písmo v hľadaní {px:g} px — iPhone pri ťuknutí stránku priblíži (treba ≥ 16 px)")
+                zbal = ""
+                if meno == "na šírku" and page.evaluate("document.documentElement.scrollHeight - innerHeight") > 450:
+                    for y in range(0, 401, 50):
+                        page.evaluate("y => scrollTo(0, y)", y)
+                        page.wait_for_timeout(60)
+                    if not page.evaluate("document.body.classList.contains('hdr-min')"):
+                        raise Zlyhanie("mobil na šírku: hlavička sa po posune o 400 px nezbalila")
+                    zbal = ", hlavička sa zbalí"
+                self.over_chyby(page, f"mobil {meno}")
+                poz.append(f"{meno} {okno[0]}×{okno[1]}: hľadanie {px:g} px{zbal}")
+            finally:
+                ctx.close()
+        # Späť pri paneli obľúbených (na výšku)
+        ctx = self.kontext(mobil=True)
+        try:
+            page = self.stranka(ctx)
+            page.goto(self.base, wait_until="load")
+            self.cakaj_na_appku(page)
+            page.wait_for_function(self.OBL_CELE_DATA, timeout=30_000)
+            if not page.evaluate("typeof favPanelPop === 'function'"):
+                return "ok", "; ".join(poz) + " · stará appka bez Späť pre panel obľúbených — Späť nekontrolujem"
+            domov = page.evaluate("location.pathname")
+
+            def do_sekcie():
+                page.locator("#main a.card-root[href]").first.click()
+                page.wait_for_function("p => location.pathname !== p", arg=domov)
+                page.wait_for_timeout(400)
+                return page.evaluate("location.pathname")
+
+            sekcia = do_sekcie()
+            page.click("#hFav")
+            page.wait_for_timeout(300)
+            if not page.evaluate(self.PANEL_STAV)["otvoreny"]:
+                raise Zlyhanie("panel obľúbených sa po ťuknutí na ★ v hlavičke neotvoril")
+            page.evaluate("history.back()")
+            page.wait_for_timeout(700)
+            st = page.evaluate(self.PANEL_STAV)
+            if st["otvoreny"] or st["cesta"] != sekcia:
+                raise Zlyhanie(f"Späť pri otvorenom paneli: panel {'ostal otvorený' if st['otvoreny'] else 'zavretý'}, "
+                               f"stránka {st['cesta']} (čakal som len zavretie panela na {sekcia})")
+            page.click("#hFav")
+            page.wait_for_timeout(300)
+            page.click("#favPanel .fp-x")
+            page.wait_for_timeout(600)
+            page.evaluate("history.back()")
+            page.wait_for_timeout(900)
+            st = page.evaluate(self.PANEL_STAV)
+            if st["cesta"] != domov:
+                raise Zlyhanie(f"po zavretí panela krížikom bol ďalší Späť naprázdno (ostal na {st['cesta']}, "
+                               f"čakal som {domov}) — v histórii ostal záznam navyše")
+            sekcia = do_sekcie()
+            page.click("#hFav")
+            page.wait_for_timeout(300)
+            page.reload(wait_until="load")
+            self.cakaj_na_appku(page)
+            page.wait_for_timeout(500)
+            st = page.evaluate(self.PANEL_STAV)
+            if st["otvoreny"] or st["znacka"]:
+                raise Zlyhanie("po obnovení stránky (F5) pri otvorenom paneli ostala v histórii značka panela")
+            page.evaluate("history.back()")
+            page.wait_for_timeout(1200)
+            st = page.evaluate(self.PANEL_STAV)
+            if st["cesta"] != domov:
+                raise Zlyhanie(f"po F5 pri otvorenom paneli bol Späť naprázdno (ostal na {st['cesta']}, čakal som {domov})")
+            self.over_chyby(page, "Späť pri paneli obľúbených")
+        finally:
+            ctx.close()
+        return "ok", "; ".join(poz) + f" · Späť pri paneli ho len zavrie ({sekcia}), krížik bez záznamu navyše, F5 bez značky"
+
     # ------------------------------------------------ r) obľúbené ★ (Zadanie 39)
     # Obľúbené sú LEN v prehliadači (localStorage) — test si ich robí vo vlastnom, čistom
     # prehliadači; web ani dáta nemení. GoatCounter (počítanie pridania „obl/+<id>“)
@@ -1716,6 +1813,10 @@ class Test:
             if "(0)" not in page.locator("#fpTitle").inner_text() or "☆" not in page.locator("#favPanel .fp-empty").inner_text():
                 raise Zlyhanie("panel pri 0 nemá nadpis „☆ … (0)“ a vetu o hviezdičke ☆")
             page.keyboard.press("Escape")
+            # Zadanie 47b: zavretie panela urobí krok späť v histórii (záznam panela) — počkaj naň,
+            # inak by ho prehliadač spojil s nasledujúcim goto (ERR_ABORTED)
+            page.wait_for_function("() => document.getElementById('favPanel').hidden && !(history.state && history.state.favP)")
+            page.wait_for_timeout(200)
             # adresu priečinka vypočíta appka (urlForId) — rovnaká ako statická stránka
             o = urllib.parse.urlsplit(self.base)
             fid = kand[0]
@@ -2412,6 +2513,7 @@ class Test:
                 self.kontrola("q) Stĺpce: pás pod hlavičkou (prepnutie, príchod, Späť/Vpred)", self.stlpce_posun)
                 self.kontrola("r) Obľúbené ★ (hviezdička, hlavička, panel, ?oblubene, admin)", self.oblubene)
                 self.kontrola("s) Admin v lokálnej kópii: okno linky, ⤒⤓, prekrytie na PC, sprievodca", self.admin_okno)
+                self.kontrola("t) Mobil (dotyk): hľadanie 16 px aj na šírku, Späť zavrie panel obľúbených", self.mobil_dotyk)
             finally:
                 self.browser.close()
                 self.uprac_kopiu()
