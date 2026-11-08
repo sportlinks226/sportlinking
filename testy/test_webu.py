@@ -93,6 +93,24 @@ ak sú v zozname aj vlastné bannery; na počítači 1366×768 ostáva v slote 1
 okienko partnera ani iný obsah — žiadne neviditeľné zobrazenia reklamy).
 Appka bez tejto funkcie (starý web) = ✅ s poznámkou.
 
+Kontrola v) (8.11.2026, Zadanie 50 — web ako aplikácia, PWA): manifest.webmanifest je platný JSON
+(názov, short_name do 12 znakov, standalone, ikonky 192/512/maskable = PNG 200), /sw.js vráti 200
+ako JavaScript, <link rel="manifest"> + theme-color na domove a vzorke stránok zo sitemapy; v prehliadači
+(mobil) sa sw.js zaregistruje a prevezme stránku, druhé otvorenie funguje, data-full.json nie je v pamäti
+service workera a offline sa navštívená stránka zobrazí z pamäte; na počítači sa odkaz „📲 Pridať na plochu“
+neukáže ani po (podstrčenej) udalosti beforeinstallprompt. Web bez PWA (starý) aj vypnuté PWA
+(PWA = False, samozničujúci sw.js) = ✅ s poznámkou. Ostatné kontroly bežia BEZ service workera
+(SW_VYP_SKRIPT v _spolocne.py) — podstrčené súbory fungujú ako pred PWA.
+Kontrola w) (Zadanie 50, časť B): na mobile sa ikonky webov na obrazovke načítajú, ikonky ďaleko pod
+obrazovkou čakajú (data-lz) a po dorolovaní sa načítajú všetky.
+
+Kontrola x) (Zadanie 50a2): tlačidlo „📲 APP“ v hlavičke — na mobile 360 a 390 px vľavo od ★ v tom istom
+riadku (hlavička sa nezalomí, v zbalenej hlavičke „APP“ vedľa ★ a lupa celá); ťuk bez ponuky prehliadača →
+bublina s návodom (menu ⋮) navrchu a celá na šírku, ✕ aj Späť ju zavrú; s podstrčenou ponukou
+beforeinstallprompt → systémová inštalácia; iPhone → návod ≡ → Zdieľať → Pridať na plochu bez vety
+o obľúbených, hrot šípky nad ≡ (stred ≈ 114 px zľava, Zadanie 50a3); počítač (aj po beforeinstallprompt)
+a nainštalovaná aplikácia → tlačidlo nie je.
+
 Spustenie (lokálne):  python testy/test_webu.py --url https://sportlinky.sk/
 Voliteľne:  --od 2026-11-02T02:30:00Z  (počkaj, kým živý web nemá novšiu verziu)
             --vystup test-vystup        (priečinok na snímky a zoznam chýb)
@@ -126,7 +144,7 @@ from playwright.sync_api import sync_playwright
 # ---------------------------------------------------------------- nastavenia
 # UA_PC, X_TEST, BLOKOVANE (štatistiky a reklamy sa v teste BLOKUJÚ — žiadne falošné
 # návštevy ani zobrazenia reklám), Zlyhanie, titulok_z_html, meta_z_html: testy/_spolocne.py
-from _spolocne import BLOKOVANE, UA_PC, X_TEST, Zlyhanie, meta_z_html, titulok_z_html   # spoločné (Zadanie 36)
+from _spolocne import BLOKOVANE, SW_VYP_SKRIPT, UA_PC, X_TEST, Zlyhanie, meta_z_html, titulok_z_html   # spoločné (Zadanie 36)
 UA_MOBIL = ("Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 "
             "(KHTML, like Gecko) Chrome/130.0.0.0 Mobile Safari/537.36")
 
@@ -212,7 +230,9 @@ class Test:
             return route.continue_(headers={**req.headers, "x-test": X_TEST["X-Test"]})
         return route.continue_()
 
-    def kontext(self, mobil=False, okno=None):
+    def kontext(self, mobil=False, okno=None, sw=False):
+        """sw=False (bežné kontroly): appka nezaregistruje service worker (SW_VYP_SKRIPT) —
+        prehliadač testu sa správa ako pred PWA. sw=True len pre kontrolu v) PWA."""
         if mobil:
             w, h = okno or (390, 844)   # Zadanie 47b: mobil aj na šírku (okno=(844, 390))
             ctx = self.browser.new_context(viewport={"width": w, "height": h},
@@ -226,6 +246,8 @@ class Test:
         ctx.set_default_timeout(CAKANIE_MS)
         ctx.route("**/*", self.smerovanie)
         ctx.add_init_script(CSP_SKRIPT)
+        if not sw:
+            ctx.add_init_script(SW_VYP_SKRIPT)
         return ctx
 
     def stranka(self, ctx, povolene_404=()):
@@ -2089,6 +2111,8 @@ class Test:
         for f in ("generator.py", "index.html", "aktualne.json", "favicon.ico", "apple-touch-icon.png", "og-image.png"):
             if os.path.exists(os.path.join(repo, f)):
                 shutil.copy(os.path.join(repo, f), src)
+        if os.path.isdir(os.path.join(repo, "pwa")):   # Zadanie 50: ikonky aplikácie
+            shutil.copytree(os.path.join(repo, "pwa"), os.path.join(src, "pwa"))
         akt_zdroj = "aktualne.json z repozitára"
         if not os.path.exists(os.path.join(src, "aktualne.json")):
             # EN repozitár (sportlinking) aktualne.json nemá — EN web si ho berie zo SK webu;
@@ -2546,6 +2570,293 @@ class Test:
         return "ok", "; ".join(popis)
 
     # ------------------------------------------------ hlavný beh
+    # ------------------------------------------------ v) web ako aplikácia (Zadanie 50)
+    def pwa(self, pokus):
+        """Manifest (platný JSON, ikonky 200 PNG), /sw.js (200, JavaScript), <link rel="manifest">
+        na domove a vzorke stránok zo sitemapy; v prehliadači sa sw.js zaregistruje, prevezme
+        stránku, druhé otvorenie funguje, data-full.json nie je v uloženej pamäti a offline sa
+        navštívená stránka zobrazí z pamäte. Web bez PWA (starý) = ✅ s poznámkou; PWA vypnuté
+        (samozničujúci sw.js, bez manifestu) = ✅ s poznámkou."""
+        kod_sw, hl_sw, sw = stiahni(self.base + "sw.js")
+        kod_m, hl_m, man = stiahni(self.base + "manifest.webmanifest")
+        if kod_sw == 404 and kod_m == 404:
+            return "ok", "web ešte nemá PWA (sw.js ani manifest nie sú) — starý web, nič sa neskúša"
+        if kod_sw != 200:
+            raise Zlyhanie(f"/sw.js vrátil HTTP {kod_sw}")
+        typ = (hl_sw.get("Content-Type") or "").lower()
+        if "javascript" not in typ:
+            raise Zlyhanie(f"/sw.js má typ „{typ}“ (prehliadač ho ako service worker neprijme)")
+        if "PWA je VYPNUTÉ" in sw:
+            if kod_m == 200:
+                raise Zlyhanie("PWA je vypnuté (samozničujúci sw.js), ale manifest.webmanifest na webe ostal")
+            kod_d, _, dom = stiahni(self.base)
+            if 'rel="manifest"' in dom:
+                raise Zlyhanie("PWA je vypnuté, ale domovská stránka má ešte <link rel=\"manifest\">")
+            return "ok", "PWA je VYPNUTÉ (PWA = False) — samozničujúci sw.js, bez manifestu"
+        if kod_m != 200:
+            raise Zlyhanie(f"manifest.webmanifest vrátil HTTP {kod_m}")
+        try:
+            m = json.loads(man)
+        except ValueError as e:
+            raise Zlyhanie(f"manifest.webmanifest nie je platný JSON ({e})") from e
+        chyby = [k for k in ("name", "short_name", "start_url", "scope", "display", "icons") if not m.get(k)]
+        if chyby:
+            raise Zlyhanie("v manifeste chýba: " + ", ".join(chyby))
+        if m["display"] != "standalone":
+            raise Zlyhanie(f"manifest: display je „{m['display']}“ (čakám standalone)")
+        if len(m["short_name"]) > 12:
+            raise Zlyhanie(f"manifest: short_name „{m['short_name']}“ má viac ako 12 znakov (Android ho oreže)")
+        velkosti = {i.get("sizes") for i in m["icons"]}
+        if not {"192x192", "512x512"} <= velkosti or not any("maskable" in (i.get("purpose") or "") for i in m["icons"]):
+            raise Zlyhanie(f"manifest: chýba ikonka 192, 512 alebo maskable ({sorted(velkosti)})")
+        for i in m["icons"]:
+            u = urllib.parse.urljoin(self.base, i["src"])
+            req = urllib.request.Request(u, headers={"User-Agent": UA_PC, **X_TEST})
+            try:
+                with urllib.request.urlopen(req, timeout=30) as r:
+                    data, typ_i = r.read(), r.headers.get("Content-Type", "")
+            except urllib.error.HTTPError as e:
+                raise Zlyhanie(f"ikonka aplikácie {i['src']} vrátila HTTP {e.code}") from e
+            if not data.startswith(b"\x89PNG") or "image/png" not in typ_i:
+                raise Zlyhanie(f"ikonka aplikácie {i['src']} nie je PNG ({typ_i})")
+        # <link rel="manifest"> na domove a vzorke statických stránok (raw HTML, ako ich vidí Google)
+        vzorka = [self.base] + random.sample(self.adresy, min(6, len(self.adresy))) if self.adresy else [self.base]
+        bez = []
+        for u in vzorka:
+            kod, _, t = stiahni(self.na_url(u))
+            if kod == 200 and ('rel="manifest"' not in t or 'name="theme-color"' not in t):
+                bez.append(urllib.parse.urlsplit(u).path)
+        if bez:
+            raise Zlyhanie("bez <link rel=\"manifest\"> / theme-color: " + ", ".join(bez))
+        # prehliadač: registrácia, druhé otvorenie, pamäť, offline
+        ctx = self.kontext(mobil=True, sw=True)
+        try:
+            page = self.stranka(ctx)
+            url = self.na_url(self.ligy[0]) if self.ligy else self.base
+            page.goto(url, wait_until="load")
+            self.cakaj_na_appku(page)
+            ok = page.evaluate("""async () => { const t = Date.now(); while(Date.now() - t < 30000){
+                const r = await navigator.serviceWorker.getRegistration();
+                if(r && r.active && navigator.serviceWorker.controller) return true;
+                await new Promise(x => setTimeout(x, 300)); } return false; }""")
+            if not ok:
+                raise Zlyhanie("service worker sa do 30 s nezaregistroval / neprevzal stránku")
+            page.goto(url, wait_until="load")
+            self.cakaj_na_appku(page)
+            if not page.evaluate("!!navigator.serviceWorker.controller"):
+                raise Zlyhanie("druhé otvorenie stránky nie je riadené service workerom")
+            page.wait_for_timeout(2000)
+            kluce = page.evaluate("""async () => { const o = []; for(const n of await caches.keys())
+                for(const r of await (await caches.open(n)).keys()) o.push(n + ' ' + new URL(r.url).pathname); return o; }""")
+            if any("data-full.json" in k for k in kluce):
+                raise Zlyhanie("data-full.json (admin) je v pamäti service workera — nesmie byť")
+            self.over_chyby(page, "PWA")
+            # bez siete: chyby nenačítaných súborov (version.txt, reklamy…) sú vtedy v poriadku
+            ctx.set_offline(True)
+            try:
+                page.goto(url, wait_until="load")
+                page.wait_for_selector("#main a[href]", state="visible", timeout=15000)
+            except Exception as e:
+                raise Zlyhanie(f"offline sa navštívená stránka nezobrazila z pamäte ({type(e).__name__})") from e
+            finally:
+                ctx.set_offline(False)
+            if page.chyby_js:
+                raise Zlyhanie("offline: chyby JavaScriptu: " + " | ".join(page.chyby_js[:3]))
+        finally:
+            ctx.close()
+        # počítač (myš): odkaz „📲 Pridať na plochu“ sa NIKDY neukáže — ani keď Chrome/Edge
+        # ponúknu inštaláciu (podstrčená udalosť beforeinstallprompt len v prehliadači testu)
+        ctx = self.kontext()
+        try:
+            page = self.stranka(ctx)
+            page.goto(self.base, wait_until="load")
+            self.cakaj_na_appku(page)
+            pc = page.evaluate("""() => { const e = new Event('beforeinstallprompt', {cancelable: true});
+                e.prompt = () => {}; e.userChoice = Promise.resolve({outcome: 'dismissed'});
+                window.dispatchEvent(e); const a = document.getElementById('fPwa');
+                return a ? (a.hidden ? 'skrytý' : 'VIDNO') : 'nie je'; }""")
+            if pc == "VIDNO":
+                raise Zlyhanie("na počítači sa po beforeinstallprompt ukázal odkaz „📲 Pridať na plochu“ (má byť len na mobile)")
+        finally:
+            ctx.close()
+        return "ok", (f"manifest „{m['short_name']}“ ({len(m['icons'])} ikonky), sw.js ({typ.split(';')[0]}), "
+                      f"link rel=manifest na {len(vzorka)} stránkach; registrácia, 2. otvorenie a offline OK, "
+                      f"v pamäti {len(kluce)} súborov, bez data-full.json; PC: odkaz „📲“ {pc}")
+
+    # ------------------------------------------------ w) ikonky až pri dorolovaní (Zadanie 50, časť B)
+    def ikonky_neskor(self, pokus):
+        """Na mobile (390×844) na stránke s najviac linkami z kontroly c): ikonky webov NA obrazovke
+        sa načítajú, ikonky ďaleko pod obrazovkou čakajú (data-lz) a po dorolovaní sa načítajú.
+        Appka bez tejto funkcie (starý web) = ✅ s poznámkou."""
+        ctx = self.kontext(mobil=True)
+        try:
+            page = self.stranka(ctx)
+            page.goto(self.base, wait_until="load")
+            self.cakaj_na_appku(page)
+            if not page.evaluate("typeof lzLoad === 'function'"):
+                return "ok", "appka ešte nemá neskoršie načítanie ikoniek (starý web)"
+            # priečinok s najviac linkami (napr. NCDC) — adresu vypočíta appka (urlForId)
+            page.wait_for_function("() => typeof DB !== 'undefined' && DB && DB.nodes && !DB._partial", timeout=60_000)
+            info = page.evaluate("""() => { const n = {}; DB.nodes.forEach(x => { if(x.type === 'link' && x.parentId) n[x.parentId] = (n[x.parentId] || 0) + 1; });
+                let best = null; for(const id in n){ if(!best || n[id] > n[best]) best = id; }
+                return best ? [urlForId(best), n[best]] : null; }""")
+            if not info or info[1] < 20:
+                return "ok", "web nemá priečinok s dlhým zoznamom liniek — preskočené"
+            najlepsia = urllib.parse.urljoin(self.base, info[0])
+            page.goto(najlepsia, wait_until="load")
+            self.cakaj_na_appku(page)
+            page.wait_for_timeout(2500)
+            n_max = page.locator("#main img.fav").count()
+            if n_max < 15:
+                return "ok", f"{urllib.parse.urlsplit(najlepsia).path}: len {n_max} ikoniek webov — preskočené"
+            s = page.evaluate("""() => { const im = [...document.querySelectorAll('#main img.fav')], h = innerHeight;
+                const na = im.filter(i => { const r = i.getBoundingClientRect(); return r.bottom > 0 && r.top < h; });
+                const dalej = im.filter(i => i.getBoundingClientRect().top > h + 600);
+                return {na: na.length, na_caka: na.filter(i => i.hasAttribute('data-lz')).length,
+                        dalej: dalej.length, dalej_caka: dalej.filter(i => i.hasAttribute('data-lz')).length}; }""")
+            if s["na_caka"]:
+                raise Zlyhanie(f"{s['na_caka']} z {s['na']} ikoniek NA obrazovke sa nenačítalo")
+            if s["dalej"] and s["dalej_caka"] < s["dalej"]:
+                raise Zlyhanie(f"ikonky ďaleko pod obrazovkou sa načítali hneď ({s['dalej'] - s['dalej_caka']} z {s['dalej']})")
+            for _ in range(40):
+                page.mouse.wheel(0, 700)
+                page.wait_for_timeout(100)
+            page.wait_for_timeout(1500)
+            zostalo = page.evaluate("document.querySelectorAll('#main img[data-lz]').length")
+            if zostalo:
+                raise Zlyhanie(f"po dorolovaní na koniec ostalo {zostalo} nenačítaných ikoniek")
+            self.over_chyby(page, "ikonky pri dorolovaní")
+        finally:
+            ctx.close()
+        return "ok", (f"{urllib.parse.urlsplit(najlepsia).path}: {n_max} ikoniek, na obrazovke {s['na']} načítaných, "
+                      f"{s['dalej_caka']} ďaleko pod obrazovkou čakalo, po dorolovaní všetky načítané")
+
+    # ------------------------------------------------ x) tlačidlo „📲 APP“ (Zadanie 50a2)
+    UA_IPHONE = ("Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 "
+                 "(KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1")
+    BIP_JS = """() => { const e = new Event('beforeinstallprompt', {cancelable: true});
+        e.prompt = () => { window._testPrompt = (window._testPrompt || 0) + 1; };
+        e.userChoice = Promise.resolve({outcome: 'dismissed'}); window.dispatchEvent(e); return e.defaultPrevented; }"""
+
+    def app_tlacidlo(self, pokus):
+        """Mobil 360 a 390 px (Android): „📲 APP“ / „APP“ vľavo od ★ v tom istom riadku, hlavička bez
+        zalomenia, v zbalenej hlavičke „APP“ vedľa ★ a lupa celá na obrazovke; ťuk bez ponuky prehliadača
+        → bublina s návodom (menu ⋮), navrchu a celá na šírku; ✕ a Späť ju zavrú (adresa ostane);
+        s (podstrčenou) ponukou beforeinstallprompt → systémová inštalácia. iPhone → návod ≡ → Zdieľať →
+        Pridať na plochu bez vety o obľúbených. Počítač (aj po beforeinstallprompt) a nainštalovaná
+        aplikácia (standalone) → tlačidlo nie je. Starý web bez tlačidla / vypnuté PWA = ✅ s poznámkou."""
+        kod_sw, _, sw = stiahni(self.base + "sw.js")
+        pwa_vyp = kod_sw != 200 or "PWA je VYPNUTÉ" in sw
+        detail = []
+        for sirka in (360, 390):
+            ctx = self.kontext(mobil=True, okno=(sirka, 800))
+            try:
+                page = self.stranka(ctx)
+                page.goto(self.base, wait_until="load")
+                self.cakaj_na_appku(page)
+                if not page.locator("#hApp").count():
+                    return "ok", "appka ešte nemá tlačidlo „📲 APP“ (starý web)"
+                viditelne = page.evaluate("(() => { const a = document.getElementById('hApp'); return !a.hidden && getComputedStyle(a).display !== 'none'; })()")
+                if pwa_vyp:
+                    if viditelne:
+                        raise Zlyhanie("PWA je vypnuté, ale tlačidlo „📲 APP“ je v hlavičke")
+                    return "ok", "PWA je vypnuté — tlačidlo „📲 APP“ správne nie je"
+                if not viditelne:
+                    raise Zlyhanie(f"{sirka} px: tlačidlo „📲 APP“ v hlavičke nie je vidieť")
+                m = page.evaluate("""() => { const r = s => document.querySelector(s).getBoundingClientRect();
+                    const A = r('#hApp'), F = r('#hFav'), L = r('.h-left'), S = r('.h-search');
+                    return {txt: document.getElementById('hApp').innerText.replace(/\\s+/g, ' ').trim(), aT: A.top, fT: F.top,
+                            aR: A.right, fL: F.left, aL: A.left, lR: L.right, lT: L.top, sT: S.top, sw: document.documentElement.scrollWidth}; }""")
+                if abs(m["aT"] - m["fT"]) > 3 or m["aR"] > m["fL"] or m["aL"] < m["lR"] or abs(m["fT"] - m["lT"]) > 20 or m["sw"] > sirka:
+                    raise Zlyhanie(f"{sirka} px: hlavička sa s tlačidlom „{m['txt']}“ zalomila / prekrýva ({m})")
+                # zbalená hlavička
+                page.mouse.wheel(0, 700)
+                page.wait_for_timeout(800)
+                z = page.evaluate("""() => { const r = s => document.querySelector(s).getBoundingClientRect();
+                    const a = document.getElementById('hApp'), A = r('#hApp'), F = r('#hFav'), U = r('#hLupa');
+                    return {min: document.body.classList.contains('hdr-min'), vid: getComputedStyle(a).display !== 'none',
+                            aT: A.top, fT: F.top, aR: A.right, fL: F.left, uR: U.right}; }""")
+                if z["min"] and (not z["vid"] or abs(z["aT"] - z["fT"]) > 3 or z["aR"] > z["fL"] or z["uR"] > sirka):
+                    raise Zlyhanie(f"{sirka} px: v zbalenej hlavičke „APP“ nie je vedľa ★ alebo lupa vytŕča ({z})")
+                page.mouse.wheel(0, -2000)
+                page.wait_for_timeout(600)
+                if sirka == 390:
+                    url0 = page.url
+                    page.click("#hApp")
+                    page.wait_for_timeout(400)
+                    b = page.evaluate("""() => { const B = document.getElementById('pwaBub'); if(B.hidden) return null; const b = B.getBoundingClientRect();
+                        const e = document.elementFromPoint(b.left + b.width / 2, b.top + b.height / 2);
+                        return {t: B.innerText, l: b.left, r: b.right, navrchu: !!(e && e.closest('#pwaBub'))}; }""")
+                    if not b or "⋮" not in b["t"]:
+                        raise Zlyhanie("Android bez ponuky prehliadača: ťuk na „📲 APP“ neukázal návod s menu ⋮")
+                    if not b["navrchu"] or b["l"] < 0 or b["r"] > sirka:
+                        raise Zlyhanie(f"bublina s návodom nie je navrchu alebo celá na šírku ({b})")
+                    page.click("#pwaBub .pwa-bub-x")
+                    page.wait_for_timeout(300)
+                    if not page.evaluate("document.getElementById('pwaBub').hidden"):
+                        raise Zlyhanie("✕ nezavrel bublinu s návodom")
+                    page.click("#hApp")
+                    page.wait_for_timeout(400)
+                    page.go_back()
+                    page.wait_for_timeout(600)
+                    if not page.evaluate("document.getElementById('pwaBub').hidden") or page.url != url0:
+                        raise Zlyhanie(f"Späť nezavrel bublinu alebo odišiel zo stránky ({page.url})")
+                    page.evaluate(self.BIP_JS)
+                    page.click("#hApp")
+                    page.wait_for_timeout(300)
+                    if page.evaluate("window._testPrompt") != 1:
+                        raise Zlyhanie("s ponukou prehliadača (beforeinstallprompt) ťuk na „📲 APP“ nespustil inštaláciu")
+                self.over_chyby(page, f"tlačidlo APP {sirka} px")
+                detail.append(f"{sirka} px „{m['txt']}“")
+            finally:
+                ctx.close()
+        # iPhone (UA) — nový návod
+        ctx = self.kontext(mobil=True)
+        try:
+            page = ctx.new_page()
+            ctx.add_init_script("Object.defineProperty(navigator,'userAgent',{get:()=>" + json.dumps(self.UA_IPHONE) + "})")
+            page.goto(self.base, wait_until="load")
+            self.cakaj_na_appku(page)
+            page.click("#hApp")
+            page.wait_for_timeout(400)
+            t = page.inner_text("#pwaBub")
+            if "≡" not in t or "⬆️" not in t or "★" in t or "bľúb" in t or "avourite" in t:
+                raise Zlyhanie(f"iPhone: návod nie je ≡ → Zdieľať → Pridať na plochu (alebo obsahuje vetu o obľúbených): {t[:150]}")
+            # Zadanie 50a3: hrot šípky nad ≡ v adrese Safari (iOS 26: stred ≈ 114 px zľava), celý v bubline
+            sp = page.evaluate("""() => { const B = document.getElementById('pwaBub'), b = B.getBoundingClientRect(),
+                    a = getComputedStyle(B, '::after'), w = parseFloat(a.width) + (a.boxSizing === 'border-box' ? 0
+                    : parseFloat(a.borderLeftWidth) + parseFloat(a.borderRightWidth));
+                const stred = b.left + parseFloat(getComputedStyle(B).borderLeftWidth) + parseFloat(a.left) + w / 2;
+                return {stred: Math.round(stred * 10) / 10, l: b.left, r: b.right, pol: w * Math.SQRT2 / 2}; }""")
+            if abs(sp["stred"] - 114) > 2 or sp["stred"] - sp["pol"] < sp["l"] or sp["stred"] + sp["pol"] > sp["r"]:
+                raise Zlyhanie(f"iPhone: šípka bubliny neukazuje na ≡ (stred hrotu {sp['stred']} px, čakám ≈ 114 px) alebo vytŕča z bubliny")
+        finally:
+            ctx.close()
+        # počítač a nainštalovaná aplikácia
+        ctx = self.kontext()
+        try:
+            page = self.stranka(ctx)
+            page.goto(self.base, wait_until="load")
+            self.cakaj_na_appku(page)
+            page.evaluate(self.BIP_JS)
+            page.wait_for_timeout(200)
+            if not page.evaluate("document.getElementById('hApp').hidden"):
+                raise Zlyhanie("na počítači je tlačidlo „📲 APP“ (po beforeinstallprompt) — má byť len na mobile")
+        finally:
+            ctx.close()
+        ctx = self.kontext(mobil=True)
+        try:
+            ctx.add_init_script("Object.defineProperty(navigator,'standalone',{get:()=>true})")
+            page = self.stranka(ctx)
+            page.goto(self.base, wait_until="load")
+            self.cakaj_na_appku(page)
+            if not page.evaluate("document.getElementById('hApp').hidden"):
+                raise Zlyhanie("v nainštalovanej aplikácii (standalone) je tlačidlo „📲 APP“")
+        finally:
+            ctx.close()
+        return "ok", ("; ".join(detail) + " vedľa ★, zbalená hlavička OK; návod Android (⋮) aj iPhone (≡), ✕ a Späť zavrú, "
+                      "ponuka → inštalácia; PC a aplikácia bez tlačidla")
+
     def spusti(self, od):
         self.cakaj_na_nasadenie(od)
         with sync_playwright() as p:
@@ -2590,6 +2901,9 @@ class Test:
                 self.kontrola("s) Admin v lokálnej kópii: okno linky, ⤒⤓, prekrytie na PC, sprievodca", self.admin_okno)
                 self.kontrola("t) Mobil (dotyk): hľadanie 16 px aj na šírku, Späť zavrie panel obľúbených", self.mobil_dotyk)
                 self.kontrola("u) Bannery na mobile: slot 1 strieda bannery slotov 1 aj 2", self.bannery_mobil)
+                self.kontrola("v) Web ako aplikácia (PWA): manifest, sw.js, offline", self.pwa)
+                self.kontrola("w) Ikonky až pri dorolovaní (dlhý zoznam, mobil)", self.ikonky_neskor)
+                self.kontrola("x) Tlačidlo „📲 APP“ v hlavičke (mobil, návod, PC, aplikácia)", self.app_tlacidlo)
             finally:
                 self.browser.close()
                 self.uprac_kopiu()

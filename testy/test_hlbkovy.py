@@ -85,6 +85,12 @@ KONTROLY
      Snímky (zmenšené, CSS pixely): z každého zariadenia domov, liga, hľadanie (aj keď je všetko
      OK) + miesto chyby → príloha „test-hlbkovy“. V Summary tabuľka zariadenie × stránka.
 
+  j) Web ako aplikácia (Zadanie 50, PWA): ak je manifest.webmanifest na webe, VŠETKY stránky zo
+     sitemapy (stiahnuté v a) majú <link rel="manifest"> a theme-color, /sw.js vráti 200 ako
+     JavaScript a ikonky z manifestu 200 — inak ❌. Bez PWA (starý web) aj vypnuté PWA (PWA = False:
+     samozničujúci sw.js, stránky bez manifestu) = ✅ s poznámkou. Všetky prehliadačové kontroly
+     (g, h, i) bežia BEZ service workera (SW_VYP_SKRIPT) — merajú prvú návštevu ako doteraz.
+
 Spustenie (lokálne):  python testy/test_hlbkovy.py --url https://sportlinky.sk/
 Voliteľne:  --vystup test-hlbkovy-vystup   (priečinok na zoznam chýb)
             --len-mobil                    (len kontrola i) — rýchlo po zmene webu; aj LEN_MOBIL=áno)
@@ -117,7 +123,7 @@ from datetime import datetime, timezone
 # ---------------------------------------------------------------- nastavenia
 # UA_PC, X_TEST, BLOKOVANE (štatistiky a reklamy sa v teste BLOKUJÚ — žiadne falošné
 # návštevy ani zobrazenia reklám), Zlyhanie, titulok_z_html, meta_z_html: testy/_spolocne.py
-from _spolocne import BLOKOVANE, UA_PC, X_TEST, Zlyhanie, meta_z_html, titulok_z_html   # spoločné (Zadanie 36)
+from _spolocne import BLOKOVANE, SW_VYP_SKRIPT, UA_PC, X_TEST, Zlyhanie, meta_z_html, titulok_z_html   # spoločné (Zadanie 36)
 
 NARAZ = 8                   # toľko stránok sa sťahuje naraz (slušne, nie záťažový test)
 TIMEOUT_S = 30              # max. čas na jednu adresu
@@ -518,7 +524,8 @@ class Test:
         canonical, hreflang = hlavicka_stranky(text)
         return {"kod": 200, "title": titulok_z_html(text), "canonical": canonical,
                 "hreflang": hreflang, "id": id_stranky(text),
-                "vlajky": set(VLAJKA_RE.findall(text)), "karty": karty_stranky(text, url)}
+                "vlajky": set(VLAJKA_RE.findall(text)), "karty": karty_stranky(text, url),
+                "manifest": 'rel="manifest"' in text and 'name="theme-color"' in text}   # j) Zadanie 50
 
     def sitemap(self, pokus):
         kod, _, text = stiahni(self.base + "sitemap.xml", cache_bust=True)
@@ -582,6 +589,42 @@ class Test:
         u = (self.domov_hreflang or {}).get(druhy) or ""
         c = urllib.parse.urlsplit(u)
         return druhy, (c.netloc if c.scheme in ("http", "https") else "")
+
+    # ------------------------------------------------ j) web ako aplikácia (Zadanie 50)
+    def pwa(self, pokus):
+        """Ak web má PWA (manifest.webmanifest 200): VŠETKY stránky zo sitemapy (stiahnuté
+        v kontrole a) majú <link rel="manifest"> a theme-color, sw.js vráti 200 ako JavaScript
+        a manifest odkazuje na ikonky, ktoré vrátia 200. Bez PWA / PWA vypnuté = ✅ s poznámkou."""
+        kod_sw, hl_sw, sw = stiahni(self.base + "sw.js")
+        kod_m, _, man = stiahni(self.base + "manifest.webmanifest")
+        if kod_m == 404:
+            if kod_sw == 200 and "PWA je VYPNUTÉ" in sw:
+                zle = [self.cesta(u) for u, v in self.stranky.items() if v.get("kod") == 200 and v.get("manifest")]
+                if zle:
+                    self.zoznam("j) Stránky s manifestom, hoci je PWA vypnuté", zle)
+                    raise Zlyhanie(f"PWA je vypnuté, ale {len(zle)} stránok má ešte <link rel=\"manifest\">")
+                return "ok", "PWA je VYPNUTÉ (samozničujúci sw.js, stránky bez manifestu)"
+            if kod_sw == 200:   # bežný sw.js beží, ale manifest chýba = pokazené nasadenie
+                raise Zlyhanie("/sw.js je na webe (PWA zapnuté), ale manifest.webmanifest vrátil HTTP 404")
+            return "ok", "web ešte nemá PWA (sw.js ani manifest nie sú) — nič sa neskúša"
+        if kod_m != 200:
+            raise Zlyhanie(f"manifest.webmanifest vrátil HTTP {kod_m}")
+        try:
+            m = json.loads(man)
+        except ValueError as e:
+            raise Zlyhanie(f"manifest.webmanifest nie je platný JSON ({e})") from e
+        if kod_sw != 200 or "javascript" not in (hl_sw.get("Content-Type") or "").lower():
+            raise Zlyhanie(f"/sw.js: HTTP {kod_sw}, typ {hl_sw.get('Content-Type') if hl_sw else '?'}")
+        zle_ik = [i.get("src") for i in m.get("icons", []) if stiahni(urllib.parse.urljoin(self.base, i.get("src", "")), binarne=True)[0] != 200]
+        if not m.get("icons") or zle_ik:
+            raise Zlyhanie(f"ikonky aplikácie v manifeste chýbajú alebo nevrátia 200: {zle_ik}")
+        ok = [u for u, v in self.stranky.items() if v.get("kod") == 200]
+        zle = [self.cesta(u) for u in ok if not self.stranky[u].get("manifest")]
+        if zle:
+            self.zoznam("j) Stránky bez <link rel=\"manifest\"> / theme-color", zle)
+            raise Zlyhanie(f"{len(zle)} z {len(ok)} stránok nemá <link rel=\"manifest\"> alebo theme-color")
+        return "ok", (f"manifest „{m.get('short_name')}“ ({len(m['icons'])} ikonky 200), sw.js JavaScript; "
+                      f"<link rel=\"manifest\"> + theme-color na všetkých {len(ok)} stránkach")
 
     def hlavicky(self, pokus):
         if not self.stranky:
@@ -849,6 +892,7 @@ class Test:
                 ctx = browser.new_context(viewport={"width": 1366, "height": 900}, user_agent=UA_PC,
                                           extra_http_headers=X_TEST)
                 ctx.route("**/*", self.smerovanie)
+                ctx.add_init_script(SW_VYP_SKRIPT)   # Zadanie 50: bez service workera (ako pred PWA)
                 page = ctx.new_page()
                 chyby_js = []
                 page.on("pageerror", lambda e: chyby_js.append(str(e)))
@@ -1132,6 +1176,7 @@ class Test:
         ctx.set_default_navigation_timeout(45_000)
         if cache:
             ctx.route("**/*", self.mobil_smerovanie)
+        ctx.add_init_script(SW_VYP_SKRIPT)   # Zadanie 50: bez service workera (ako pred PWA)
         return ctx
 
     def mobil_stranka(self, ctx):
@@ -1606,6 +1651,7 @@ class Test:
     def mobil_vykon_meraj(self, browser, z, url):
         ctx = browser.new_context(viewport={"width": z["okno"][0], "height": z["okno"][1]},
                                   device_scale_factor=z["dpr"], is_mobile=True, has_touch=True, user_agent=z["ua"])
+        ctx.add_init_script(SW_VYP_SKRIPT)   # Zadanie 50: meria sa prvá návšteva (bez service workera)
         try:
             page = ctx.new_page()
             cdp = ctx.new_cdp_session(page)
@@ -1755,6 +1801,7 @@ class Test:
         self.kontrola("f) Ikonky /ikony/ a vlajky /vlajky/", self.ikony_vlajky)
         self.kontrola("g) Appka ↔ generátor: adresy a titulky všetkých stránok", self.zrkadlo)
         self.kontrola("h) Obsah stránok appka ↔ statika: zoznam, poradie a počty kariet", self.obsah)
+        self.kontrola("j) Web ako aplikácia (PWA): manifest na všetkých stránkach, sw.js", self.pwa)
         self.mobil()
 
     def zhrnutie(self, trvanie):

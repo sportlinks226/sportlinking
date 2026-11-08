@@ -19,6 +19,15 @@ BLOKOVANE = ("goatcounter.com", "zgo.at", "googletagmanager.com",
              "google-analytics.com", "ban.tipsport.sk")
 
 
+# Zadanie 50 (web ako aplikácia): bežné kontroly bežia BEZ service workera — appka ho nezaregistruje
+# (navigator.serviceWorker = undefined), takže prehliadač testu sa správa ako pred PWA a podstrčené
+# súbory (page.route na aktualne.json, version.txt…) fungujú ako doteraz. Service worker skúša len
+# samostatná kontrola PWA. (Voľba Playwrightu service_workers="block" sa nepoužíva — v prehliadači
+# vyvolá chybu „context is sandboxed“, ktorú by testy hlásili ako chybu webu.)
+SW_VYP_SKRIPT = ("try{Object.defineProperty(Navigator.prototype,'serviceWorker',"
+                 "{get:function(){return undefined},configurable:true})}catch(e){}")
+
+
 class Zlyhanie(Exception):
     """Kontrola neprešla (text = vysvetlenie pre zhrnutie)."""
 
