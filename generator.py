@@ -41,6 +41,13 @@ SEO (od 2.10.2026):
   - Aktuálne sa vkladajú do index.html už pri builde (inject_aktualne), aby
     ich Google videl v surovom HTML; appka ich po štarte prekreslí na to isté.
     Od 3.11.2026 sú vo vlastnom súbore aktualne.json (viď load_aktualne).
+
+WEB AKO APLIKÁCIA NA MOBIL — PWA (Zadanie 50, 8.11.2026):
+  - vypínač PWA = True/False hore v KONFIGURÁCII; návod v NAVOD-PWA.md
+  - pri builde zapíše manifest.webmanifest, sw.js (service worker) a skopíruje
+    ikonky aplikácie z pwa/<jazyk>-*.png; do <head> všetkých stránok pridá
+    manifest, theme-color a riadky pre iPhone (HEAD_LINKS)
+  - pri PWA = False nasadí „samozničujúci“ sw.js a odkazy na manifest vynechá
 """
 
 import hashlib
@@ -59,6 +66,17 @@ from urllib.parse import unquote, urlsplit
 # ------------------------------------------------------------
 # KONFIGURÁCIA
 # ------------------------------------------------------------
+# ZADANIE 50 (8.11.2026): WEB AKO APLIKÁCIA NA MOBIL (PWA) — HLAVNÝ VYPÍNAČ.
+#   True  = manifest, ikonky aplikácie, service worker /sw.js (rýchle opätovné
+#           otvorenie, offline stránka) a odkaz „📲 Pridať na plochu“ v pätičke.
+#   False = PWA úplne vypnuté: odkazy na manifest zmiznú a namiesto sw.js sa
+#           nasadí „samozničujúci“ sw.js — u ľudí, ktorí už web majú na ploche,
+#           zmaže svoje uložené súbory a odregistruje sa (web je ako pred PWA).
+# Návod: NAVOD-PWA.md.
+PWA = True
+if os.environ.get("PWA") == "0":   # len na skúšky (test vypínača) — na webe rozhoduje riadok vyššie
+    PWA = False
+
 LANG = os.environ.get("SITE_LANG", "sk")   # "sk" alebo "en"
 OUT_PREFIX = os.environ.get("OUT_PREFIX", "")
 BASE_URL = os.environ.get("BASE_URL", "").rstrip("/")
@@ -1333,13 +1351,312 @@ FAVICON_LINKS = (f'<link rel="icon" href="{SITE_ABS_ROOT}favicon.ico" sizes="48x
                  f'<link rel="icon" href="{SITE_ABS_ROOT}favicon.svg" type="image/svg+xml">\n'
                  f'<link rel="apple-touch-icon" href="{SITE_ABS_ROOT}apple-touch-icon.png">')
 
+# ------------------------------------------------------------
+# ZADANIE 50: WEB AKO APLIKÁCIA (PWA) — vypínač PWA je hore v KONFIGURÁCII
+# ------------------------------------------------------------
+# MANIFEST (manifest.webmanifest) — „občiansky preukaz“ aplikácie: názov pod ikonkou,
+# ikonky, farby a že sa otvára na celú obrazovku bez riadka s adresou (standalone).
+# short_name je názov pod ikonkou na ploche — do ~12 znakov, aby ho Android neorezal.
+# start_url je čisté "/" (bez ?parametra) — canonical ani Google sa ho netýka;
+# spustenia aplikácie sa v GoatCounteri počítajú udalosťou „pwa-spustenie“ (index.html).
+PWA_BG = "#0f1923"     # pozadie úvodnej obrazovky a farba lišty (= --bg v index.html)
+PWA_NAME = "Sportlinking" if LANG == "en" else "Športové Linky"
+PWA_SHORT = "Sportlinking" if LANG == "en" else "Sportlinky"
+# Ikonky aplikácie sú uložené v repozitári (pwa/sk-*.png červené, pwa/en-*.png modré —
+# obe sady v OBOCH repozitároch, súbory sú bajtovo zhodné). Pri builde sa skopírujú tie
+# pre jazyk webu ako /pwa-192.png, /pwa-512.png a /pwa-maskable-512.png. „maskable“ =
+# logo je v bezpečnom strede, Android z ikonky vyreže kruh / zaoblený štvorec.
+PWA_IKONY = (("pwa-192.png", f"pwa/{LANG}-192.png", "192x192", "any"),
+             ("pwa-512.png", f"pwa/{LANG}-512.png", "512x512", "any"),
+             ("pwa-maskable-512.png", f"pwa/{LANG}-maskable-512.png", "512x512", "maskable"))
+PWA_MANIFEST = {
+    "name": PWA_NAME,
+    "short_name": PWA_SHORT,
+    "description": ("All the world's sports websites in one place." if LANG == "en"
+                    else "Všetky športové weby sveta na jednom mieste."),
+    "lang": LANG,
+    "dir": "ltr",
+    "id": SITE_ABS_ROOT,
+    "start_url": SITE_ABS_ROOT,
+    "scope": SITE_ABS_ROOT,
+    "display": "standalone",
+    "background_color": PWA_BG,
+    "theme_color": PWA_BG,
+    "icons": [{"src": SITE_ABS_ROOT + web, "sizes": size, "type": "image/png", "purpose": purpose}
+              for web, _, size, purpose in PWA_IKONY],
+}
+# Riadky do <head> KAŽDEJ stránky (index.html aj statické stránky — appka pri prevzatí
+# prepíše hlavičku tou z index.html, preto musia byť v oboch). Pre iPhone:
+#  - apple-mobile-web-app-title = názov pod ikonkou,
+#  - status-bar-style "black" = stavový riadok (hodiny, výrez) je čierny a stránka
+#    začína až POD ním — hlavička pod hodiny nezalezie a CSS netreba meniť.
+PWA_HEAD = (f'<link rel="manifest" href="{SITE_ABS_ROOT}manifest.webmanifest">\n'
+            f'<meta name="theme-color" content="{PWA_BG}">\n'
+            f'<meta name="mobile-web-app-capable" content="yes">\n'
+            f'<meta name="apple-mobile-web-app-capable" content="yes">\n'
+            f'<meta name="apple-mobile-web-app-title" content="{escape(PWA_SHORT)}">\n'
+            f'<meta name="apple-mobile-web-app-status-bar-style" content="black">')
+# Favicony + (pri PWA = True) riadky aplikácie — jedna značka pre index.html aj PAGE
+HEAD_LINKS = FAVICON_LINKS + ("\n" + PWA_HEAD if PWA else "")
+
+# OFFLINE STRÁNKA — service worker ju ukáže, keď nie je sieť a stránka ešte nie je
+# uložená v mobile. Je priamo v sw.js (žiadny ďalší súbor).
+PWA_OFFLINE = {
+    "sk": ("Nie si pripojený na internet",
+           "Táto stránka ešte nie je uložená v mobile. Skontroluj pripojenie a skús to znova.",
+           "Skúsiť znova", "Domov"),
+    "en": ("You're not connected to the internet",
+           "This page isn't saved on your device yet. Check your connection and try again.",
+           "Try again", "Home"),
+}[LANG]
+PWA_OFFLINE_HTML = (
+    f'<!DOCTYPE html><html lang="{LANG}"><head><meta charset="utf-8">'
+    '<meta name="viewport" content="width=device-width, initial-scale=1">'
+    f'<meta name="theme-color" content="{PWA_BG}"><title>{escape(PWA_OFFLINE[0])}</title>'
+    f'<style>body{{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;'
+    f'background:{PWA_BG};color:#e8eaf0;font:16px/1.5 "Segoe UI",Arial,sans-serif;text-align:center;padding:24px;box-sizing:border-box}}'
+    f'h1{{font-size:1.25rem;margin:12px 0}}p{{color:#90a5b7;margin:0 0 20px}}'
+    f'a,button{{display:inline-block;margin:4px;padding:10px 18px;border-radius:10px;border:0;font:inherit;'
+    f'font-weight:600;cursor:pointer;text-decoration:none}}button{{background:{ACCENT_STRONG};color:#fff}}'
+    f'a{{background:#22334a;color:#e8eaf0}}</style></head><body><div><div style="font-size:48px">📡</div>'
+    f'<h1>{escape(PWA_OFFLINE[0])}</h1><p>{escape(PWA_OFFLINE[1])}</p>'
+    f'<button onclick="location.reload()">{escape(PWA_OFFLINE[2])}</button>'
+    f'<a href="{SITE_ABS_ROOT}">{escape(PWA_OFFLINE[3])}</a></div></body></html>')
+
+# SERVICE WORKER /sw.js — malý pomocník, ktorý prehliadač spustí „medzi“ stránkou a sieťou.
+# Zachytáva LEN požiadavky GET z vlastnej domény a len tieto skupiny súborov; všetko
+# ostatné (Tipsport, GoatCounter, GitHub, weby klubov, data-full.json a ďalšie súbory
+# admina, manifest, bannery…) ide po starom priamo na sieť, bez zásahu:
+#  - STRÁNKY (HTML, index.html): najprv sieť; bez siete uložená kópia, inak offline
+#    stránka. Uloží sa najviac SW_MAX_STRANOK naposledy otvorených stránok. Otvorenie
+#    stránky v okne používa navigation preload (sťahuje sa súbežne so štartom workera).
+#    Sieť a zápis do pamäte sú oddelené: chyba zápisu nikdy nevedie k uloženej kópii.
+#  - data.json, aktualne.json: najprv sieť (online VŽDY to, čo je na webe — aj cez
+#    bežnú pamäť prehliadača, ako doteraz: data.json?v=NNN sa stiahne znova len pri
+#    novej verzii); uložená kópia (len posledná) sa použije LEN bez siete.
+#  - ikony/ a vlajky/: hneď z pamäte mobilu; raz za deň sa obrázok na pozadí obnoví
+#    (názov súboru sa pri zmene ikonky NEMENÍ — ikony.py prepisuje ikony/<web>.png),
+#    nová ikonka sa teda ukáže pri ďalšom zobrazení. Najviac SW_MAX_IKON obrázkov.
+# Verzia (__VER__) = odtlačok sw.js + kostry appky (index.html zo repozitára). Keď sa
+# zmení, nový sw.js hneď prevezme riadenie (skipWaiting + clients.claim) a zmaže staré
+# uložené stránky aj dáta. Ikonky majú vlastnú, stálu pamäť (sl-ikony-1) — prežijú
+# aktualizáciu, obnovujú sa samy. Denný build so zmenou len dát sw.js NEMENÍ.
+SW_MAX_STRANOK = 60
+SW_MAX_IKON = 800
+SW_JS = r"""// sw.js — vyrába generator.py (Zadanie 50, web ako aplikácia). Na webe ho NEUPRAVUJ ručne.
+'use strict';
+const VER = "__VER__";
+const ROOT = "__ROOT__";                 // koreň webu, napr. "/"
+const C_STR = 'sl-stranky-' + VER;       // HTML stránky
+const C_DAT = 'sl-data-' + VER;          // data.json, aktualne.json (posledná kópia, len pre offline)
+const C_IKO = 'sl-ikony-1';              // ikony/ a vlajky/ (prežije aktualizáciu)
+const MOJE = [C_STR, C_DAT, C_IKO];
+const MAX_STR = __MAX_STR__, MAX_IKO = __MAX_IKO__;
+const IKO_OBNOVA_MS = 24 * 3600 * 1000;  // ikonku staršiu ako deň obnov na pozadí
+const OFFLINE = __OFFLINE__;
+
+self.addEventListener('install', e => {
+  self.skipWaiting();
+  // domovská stránka do zásoby (offline štart aplikácie). Ide cez bežnú pamäť
+  // prehliadača, takže sa väčšinou nič nesťahuje. Chyba inštaláciu nezastaví.
+  e.waitUntil(caches.open(C_STR).then(c => fetch(ROOT).then(r => {
+    if(r.ok && r.type === 'basic' && !r.redirected) return c.put(new URL(ROOT, location.href).href, r);
+  })).catch(() => {}));
+});
+
+self.addEventListener('activate', e => {
+  e.waitUntil((async () => {
+    const mena = await caches.keys();
+    await Promise.all(mena.filter(n => n.indexOf('sl-') === 0 && MOJE.indexOf(n) < 0).map(n => caches.delete(n)));
+    // NAVIGATION PRELOAD: prehliadač začne sťahovať stránku hneď, súbežne so štartom
+    // workera (worker po čase nečinnosti „zaspí“ a jeho štart by stránku zdržal).
+    try{ if(self.registration.navigationPreload) await self.registration.navigationPreload.enable(); }catch(err){}
+    await orez(C_IKO, MAX_IKO);
+    await self.clients.claim();
+  })());
+});
+
+self.addEventListener('fetch', e => {
+  const r = e.request;
+  if(r.method !== 'GET' || r.headers.has('range')) return;
+  const u = new URL(r.url);
+  if(u.origin !== location.origin || u.pathname.indexOf(ROOT) !== 0) return; // cudzie weby bez zásahu
+  const p = u.pathname.slice(ROOT.length);                                     // cesta od koreňa webu
+  if(p === 'data-full.json' || p === 'sw.js'){                                 // admin: vždy len sieť
+    // (otvorenie priamo v okne: predčasne stiahnutú kópiu len „odober“, inak prehliadač varuje)
+    if(r.mode === 'navigate' && e.preloadResponse) e.waitUntil(e.preloadResponse.catch(() => {}));
+    return;
+  }
+  if(r.mode === 'navigate' || p === '' || /(\/|\.html)$/.test(p)){ e.respondWith(stranka(e, u)); return; }
+  if(p === 'data.json' || p === 'aktualne.json'){ e.respondWith(data(e, u)); return; }
+  if(/^(ikony|vlajky)\//.test(p)){ e.respondWith(ikona(e)); return; }
+});
+
+// orezanie pamäte: najstaršie uložené položky preč
+async function orez(meno, max){
+  try{
+    const c = await caches.open(meno), k = await c.keys();
+    for(let i = 0; i < k.length - max; i++) await c.delete(k[i]);
+  }catch(err){}
+}
+
+async function stranka(e, u){
+  const kluc = u.origin + u.pathname;   // bez ?parametrov a #
+  // 1) SIEŤ — len tu sa rozhoduje, či je návštevník offline
+  let res = null;
+  try{
+    if(e.request.mode === 'navigate' && e.preloadResponse) res = await e.preloadResponse; // navigation preload
+    if(!res) res = await fetch(e.request);
+  }catch(err){ res = null; }
+  if(res){
+    // 2) ZÁPIS DO PAMÄTE — samostatne; jeho chyba nikdy nezmení odpoveď zo siete
+    try{
+      const typ = res.headers.get('content-type') || '';
+      if(res.ok && res.type === 'basic' && !res.redirected && typ.indexOf('text/html') >= 0){
+        const kopia = res.clone();
+        e.waitUntil(caches.open(C_STR).then(c => c.put(kluc, kopia)).then(() => orez(C_STR, MAX_STR)).catch(() => {}));
+      }
+    }catch(err){}
+    return res;
+  }
+  // 3) BEZ SIETE — uložená kópia, inak offline stránka
+  try{
+    const c = await caches.open(C_STR);
+    // "/" a "/index.html" sú ten istý súbor (appka si sťahuje index.html);
+    // "/futbal" (bez lomky) = "/futbal/" (GitHub Pages presmeruje na lomku)
+    const aliasy = /\/index\.html$/.test(kluc) ? [kluc.slice(0, -10)]
+                 : /\/$/.test(kluc) ? [kluc + 'index.html']
+                 : /\.[a-z0-9]+$/i.test(kluc) ? [] : [kluc + '/'];
+    for(const k of [kluc].concat(aliasy)){ const m = await c.match(k); if(m) return m; }
+  }catch(err){}
+  if(e.request.mode === 'navigate')
+    return new Response(OFFLINE, {headers: {'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store'}});
+  return Response.error();
+}
+
+// zápisy dát idú za sebou (rad) — dva súbežné zápisy by si navzájom zmazali kópiu
+let _datRad = Promise.resolve();
+async function data(e, u){
+  const kluc = u.origin + u.pathname;
+  // 1) SIEŤ
+  let res = null;
+  try{ res = await fetch(e.request); }catch(err){ res = null; }
+  if(res){
+    // 2) ZÁPIS DO PAMÄTE — samostatne; online návštevník VŽDY dostane odpoveď zo siete
+    try{
+      if(res.ok && res.type === 'basic'){
+        const kopia = res.clone();
+        e.waitUntil(_datRad = _datRad.then(() => ulozData(u, kopia)));
+      }
+    }catch(err){}
+    return res;
+  }
+  // 3) BEZ SIETE — posledná uložená kópia
+  try{
+    const c = await caches.open(C_DAT);
+    const m = await c.match(kluc, {ignoreSearch: true});
+    if(m) return m;
+  }catch(err){}
+  return Response.error();
+}
+async function ulozData(u, res){
+  try{
+    const c = await caches.open(C_DAT), plna = u.origin + u.pathname + u.search;
+    // data.json?v=NNN: tá istá verzia už je uložená — 5 MB sa znova nezapisuje
+    if(/\/data\.json$/.test(u.pathname) && u.search && await c.match(plna)){
+      if(res.body) res.body.cancel().catch(() => {});
+      return;
+    }
+    await c.put(plna, res);
+    for(const k of await c.keys()){                         // nechaj len poslednú kópiu súboru
+      if(new URL(k.url).pathname === u.pathname && k.url !== plna) await c.delete(k);
+    }
+  }catch(err){}
+}
+
+// Limit ikoniek: orezáva sa pri aktivácii workera, pri PRVOM zápise po každom štarte
+// workera (počítadlo sa pri jeho zastavení vynuluje) a potom každých 40 zápisov.
+// Medzi orezaniami pamäť prekročí limit najviac o desiatky obrázkov.
+let _ikoPut = 0;
+async function ikona(e){
+  const r = e.request, c = await caches.open(C_IKO);
+  const m = await c.match(r.url);
+  const uloz = res => {
+    try{
+      if(res.ok && res.type === 'basic'){
+        const kopia = res.clone();
+        e.waitUntil(c.put(r.url, kopia).then(() => { if(_ikoPut++ % 40 === 0) return orez(C_IKO, MAX_IKO); }).catch(() => {}));
+      }
+    }catch(err){}
+    return res;
+  };
+  if(m){
+    const d = Date.parse(m.headers.get('date') || '');
+    if(!(d > Date.now() - IKO_OBNOVA_MS)) e.waitUntil(fetch(r.url).then(uloz).catch(() => {}));
+    return m;
+  }
+  return fetch(r).then(uloz);
+}
+"""
+# „SAMOZNIČUJÚCI“ sw.js pri PWA = False: prehliadač ho nájde pri najbližšom otvorení webu
+# (nový sw.js kontroluje sám, aj keď má návštevník web na ploche), zmaže všetky uložené
+# súbory webu (cache „sl-…“) a odregistruje sa. Stránky potom idú priamo zo siete ako
+# pred PWA. Appka (index.html) pri PWA = False navyše sama odregistruje starý worker.
+SW_KILL_JS = """// sw.js — PWA je VYPNUTÉ (PWA = False v generator.py, Zadanie 50).
+// Tento sw.js zmaže uložené súbory webu a odregistruje sa — web sa vráti do stavu pred PWA.
+'use strict';
+self.addEventListener('install', () => self.skipWaiting());
+self.addEventListener('activate', e => {
+  e.waitUntil((async () => {
+    try{
+      const mena = await caches.keys();
+      await Promise.all(mena.filter(n => n.indexOf('sl-') === 0).map(n => caches.delete(n)));
+    }catch(err){}
+    try{ if(self.registration.navigationPreload) await self.registration.navigationPreload.disable(); }catch(err){}
+    await self.registration.unregister();
+  })());
+});
+"""
+
+
+def pwa_sw_js(app_src: str) -> str:
+    """Obsah /sw.js. Pri PWA = False samozničujúci sw.js. Verzia = odtlačok šablóny
+    sw.js, offline stránky, limitov a kostry appky (index.html z repozitára — nie
+    vyrobeného, ktorý sa mení s dátami každý deň)."""
+    if not PWA:
+        return SW_KILL_JS
+    ver = hashlib.sha256("\x00".join((SW_JS, PWA_OFFLINE_HTML, str(SW_MAX_STRANOK), str(SW_MAX_IKON),
+                                      app_src)).encode("utf-8")).hexdigest()[:12]
+    return (SW_JS.replace("__VER__", ver).replace("__ROOT__", SITE_ABS_ROOT)
+            .replace("__MAX_STR__", str(SW_MAX_STRANOK)).replace("__MAX_IKO__", str(SW_MAX_IKON))
+            .replace("__OFFLINE__", json.dumps(PWA_OFFLINE_HTML, ensure_ascii=False)))
+
+
+def zapis_pwa(out: str, app_src: str) -> None:
+    """Zapíše sw.js (vždy — aj pri PWA = False, vtedy samozničujúci) a pri PWA = True
+    manifest.webmanifest + ikonky aplikácie. Chýbajúca ikonka build nezastaví."""
+    with open(os.path.join(out, "sw.js"), "w", encoding="utf-8") as f:
+        f.write(pwa_sw_js(app_src))
+    if not PWA:
+        print("PWA: VYPNUTÉ (PWA = False) — nasadený samozničujúci sw.js, bez manifestu")
+        return
+    with open(os.path.join(out, "manifest.webmanifest"), "w", encoding="utf-8") as f:
+        json.dump(PWA_MANIFEST, f, ensure_ascii=False, indent=1)
+    for web, zdroj, _, _ in PWA_IKONY:
+        if os.path.exists(zdroj):
+            shutil.copy(zdroj, os.path.join(out, web))
+        else:
+            print(f"UPOZORNENIE: chýba ikonka aplikácie {zdroj} — na webe nebude (build pokračuje).")
+    print(f"PWA: zapnuté — manifest.webmanifest ({PWA_SHORT}), sw.js, {len(PWA_IKONY)} ikonky")
+
 # BOD 16 (3.11.2026): ZOZNAM POVOLENÝCH DOMÉN (Content-Security-Policy) — rovnaký
 # ako <meta http-equiv="Content-Security-Policy"> v index.html (main() to pri builde
 # kontroluje, build pri rozdiele spadne). Vysvetlenie jednotlivých častí je v index.html.
 CSP = ("default-src 'self'; script-src 'self' 'unsafe-inline' https://ban.tipsport.sk https://gc.zgo.at; "
        "connect-src 'self' https://sportlinky.sk https://ban.tipsport.sk https://sportlinky.goatcounter.com https://sportlinking.goatcounter.com; "
        "img-src 'self' data: https:; style-src 'self' 'unsafe-inline'; font-src 'self' data:; "
-       "frame-src 'self' https://ban.tipsport.sk; object-src 'none'; base-uri 'self'; form-action 'self'")
+       "frame-src 'self' https://ban.tipsport.sk; manifest-src 'self'; worker-src 'self'; "
+       "object-src 'none'; base-uri 'self'; form-action 'self'")
 CSP_META = f'<meta http-equiv="Content-Security-Policy" content="{CSP}"/>'
 
 # BOD 16: CUDZÍ REKLAMNÝ KÓD V UZAVRETOM OKIENKU — rovnako ako adFrame() v index.html
@@ -2041,7 +2358,7 @@ def render_page(node, path, children, by_id, paths, site_title, alt_url=None, pa
         lang=LANG,
         title=page_title,
         meta_desc=escape(meta, quote=True),
-        favicons=FAVICON_LINKS,
+        favicons=HEAD_LINKS,   # favicony + (PWA) manifest, theme-color, iPhone
         canonical=canonical,
         og_tags=og_tags,
         jsonld=jsonld,
@@ -2411,7 +2728,16 @@ def main():
                 raise SystemExit(
                     "CHYBA: v index.html chýba značka <!--FAVICONS--> — "
                     "favicon by sa nezobrazil. Skontroluj index.html.")
-            html = html.replace(fav_marker, FAVICON_LINKS, 1)
+            html = html.replace(fav_marker, HEAD_LINKS, 1)   # Zadanie 50: + riadky PWA
+
+            # Zadanie 50: vypínač PWA aj pre appku (registrácia sw.js, odkaz „📲 Pridať na plochu“)
+            pwa_marker = 'let PWA_ON = true;'
+            if pwa_marker not in html:
+                raise SystemExit(
+                    "CHYBA: v index.html chýba riadok 'let PWA_ON = true;' — vypínač PWA "
+                    "by nefungoval. Skontroluj index.html.")
+            if not PWA:
+                html = html.replace(pwa_marker, 'let PWA_ON = false;', 1)
 
             # Appke povedz verziu dát — sťahuje si data.json?v=NNN, takže si ho
             # prehliadač smie odložiť do pamäte a pri novej verzii si stiahne
@@ -2470,6 +2796,12 @@ def main():
                 f.write(html)
         with open(os.path.join(out, "favicon.svg"), "w", encoding="utf-8") as f:
             f.write(FAVICON_SVG)
+        # Zadanie 50: sw.js (+ manifest a ikonky aplikácie pri PWA = True)
+        app_src = ""
+        if os.path.exists("index.html"):
+            with open("index.html", encoding="utf-8") as f:
+                app_src = f.read()
+        zapis_pwa(out, app_src)
         # dáta: data-full.json (celé, len pre admina) + data.json (odľahčený
         # pre návštevníkov) — viď lite_data(). data.json sa už nekopíruje.
         write_json(os.path.join(out, "data-full.json"), data)
