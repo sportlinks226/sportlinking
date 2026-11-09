@@ -1,6 +1,6 @@
 {
  "info": "Stav ikoniek webov (ikony.py). Generuje GitHub Actions — ručne nemeniť.",
- "obnova": {"den": "2026-11-06", "obnovene": 0},
+ "obnova": {"den": "2026-11-09", "obnovene": 0},
  "hosty": {
   "1-division.dk": {"datum": "2026-11-03", "vysledok": "ok", "zdroj": "google"},
   "1.fc-magdeburg.de": {"datum": "2026-11-03", "vysledok": "ok", "zdroj": "google"},
@@ -5778,6 +5778,7 @@
   "www.islandersusphl.com": {"datum": "2026-11-02", "vysledok": "ok", "zdroj": "google"},
   "www.isna.ir": {"datum": "2026-11-02", "vysledok": "ok", "zdroj": "yandex"},
   "www.israelhayom.co.il": {"datum": "2026-11-02", "vysledok": "ok", "zdroj": "google"},
+  "www.issf-sports.org": {"datum": "2026-11-09", "vysledok": "ok", "zdroj": "yandex"},
   "www.istanbulspor.com.tr": {"datum": "2026-11-02", "vysledok": "ok", "zdroj": "google"},
   "www.itfc.co.uk": {"datum": "2026-11-02", "vysledok": "ok", "zdroj": "google"},
   "www.itftennis.com": {"datum": "2026-11-02", "nevideny_od": "2026-11-03", "vysledok": "ok", "zdroj": "google"},
@@ -6925,6 +6926,7 @@
   "www.rot-weiss-essen.de": {"datum": "2026-11-02", "vysledok": "ok", "zdroj": "google"},
   "www.rotowire.com": {"datum": "2026-11-02", "vysledok": "ok", "zdroj": "google"},
   "www.rouenmetrobasket.com": {"datum": "2026-11-02", "vysledok": "ok", "zdroj": "google"},
+  "www.routedurhum.com": {"datum": "2026-11-09", "vysledok": "ok", "zdroj": "yandex"},
   "www.rovers.co.uk": {"datum": "2026-11-02", "vysledok": "ok", "zdroj": "google"},
   "www.row2k.com": {"datum": "2026-11-02", "vysledok": "ok", "zdroj": "google"},
   "www.rowdiessoccer.com": {"datum": "2026-11-02", "vysledok": "ok", "zdroj": "google"},
@@ -7607,6 +7609,7 @@
   "www.torosdelnorte.com": {"datum": "2026-11-02", "vysledok": "ok", "zdroj": "google"},
   "www.torquayunited.com": {"datum": "2026-11-02", "vysledok": "ok", "zdroj": "google"},
   "www.torreense.com": {"datum": "2026-11-02", "vysledok": "ok", "zdroj": "google"},
+  "www.totalchess.com": {"datum": "2026-11-09", "vysledok": "ok", "zdroj": "google"},
   "www.tottenhamhotspur.com": {"datum": "2026-11-02", "vysledok": "ok", "zdroj": "google"},
   "www.toulousefc.com": {"datum": "2026-11-02", "vysledok": "ok", "zdroj": "google"},
   "www.tournamentsoftware.com": {"datum": "2026-11-02", "vysledok": "ok", "zdroj": "google"},
