@@ -111,6 +111,13 @@ beforeinstallprompt → systémová inštalácia; iPhone → návod ≡ → Zdie
 o obľúbených, hrot šípky nad ≡ (stred ≈ 114 px zľava, Zadanie 50a3); počítač (aj po beforeinstallprompt)
 a nainštalovaná aplikácia → tlačidlo nie je.
 
+Kontrola y) (Zadanie 51): bez lišty rolovania v nainštalovanej aplikácii — v CSS je pravidlo
+@media (display-mode: standalone) so scrollbar-width: none pre html a body; v prehliadači (PC 1366×768,
+vlastný Chromium so ZAPNUTÝMI lištami) <html> nemá triedu pwa-app, html/body majú scrollbar-width auto
+a lišta sa kreslí (clientWidth < innerWidth); v aplikácii (podstrčené navigator.standalone ako na iPhone)
+má <html> triedu pwa-app, html/body scrollbar-width none, lišta nezaberá šírku a stránka sa dá dorolovať
+na koniec — na PC aj mobile, bez chýb v konzole. Starý web bez tejto úpravy = ✅ s poznámkou.
+
 Spustenie (lokálne):  python testy/test_webu.py --url https://sportlinky.sk/
 Voliteľne:  --od 2026-11-02T02:30:00Z  (počkaj, kým živý web nemá novšiu verziu)
             --vystup test-vystup        (priečinok na snímky a zoznam chýb)
@@ -230,18 +237,20 @@ class Test:
             return route.continue_(headers={**req.headers, "x-test": X_TEST["X-Test"]})
         return route.continue_()
 
-    def kontext(self, mobil=False, okno=None, sw=False):
+    def kontext(self, mobil=False, okno=None, sw=False, browser=None):
         """sw=False (bežné kontroly): appka nezaregistruje service worker (SW_VYP_SKRIPT) —
-        prehliadač testu sa správa ako pred PWA. sw=True len pre kontrolu v) PWA."""
+        prehliadač testu sa správa ako pred PWA. sw=True len pre kontrolu v) PWA.
+        browser = iný prehliadač než spoločný (Zadanie 51: Chromium so zapnutými lištami)."""
+        browser = browser or self.browser
         if mobil:
             w, h = okno or (390, 844)   # Zadanie 47b: mobil aj na šírku (okno=(844, 390))
-            ctx = self.browser.new_context(viewport={"width": w, "height": h},
+            ctx = browser.new_context(viewport={"width": w, "height": h},
                                            device_scale_factor=2, is_mobile=True,
                                            has_touch=True, user_agent=UA_MOBIL)
         else:
             w, h = okno or (1366, 900)
-            ctx = self.browser.new_context(viewport={"width": w, "height": h},
-                                           user_agent=UA_PC)
+            ctx = browser.new_context(viewport={"width": w, "height": h},
+                                      user_agent=UA_PC)
         ctx.set_default_navigation_timeout(NAVIGACIA_MS)
         ctx.set_default_timeout(CAKANIE_MS)
         ctx.route("**/*", self.smerovanie)
@@ -2857,6 +2866,69 @@ class Test:
         return "ok", ("; ".join(detail) + " vedľa ★, zbalená hlavička OK; návod Android (⋮) aj iPhone (≡), ✕ a Späť zavrú, "
                       "ponuka → inštalácia; PC a aplikácia bez tlačidla")
 
+    # ------------------------------------------------ y) bez lišty rolovania v aplikácii (Zadanie 51)
+    LISTA_JS = """() => { const h = document.documentElement, b = document.body, cs = e => getComputedStyle(e).scrollbarWidth;
+        let media = false;
+        for (const sh of document.styleSheets) { let r; try { r = sh.cssRules; } catch(e) { continue; }
+            for (const x of r) if (x.conditionText && x.conditionText.includes('display-mode: standalone')
+                && /scrollbar-width: none/.test(x.cssText) && /html/.test(x.cssText)) media = true; }
+        return {trieda: h.classList.contains('pwa-app'), html: cs(h), body: cs(b), media,
+                iw: innerWidth, cw: h.clientWidth, ih: innerHeight, sh: document.scrollingElement.scrollHeight}; }"""
+
+    def lista_aplikacia(self, pokus):
+        """Zadanie 51: v aplikácii (standalone) sa ukazovateľ rolovania hlavnej stránky nekreslí,
+        v prehliadači ostáva. Vlastný Chromium so ZAPNUTÝMI lištami (spoločný ich skrýva)."""
+        kod, _, text = stiahni(self.base)
+        if kod == 200 and "pwa-app" not in text:
+            return "ok", "web ešte nemá úpravu Zadania 51 (trieda pwa-app) — starý web, nič sa neskúša"
+        spustit = {"ignore_default_args": ["--hide-scrollbars"]}
+        if os.environ.get("CHROMIUM_PATH"):
+            spustit["executable_path"] = os.environ["CHROMIUM_PATH"]
+        br = self.browser.browser_type.launch(**spustit)
+        detail = []
+        try:
+            for mobil, stand in ((False, False), (False, True), (True, True)):
+                kde = ("mobil" if mobil else "PC 1366×768") + (" aplikácia" if stand else " prehliadač")
+                ctx = self.kontext(mobil=mobil, okno=None if mobil else (1366, 768), browser=br)
+                try:
+                    if stand:
+                        ctx.add_init_script("Object.defineProperty(navigator,'standalone',{get:()=>true})")
+                    page = self.stranka(ctx)
+                    page.goto(self.base, wait_until="load")
+                    self.cakaj_na_appku(page)
+                    page.wait_for_timeout(300)
+                    m = page.evaluate(self.LISTA_JS)
+                    if not m["media"]:
+                        raise Zlyhanie(f"{kde}: v CSS chýba @media (display-mode: standalone) so scrollbar-width: none ({m})")
+                    if not stand:
+                        if m["trieda"] or m["html"] != "auto" or m["body"] != "auto":
+                            raise Zlyhanie(f"{kde}: v prehliadači sa lišta rolovania zmenila (trieda pwa-app / scrollbar-width) ({m})")
+                        if m["sh"] > m["ih"] and m["cw"] >= m["iw"]:
+                            raise Zlyhanie(f"{kde}: v prehliadači sa lišta rolovania nekreslí (clientWidth {m['cw']} = innerWidth {m['iw']})")
+                        detail.append(f"{kde}: lišta sa kreslí ({m['iw'] - m['cw']} px)")
+                    else:
+                        if not m["trieda"] or m["html"] != "none" or m["body"] != "none":
+                            raise Zlyhanie(f"{kde}: lišta rolovania nie je skrytá (trieda pwa-app / scrollbar-width none) ({m})")
+                        if m["cw"] != m["iw"]:
+                            raise Zlyhanie(f"{kde}: lišta stále zaberá šírku (clientWidth {m['cw']} ≠ innerWidth {m['iw']})")
+                        # na mobile sa po prvom posune hlavička zbalí a stránka predĺži (aj bez Zadania 51)
+                        # → na koniec sa roluje opakovane, kým nie je dole (max. 5×)
+                        for _ in range(5):
+                            page.evaluate("window.scrollTo(0, 1e7)")
+                            page.wait_for_timeout(500)
+                            k = page.evaluate("({y: scrollY, ih: innerHeight, sh: document.scrollingElement.scrollHeight})")
+                            if k["y"] + k["ih"] >= k["sh"] - 2:
+                                break
+                        if k["sh"] > k["ih"] + 2 and k["y"] + k["ih"] < k["sh"] - 2:
+                            raise Zlyhanie(f"{kde}: stránka sa nedá dorolovať na koniec ({k})")
+                        detail.append(f"{kde}: bez lišty, rolovanie na koniec OK")
+                    self.over_chyby(page, kde)
+                finally:
+                    ctx.close()
+        finally:
+            br.close()
+        return "ok", "; ".join(detail)
+
     def spusti(self, od):
         self.cakaj_na_nasadenie(od)
         with sync_playwright() as p:
@@ -2904,6 +2976,7 @@ class Test:
                 self.kontrola("v) Web ako aplikácia (PWA): manifest, sw.js, offline", self.pwa)
                 self.kontrola("w) Ikonky až pri dorolovaní (dlhý zoznam, mobil)", self.ikonky_neskor)
                 self.kontrola("x) Tlačidlo „📲 APP“ v hlavičke (mobil, návod, PC, aplikácia)", self.app_tlacidlo)
+                self.kontrola("y) Bez lišty rolovania v aplikácii (prehliadač ju má)", self.lista_aplikacia)
             finally:
                 self.browser.close()
                 self.uprac_kopiu()

@@ -721,6 +721,16 @@ button#aktMoreBadge{-webkit-appearance:none;appearance:none;margin:0;border:0;fo
 ::-webkit-scrollbar{width:5px}
 ::-webkit-scrollbar-track{background:var(--bg)}
 ::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+/* Zadanie 51: v NAINŠTALOVANEJ aplikácii (z plochy) sa ukazovateľ rolovania HLAVNEJ stránky nekreslí.
+   Len html a body — vnútorné lišty (stĺpce, Aktuálne, admin) ostávajú. Rolovanie sa nemení.
+   @media = štandard; trieda pwa-app (pridá ju pwaApp()) = záloha pre iPhone (navigator.standalone).
+   V prehliadači sa nič nemení. */
+@media (display-mode: standalone){
+  html,body{scrollbar-width:none}
+  html::-webkit-scrollbar,body::-webkit-scrollbar{display:none;width:0;height:0}
+}
+html.pwa-app,html.pwa-app body{scrollbar-width:none}
+html.pwa-app::-webkit-scrollbar,html.pwa-app body::-webkit-scrollbar{display:none;width:0;height:0}
 
 @media(max-width:560px){
   header{padding:12px 14px}
@@ -5623,6 +5633,8 @@ let PWA_ON = true;
 function pwaApp(){ // otvorené ako nainštalovaná aplikácia (z plochy), nie v prehliadači
   try{ return (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true; }catch(e){ return false; }
 }
+// Zadanie 51: v aplikácii trieda pwa-app na <html> → CSS skryje ukazovateľ rolovania hlavnej stránky.
+try{ if(pwaApp()) document.documentElement.classList.add('pwa-app'); }catch(e){}
 const PWA_IOS = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 // dotykové zariadenie (mobil, tablet) — odkaz „📲 Pridať na plochu“ sa ukazuje LEN tu.
 // Chrome a Edge ponúkajú inštaláciu (beforeinstallprompt) aj na počítači — tam odkaz nikdy.
