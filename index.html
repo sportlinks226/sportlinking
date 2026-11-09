@@ -333,6 +333,8 @@ a.akt-head[href]:hover #aktHeadTxt{text-decoration:underline}
   grid-template-columns:repeat(auto-fill,minmax(200px,1fr));
   gap:10px;
 }
+/* Stránka Aktuálne: širšie karty (ako statická stránka z generátora), aby sa dlhé názvy so štítkom NEW neorezávali */
+.grid-deep.live-list{grid-template-columns:repeat(auto-fill,minmax(250px,1fr))}
 .card-folder{
   background:var(--surface);border:1.5px solid var(--border);
   border-radius:10px;padding:14px 16px;
@@ -5076,7 +5078,7 @@ function liveCardHtml(n){
   const host = colHost(n);
   const d = nDesc(n);
   return `<div class="card-link">${n._new?'<span class="liga-tag">NEW</span>':''}
-          <a href="${attrEsc(safeUrl(n.url))}" target="_blank" rel="noopener">
+          <a href="${attrEsc(safeUrl(n.url))}" target="_blank" rel="noopener"${d?` title="${attrEsc(d)}"`:''}>
             ${favHtml(n, host)}
             <div>
               <div class="cl-name">${attrEsc(nName(n))}</div>${d?`
@@ -5090,7 +5092,7 @@ function livePageHtml(){
   const intro = node ? nDesc(node) : '';
   const items = liveWeekLinks();
   const html = items.length
-    ? `<div class="grid-deep anim">` + items.map(liveCardHtml).join('') + `</div>`
+    ? `<div class="grid-deep live-list anim">` + items.map(liveCardHtml).join('') + `</div>`
     : `<p class="live-none">${IS_EN ? 'Nothing is live right now — check back later.' : 'Práve teraz nie je nič aktívne, pozrite sa neskôr.'}</p>`;
   return html + (intro ? `<p class="live-intro">${attrEsc(intro)}</p>` : '');
 }
