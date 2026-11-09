@@ -91,6 +91,14 @@ KONTROLY
      samozničujúci sw.js, stránky bez manifestu) = ✅ s poznámkou. Všetky prehliadačové kontroly
      (g, h, i) bežia BEZ service workera (SW_VYP_SKRIPT) — merajú prvú návštevu ako doteraz.
 
+  k) Presmerovania zo starých slugov (Zadanie 52): priečinky s poľom slug_stare (SK web) /
+     slug_en_stare (EN web) v data-full.json webu. Pre každý starý slug: stará adresa (rovnakí
+     rodičia ako nová adresa priečinka v sitemape, starý slug) vráti 200 a je to stránka
+     presmerovania — meta refresh aj canonical na NOVÚ adresu, noindex, bez hreflangu a bez
+     appky (mini-BOOT); nová adresa vráti 200; stará adresa NIE JE v sitemap.xml — inak ❌.
+     Priečinok so starým slugom bez stránky v sitemape (generátor presmerovanie nevyrobí) = ⚠️.
+     Bez starých slugov v dátach = ✅ „žiadne“.
+
 Spustenie (lokálne):  python testy/test_hlbkovy.py --url https://sportlinky.sk/
 Voliteľne:  --vystup test-hlbkovy-vystup   (priečinok na zoznam chýb)
             --len-mobil                    (len kontrola i) — rýchlo po zmene webu; aj LEN_MOBIL=áno)
@@ -795,6 +803,84 @@ class Test:
         if varovania:
             return "warn", detail + "; ⚠️ " + "; ".join(varovania)
         return "ok", detail
+
+    # ------------------------------------------------ k) presmerovania zo starých slugov
+    def stare_slugy(self, pokus):
+        kod, _, text = stiahni(self.base + "data-full.json", cache_bust=True, timeout=60)
+        if kod != 200:
+            raise Zlyhanie(f"data-full.json vrátil HTTP {kod}")
+        try:
+            uzly = json.loads(text).get("nodes") or []
+        except ValueError as e:
+            raise Zlyhanie(f"data-full.json nie je platný JSON ({e})") from e
+        kluc = "slug_en_stare" if self.lang == "en" else "slug_stare"
+        n_uzly = []
+        for n in uzly:
+            v = n.get(kluc) if isinstance(n, dict) and n.get("type") == "folder" else None
+            v = [v] if isinstance(v, str) else v
+            if isinstance(v, list) and v:
+                n_uzly.append((n.get("id"), [x for x in v if isinstance(x, str) and x]))
+        if not n_uzly:
+            return "ok", f"žiadne staré slugy ({kluc}) v data-full.json"
+        norm = lambda u: urllib.parse.unquote(u)                      # noqa: E731
+        v_sitemape = {norm(u) for u in self.adresy}
+        podla_id = {v["id"]: u for u, v in self.stranky.items() if v.get("id")}
+        chyby, varovania, ok = [], [], []
+
+        def over(fid, stary):
+            nova = podla_id.get(fid)
+            if not nova:
+                varovania.append(f"{fid}: priečinok nemá stránku v sitemape — presmerovanie "
+                                 f"zo „{stary}“ nevzniká")
+                return
+            c = urllib.parse.urlsplit(nova)
+            casti = c.path.rstrip("/").split("/")
+            stara = urllib.parse.urlunsplit((c.scheme, c.netloc, "/".join(casti[:-1] + [stary]) + "/", "", ""))
+            if norm(stara) in v_sitemape:
+                chyby.append(f"{self.cesta(stara)}: stará adresa je v sitemap.xml")
+            kod, _, t = stiahni(stara)
+            if kod != 200:
+                chyby.append(f"{self.cesta(stara)} → HTTP {kod} (čakám stránku presmerovania)")
+                return
+            m = re.search(r'<meta\s+http-equiv="refresh"\s+content="([^"]*)"', t, re.I)
+            ciel = html.unescape(m.group(1)) if m else ""
+            ciel = re.sub(r"^\s*\d+\s*;\s*url\s*=\s*", "", ciel, flags=re.I)
+            canonical, hreflang = hlavicka_stranky(t)
+            problem = []
+            if not m or norm(urllib.parse.urljoin(stara, ciel)) != norm(nova):
+                problem.append(f"meta refresh → {ciel or 'chýba'}")
+            if norm(urllib.parse.urljoin(stara, canonical or "")) != norm(nova):
+                problem.append(f"canonical → {canonical or 'chýba'}")
+            if not re.search(r'<meta\s+name="robots"\s+content="[^"]*noindex', t, re.I):
+                problem.append("chýba noindex")
+            if hreflang:
+                problem.append("má hreflang")
+            if 'id="pageBoot"' in t or "let BOOT" in t:
+                problem.append("obsahuje appku (BOOT)")
+            if problem:
+                chyby.append(f"{self.cesta(stara)}: " + ", ".join(problem))
+                return
+            kod_n = self.stranky.get(nova, {}).get("kod") or stiahni(nova)[0]
+            if kod_n != 200:
+                chyby.append(f"{self.cesta(nova)} (nová adresa) → HTTP {kod_n}")
+                return
+            ok.append(f"{self.cesta(stara)} → {self.cesta(nova)}")
+
+        for fid, stare in n_uzly:
+            for st in stare:
+                over(fid, st)
+        if ok:
+            self.info.append("**Presmerovania zo starých slugov:** " + "; ".join(ok[:MAX_VYPIS]))
+        if chyby:
+            self.zoznam("k) Presmerovania zo starých slugov — chyby", chyby)
+        if varovania:
+            self.zoznam("k) Presmerovania zo starých slugov — upozornenia", varovania)
+        detail = f"{len(ok)} presmerovaní OK ({kluc}, priečinkov {len(n_uzly)})"
+        if chyby:
+            return "fail", detail + f"; ❌ {len(chyby)}: {chyby[0]}"
+        if varovania:
+            return "warn", detail + f"; ⚠️ {varovania[0]}"
+        return "ok", detail + ", stará adresa nie je v sitemape, nová vracia 200"
 
     # ------------------------------------------------ f) ikonky a vlajky
     def ikony_vlajky(self, pokus):
@@ -1798,6 +1884,7 @@ class Test:
         self.kontrola("c) robots.txt", self.robots)
         self.kontrola("d) Verzia data.json", self.verzia)
         self.kontrola("e) Presmerovania http→https, www→bez www", self.presmerovania)
+        self.kontrola("k) Presmerovania zo starých slugov (slug_stare / slug_en_stare)", self.stare_slugy)
         self.kontrola("f) Ikonky /ikony/ a vlajky /vlajky/", self.ikony_vlajky)
         self.kontrola("g) Appka ↔ generátor: adresy a titulky všetkých stránok", self.zrkadlo)
         self.kontrola("h) Obsah stránok appka ↔ statika: zoznam, poradie a počty kariet", self.obsah)

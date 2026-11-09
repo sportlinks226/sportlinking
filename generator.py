@@ -109,6 +109,7 @@ UI = {
         "aktualne": "Aktuálne",
         "skip": "Preskočiť na obsah",   # Zadanie 34 (bod 30): ako v index.html
         "crumbs": "Kde som",
+        "moved": "Stránka sa presunula:",   # Zadanie 52: stránka presmerovania zo starého slugu
     },
     "en": {
         "home": "Home",
@@ -121,6 +122,7 @@ UI = {
         "aktualne": "Live This Week",
         "skip": "Skip to content",
         "crumbs": "Breadcrumb",
+        "moved": "This page has moved:",
     },
 }
 T = UI[LANG]
@@ -871,8 +873,9 @@ def sub_count(fid, children: dict, lcnt: dict) -> int:
 def _lite_node(n: dict) -> dict:
     """Uzol presne tak, ako ho má návštevník v data.json (viď lite_data)."""
     if LANG == "en":
-        return {k: v for k, v in n.items() if not (k == "desc" and n.get("desc_en"))}
-    return {k: v for k, v in n.items() if k not in EN_NODE_KEYS}
+        return {k: v for k, v in n.items()
+                if not (k == "desc" and n.get("desc_en")) and k not in BUILD_ONLY_KEYS}
+    return {k: v for k, v in n.items() if k not in EN_NODE_KEYS and k not in BUILD_ONLY_KEYS}
 
 
 def build_page_boot(node, children, by_id, boot_ids, lcnt) -> str:
@@ -932,8 +935,12 @@ def build_page_boot(node, children, by_id, boot_ids, lcnt) -> str:
 #                    "_lite": true (appka ju nedovolí publikovať ani uložiť).
 # Uzly ani ich počet sa NEMENIA — počty liniek musia sedieť s BOOT a titulkom.
 # Originál data.json v repozitári ostáva bez zmeny.
-EN_NODE_KEYS = ("name_en", "desc_en", "slug_en", "order_en")
+EN_NODE_KEYS = ("name_en", "desc_en", "slug_en", "order_en", "slug_en_stare")
 EN_ROOT_KEYS = ("title_en", "subtitle_en")
+# Zadanie 52: polia LEN PRE BUILD — staré slugy priečinkov (stránky presmerovania,
+# viď redirect_pages). Do odľahčeného data.json ani mini-balíka sa nedostanú,
+# v data-full.json (dáta admina) ostávajú.
+BUILD_ONLY_KEYS = ("slug_stare", "slug_en_stare")
 
 
 def strip_en(data: dict) -> dict:
@@ -963,6 +970,9 @@ def lite_data(data: dict) -> dict:
         d = strip_en(data)
     for k in ("passwordHash", "password"):
         d.pop(k, None)
+    # Zadanie 52: staré slugy len pre build (nová kópia uzla len tam, kde pole je)
+    d["nodes"] = [({k: v for k, v in n.items() if k not in BUILD_ONLY_KEYS}
+                   if any(k in n for k in BUILD_ONLY_KEYS) else n) for n in d["nodes"]]
     # Aktuálne: tie isté ako v BOOT (zdroj aktualne.json) —
     # záloha pre appku, keby sa aktualne.json nepodarilo stiahnuť
     d["aktualne"] = akt_for_web(AKT_ITEMS)
@@ -2401,6 +2411,91 @@ def render_page(node, path, children, by_id, paths, site_title, alt_url=None, pa
 MAIN_SECTIONS = {"f_ltw", "f_fut", "f_hok", "f_ten", "f_bas", "f_had", "f_vol",
                  "f_zim", "f_ost", "f_med", "f_tip"}
 MIN_PAGES = 500          # absolútne minimum stránok priečinkov
+# ------------------------------------------------------------
+# PRESMEROVANIA ZO STARÝCH SLUGOV (Zadanie 52)
+# ------------------------------------------------------------
+# Keď sa slug priečinka zmení (napr. oprava diakritiky jemenská-liga → jemenska-liga),
+# stará adresa je ešte v Google a v záložkách. Priečinok si v dátach nesie zoznam
+# starých slugov: "slug_stare" (SK web) / "slug_en_stare" (EN web). Na STAREJ ceste
+# (rovnakí rodičia, starý slug) vznikne malá stránka presmerovania na novú adresu:
+# meta refresh 0 + canonical + noindex + záložný location.replace + viditeľný odkaz.
+# Priečinok sa na disk zapíše presne ako ostatné (aj s diakritikou) — GitHub Pages
+# dostane od prehliadača /jemensk%C3%A1-liga/ a nájde priečinok jemenská-liga.
+# Stránka presmerovania NIE JE v sitemap.xml, nemá hreflang ani appku (žiadny BOOT,
+# appka ju neprevezme). Presmeruje sa LEN samotná stránka priečinka — staré adresy
+# jeho podpriečinkov (…/stary-slug/podpriecinok/) presmerovanie nedostanú.
+# Pole je voliteľné — bez neho build vyrobí presne to isté ako predtým.
+def stare_slugy(n: dict, lang: str = None) -> list:
+    """Zoznam starých slugov priečinka pre jazyk buildu (pole môže byť aj jeden text)."""
+    v = n.get("slug_en_stare" if (lang or LANG) == "en" else "slug_stare")
+    if isinstance(v, str):
+        v = [v]
+    return v if isinstance(v, list) else []
+
+
+def redirect_html(new_url: str) -> str:
+    """Statická stránka presmerovania na new_url (bez appky, bez hreflangu, noindex)."""
+    u = escape(new_url, quote=True)
+    js = json.dumps(new_url, ensure_ascii=False).replace("</", "<\\/")
+    return (f'<!DOCTYPE html>\n<html lang="{LANG}">\n<head>\n<meta charset="utf-8">\n'
+            f'<meta name="viewport" content="width=device-width, initial-scale=1">\n'
+            f'{CSP_META}\n'
+            f'<title>{escape(T["moved"])} {u}</title>\n'
+            f'<meta name="robots" content="noindex">\n'
+            f'<link rel="canonical" href="{u}">\n'
+            f'<meta http-equiv="refresh" content="0; url={u}">\n'
+            f'<script>location.replace({js});</script>\n'
+            f'</head>\n<body>\n<p>{escape(T["moved"])} <a href="{u}">{u}</a></p>\n'
+            f'</body>\n</html>\n')
+
+
+def redirect_pages(out: str, paths: dict, all_paths: dict, by_id: dict) -> int:
+    """Zapíše stránky presmerovania zo starých slugov. Vráti ich počet.
+    POISTKY: starý slug musí prejsť slug_ok(); presmerovanie nikdy neprepíše
+    skutočnú stránku ani adresu iného priečinka, nevznikne pri starom slugu =
+    novému ani dvakrát na tú istú cestu — inak len VAROVANIE (build pokračuje)."""
+    obsadene = {tuple(p) for p in all_paths.values()}
+    hotove = set()
+    n = 0
+    for fid in sorted(all_paths):
+        stare = stare_slugy(by_id[fid])
+        if not stare:
+            continue
+        if fid not in paths:
+            print(f"VAROVANIE: priečinok {fid!r} má staré slugy, ale nemá stránku (bez liniek) "
+                  "— presmerovanie nevznikne.")
+            continue
+        new_p = paths[fid]
+        for st in stare:
+            old_p = tuple(new_p[:-1]) + (st,)
+            dovod = None
+            if not slug_ok(st):
+                dovod = "nebezpečný slug"
+            elif st == new_p[-1]:
+                dovod = "rovnaký ako súčasný slug"
+            elif old_p in obsadene:
+                dovod = "na tej adrese je iný priečinok"
+            elif old_p in hotove:
+                dovod = "duplicitný starý slug"
+            elif len(old_p) == 1 and ("." in st or st in ("ikony", "vlajky")):
+                dovod = "vyhradený názov v koreni webu"
+            elif os.path.exists(os.path.join(out, *old_p)):
+                dovod = "priečinok už existuje"
+            if dovod:
+                print(f"VAROVANIE: starý slug {str(st)[:80]!r} priečinka {fid!r} — {dovod}; "
+                      "presmerovanie nevznikne.")
+                continue
+            hotove.add(old_p)
+            new_url = (f'{BASE_URL}/{"/".join(new_p)}/' if BASE_URL
+                       else SITE_ABS_ROOT + "/".join(new_p) + "/")
+            d = os.path.join(out, *old_p)
+            os.makedirs(d, exist_ok=True)
+            with open(os.path.join(d, "index.html"), "w", encoding="utf-8") as f:
+                f.write(redirect_html(new_url))
+            n += 1
+    return n
+
+
 MIN_PAGES_RATIO = 0.9    # … a aspoň 90 % adries z minulého buildu (sitemap-lastmod.json)
 WARN_ROWS = 20           # max. riadkov upozornení na jeden druh chyby
 
@@ -2574,6 +2669,11 @@ def main():
         with open(os.path.join(d, "index.html"), "w", encoding="utf-8") as f:
             f.write(html)
         count += 1
+
+    # Zadanie 52: stránky presmerovania zo starých slugov (nie sú v sitemape ani v count)
+    n_presm = redirect_pages(out, paths, all_paths, by_id)
+    if n_presm:
+        print(f"presmerovania zo starých slugov: {n_presm} stránok")
 
     # Zadanie 32 (bod 18b): POISTKA PROTI „PRÁZDNEMU" WEBU. Keď je stránok podozrivo
     # málo (pokazené data.json), build spadne PRED zápisom sitemapy a dátumov zmien —
