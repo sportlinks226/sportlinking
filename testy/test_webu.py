@@ -187,6 +187,31 @@ AKT_CAKANIE_S = 15          # k) max. čakanie, kým appka stiahne (podstrčený
 
 
 # ---------------------------------------------------------------- pomocníci
+def html_zapisy(text):
+    """Podoby textu v surovom HTML (Zadanie 53). generator.py escapuje cez html.escape()
+    s quote=True (apostrof → &#x27;, úvodzovka → &quot;); uznáme aj zápis bez escapovania
+    úvodzoviek (quote=False), aby test nespadol pri drobnej zmene generátora."""
+    return list(dict.fromkeys((html.escape(text), html.escape(text, quote=False))))
+
+
+def je_v_html(text, raw):
+    """True, ak je text v surovom HTML v niektorej z podôb z html_zapisy()."""
+    return any(z in raw for z in html_zapisy(text))
+
+
+def samotest_html_zapisov():
+    """Kontrola bez internetu (Zadanie 53): popis s apostrofom a & zapísaný tak, ako ho
+    zapíše generátor, sa musí nájsť; iný text nie."""
+    popis = "Women's Worlds & season's finale"
+    raw = f'<div class="nm">X</div><div class="ds">{html.escape(popis)}</div>'
+    if not je_v_html(popis, raw):
+        raise Zlyhanie("samotest: popis s apostrofom a & (zápis &#x27; / &amp;) sa v HTML nenašiel")
+    if not je_v_html(popis, raw.replace("&#x27;", "'")):
+        raise Zlyhanie("samotest: popis s obyčajným apostrofom sa v HTML nenašiel")
+    if je_v_html("Women's Worlds & other", raw) or je_v_html(popis, popis.replace("&", "&&")):
+        raise Zlyhanie("samotest: kontrola popisu našla text, ktorý v HTML nie je")
+
+
 def stiahni(url, cache_bust=True, timeout=30):
     """Stiahne adresu bez prehliadača. Vráti (HTTP kód, hlavičky, text)."""
     if cache_bust:
@@ -959,7 +984,8 @@ class Test:
             teraz = int(time.time() * 1000)
             test_items = [
                 {"id": "t1", "order": 1, "icon": "🏸", "name": "TEST viditeľná", "name_en": "TEST visible",
-                 "url": "https://test.invalid/vidno", "desc": "TEST popis", "desc_en": "TEST tip",
+                 "url": "https://test.invalid/vidno", "desc": "TEST popis – Women's & Co",
+                 "desc_en": "TEST tip – season's & more",   # Zadanie 53: apostrof a &
                  "addedAt": teraz - 3600_000},
                 {"id": "t2", "order": 0, "icon": "🎯", "name": "TEST stará", "url": "https://test.invalid/stara",
                  "addedAt": teraz - 5 * 86400_000, "endsAt": d(2)},
@@ -1007,7 +1033,7 @@ class Test:
             if hrefy != ["https://test.invalid/stara", "https://test.invalid/vidno"]:
                 raise Zlyhanie(f"podstrčený aktualne.json: na lište je {hrefy} (čakám len 2 viditeľné v poradí podľa order)")
             k = {x["href"]: x for x in karty}
-            if k["https://test.invalid/vidno"]["title"] != ("TEST tip" if en else "TEST popis"):
+            if k["https://test.invalid/vidno"]["title"] != ("TEST tip – season's & more" if en else "TEST popis – Women's & Co"):
                 raise Zlyhanie("podstrčený aktualne.json: na karte chýba bublina (title) s popisom")
             if not k["https://test.invalid/vidno"]["new"] or k["https://test.invalid/stara"]["new"]:
                 raise Zlyhanie("podstrčený aktualne.json: štítok NEW má byť len pri položke pridanej pred < 24 h")
@@ -1028,6 +1054,7 @@ class Test:
         text pod zoznamom, popis pod názvom, skrytá lišta, titulok so športom,
         vyhľadávanie, odkaz v pätičke. Kým priečinok f_ltw na SK webe nie je (enOnly:true), časť
         o stránke sa na SK webe PRESKOČÍ (kontrola dlaždíc a pätičky ostáva)."""
+        samotest_html_zapisov()   # Zadanie 53: popis s apostrofom a & (bez internetu)
         if not self.data:
             raise Zlyhanie("data.json sa nepodarilo načítať (kontrola b)")
         en = self.lang == "en"
@@ -1097,11 +1124,13 @@ class Test:
             if re.search(r"<h2[ >]", telo):
                 raise Zlyhanie("statická stránka má nadpisy H2 (skupiny podľa športu majú byť zrušené — Zadanie 27)")
             if uvod:
-                u_esc = html.escape(uvod, quote=False)
-                if f'<p class="live-intro">{u_esc}</p>' not in telo:
+                # Zadanie 53: generátor escapuje s quote=True (apostrof = &#x27;) — uznáme oba zápisy
+                u_esc = next((z for z in html_zapisy(uvod) if f'<p class="live-intro">{z}</p>' in telo), None)
+                if u_esc is None:
                     raise Zlyhanie("v surovom HTML chýba úvodný text (popis priečinka) v <p class=\"live-intro\">")
-                if telo.count(u_esc) != 1:
-                    raise Zlyhanie(f"v surovom HTML je úvodný text {telo.count(u_esc)}× (má byť len raz, pod zoznamom)")
+                u_pocet = sum(telo.count(z) for z in html_zapisy(uvod))
+                if u_pocet != 1:
+                    raise Zlyhanie(f"v surovom HTML je úvodný text {u_pocet}× (má byť len raz, pod zoznamom)")
                 u_pos = telo.find('<p class="live-intro">')
                 if re.search(r'<div class="nm">', telo[u_pos:]) or ("nie je nič aktívne" in telo[u_pos:] or "Nothing is live" in telo[u_pos:]):
                     raise Zlyhanie("v surovom HTML nie je úvodný text pod zoznamom položiek")
@@ -1110,7 +1139,7 @@ class Test:
                 stav = "warn"
                 info.append(f"⚠️ surové HTML má položky {nm_raw[:6]}, súbor dnes v poradí {poradie[:6]} (obnoví nočný build)")
             for a in vidno:
-                if popis(a) and meno(a) in nm_raw and html.escape(popis(a), quote=False) not in raw:
+                if popis(a) and meno(a) in nm_raw and not je_v_html(popis(a), raw):   # Zadanie 53
                     raise Zlyhanie(f"v surovom HTML chýba popis pod názvom „{meno(a)}“")
             titulok = titulok_z_html(raw)
             # prvý šport v ručnom poradí (bez „iné“/prázdneho) musí byť v titulku
