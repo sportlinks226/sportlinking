@@ -715,9 +715,9 @@ button#aktMoreBadge{-webkit-appearance:none;appearance:none;margin:0;border:0;fo
   padding:2px 6px;border-radius:8px;letter-spacing:.5px;
   box-shadow:0 2px 6px rgba(0,0,0,.4);pointer-events:none;
 }
-/* Desktop: Aktuálne sa zalamuje do riadkov — 1 riadok pri málo linkách, max. 3 riadky, zvyšok scroll */
+/* Desktop: Aktuálne sa zalamuje do riadkov — zobrazia sa VŠETKY linky, bez obmedzenia počtu riadkov (Miro 10.11.2026) */
 @media(min-width:561px){
-  #aktualneScroll{flex-wrap:wrap;overflow-x:visible;max-height:140px;overflow-y:auto}
+  #aktualneScroll{flex-wrap:wrap;overflow-x:visible}
 }
 
 ::-webkit-scrollbar{width:5px}
