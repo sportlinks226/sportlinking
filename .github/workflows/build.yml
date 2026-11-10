@@ -176,12 +176,34 @@ jobs:
     concurrency:
       group: pages-deploy
       cancel-in-progress: false
+    # Zadanie 55b: 1. pokus (max 10 min) + čakanie 5 min + 2. pokus (max 10 min) + rezerva
+    timeout-minutes: 30
     permissions:
       pages: write      # nasadenie na GitHub Pages
       id-token: write   # overenie nasadenia (OIDC)
     environment:
       name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+      # adresa webu z toho pokusu, ktorý prešiel
+      url: ${{ steps.pokus1.outcome == 'success' && steps.pokus1.outputs.page_url || steps.pokus2.outputs.page_url }}
+    # ZADANIE 55b (DRUHÝ POKUS, rovnako ako sport-linky PR #61): od 9.11.2026 GitHub Pages
+    # často visí v „syncing_files“ a deploy-pages po 10 min skončí (strop 10 min je pevne
+    # v akcii — MAX_TIMEOUT = 600000, dlhší sa nedá). Keď 1. pokus zlyhá, o 5 min sa RAZ
+    # zopakuje s TÝM ISTÝM artefaktom. Ak prejde 2. pokus, beh je ZELENÝ a Test webu
+    # beží ako po bežnom úspechu. Ak zlyhajú oba, beh je červený.
+    # Rozbor: sport-linky, navrhy/deploy-timeout-2026-11-10.md
     steps:
-      - uses: actions/deploy-pages@v5
-        id: deployment
+      - name: Nasaď na GitHub Pages (1. pokus)
+        id: pokus1
+        uses: actions/deploy-pages@v5
+        continue-on-error: true   # zlyhanie 1. pokusu ešte nezhodí úlohu
+
+      - name: Počkaj 5 minút pred 2. pokusom
+        if: steps.pokus1.outcome == 'failure'
+        run: |
+          echo "::warning::1. pokus nasadenia zlyhal — o 5 minút skúsim ešte raz ten istý artefakt."
+          sleep 300
+
+      - name: Nasaď na GitHub Pages (2. pokus)
+        id: pokus2
+        if: steps.pokus1.outcome == 'failure'
+        uses: actions/deploy-pages@v5   # ak zlyhá aj tento, úloha (a celý beh) je červená
