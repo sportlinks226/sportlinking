@@ -118,6 +118,13 @@ a lišta sa kreslí (clientWidth < innerWidth); v aplikácii (podstrčené navig
 má <html> triedu pwa-app, html/body scrollbar-width none, lišta nezaberá šírku a stránka sa dá dorolovať
 na koniec — na PC aj mobile, bez chýb v konzole. Starý web bez tejto úpravy = ✅ s poznámkou.
 
+Kontrola z) (12.11.2026, Zadanie 56): položka Aktuálnych s DO (endsAt) v PONDELOK je skončená už
+v ten pondelok od 12:00 času Bratislavy (ostatné dni do konca dňa DO). Overuje sa KÓD Z REPOZITÁRA
+s podstrčeným časom — generator.py (akt_visible, akt_for_web) aj JavaScript (aktState v index.html,
+aktEnd v záložnom skripte statických stránok) v prehliadači v časovom pásme Bratislavy aj New Yorku,
+plus záloha, keď Intl v prehliadači zlyhá. Stránka je prázdna (about:blank) — žiadna sieť, žiadne
+reklamy ani štatistiky. Živý web ani súbory sa nemenia.
+
 Spustenie (lokálne):  python testy/test_webu.py --url https://sportlinky.sk/
 Voliteľne:  --od 2026-11-02T02:30:00Z  (počkaj, kým živý web nemá novšiu verziu)
             --vystup test-vystup        (priečinok na snímky a zoznam chýb)
@@ -145,6 +152,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 from datetime import datetime, timezone
+from zoneinfo import ZoneInfo
 
 from playwright.sync_api import sync_playwright
 
@@ -897,6 +905,25 @@ class Test:
 
     # ------------------------------------------------ k) Aktuálne (aktualne.json)
     @staticmethod
+    def akt_skoncena(a, dnes, teraz=None):
+        """Zadanie 56: skončená = dnes > DO; keď je DO v PONDELOK, už v ten pondelok
+        od 12:00 času Bratislavy (ROVNAKO ako aktEnded v index.html, akt_ended v generator.py)."""
+        end = str(a.get("endsAt") or "")
+        if not end:
+            return False
+        if dnes > end:
+            return True
+        try:
+            from datetime import date as _date
+            if _date.fromisoformat(end).weekday() != 0:
+                return False
+        except ValueError:
+            return False
+        teraz = (teraz or datetime.now(timezone.utc)).astimezone(ZoneInfo("Europe/Bratislava"))
+        ba = teraz.date().isoformat()
+        return ba > end or (ba == end and teraz.hour >= 12)
+
+    @staticmethod
     def akt_viditelne(items, dnes):
         """ROVNAKÉ pravidlá ako appka (aktVisible) a generator.py (akt_visible)."""
         def poradie(x):
@@ -908,7 +935,7 @@ class Test:
                                       key=lambda x: (poradie(x), x[0]))]
         return [a for a in zorad if a.get("url") and a.get("disabled") is not True
                 and not (a.get("startsAt") and dnes < a["startsAt"])
-                and not (a.get("endsAt") and dnes > a["endsAt"])]
+                and not Test.akt_skoncena(a, dnes)]
 
     def akt_zdroj(self):
         """Odkiaľ appka berie Aktuálne: (položky, popis zdroja)."""
@@ -2961,6 +2988,96 @@ class Test:
             br.close()
         return "ok", "; ".join(detail)
 
+    # ------------------------------------------------ z) Zadanie 56: DO v pondelok končí o 12:00
+    # (bratislavský čas, dátum DO, čakaný stav: True = viditeľná, popis)
+    PONDELOK_PRIPADY = [
+        ((2026, 11, 16, 11, 59), "2026-11-16", True,  "DO pondelok, pondelok 11:59"),
+        ((2026, 11, 16, 12, 0),  "2026-11-16", False, "DO pondelok, pondelok 12:00"),
+        ((2026, 11, 16, 23, 59), "2026-11-16", False, "DO pondelok, pondelok 23:59"),
+        ((2026, 11, 16, 0, 0),   "2026-11-16", True,  "DO pondelok, pondelok 0:00"),
+        ((2026, 11, 15, 23, 0),  "2026-11-16", True,  "DO pondelok, nedeľa 23:00"),
+        ((2026, 11, 17, 23, 59), "2026-11-17", True,  "DO utorok, utorok 23:59"),
+        ((2026, 11, 17, 12, 0),  "2026-11-17", True,  "DO utorok, utorok 12:00"),
+        ((2026, 11, 18, 0, 0),   "2026-11-17", False, "DO utorok, streda 0:00"),
+        ((2026, 11, 16, 10, 0),  "2026-11-15", False, "DO nedeľa, pondelok 10:00"),
+        ((2026, 6, 29, 11, 59),  "2026-06-29", True,  "DO pondelok v lete, 11:59"),
+        ((2026, 6, 29, 12, 0),   "2026-06-29", False, "DO pondelok v lete, 12:00"),
+    ]
+
+    def aktualne_pondelok(self, pokus):
+        """Kód z repozitára (nie živý web): generator.py aj JavaScript s podstrčeným časom."""
+        import importlib.util
+        repo = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        spec = importlib.util.spec_from_file_location("generator_z56", os.path.join(repo, "generator.py"))
+        gen = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(gen)
+        ba = ZoneInfo("Europe/Bratislava")
+        pripady = []
+        for cas, end, vid, nazov in self.PONDELOK_PRIPADY:
+            t = datetime(*cas, tzinfo=ba)
+            pripady.append({"ms": int(t.timestamp() * 1000), "end": end, "vid": vid, "nazov": nazov})
+            a = {"id": "z56", "url": "https://test.invalid/z56", "name": "TEST", "endsAt": end}
+            if gen.akt_visible(a, now=t) != vid:
+                raise Zlyhanie(f"generator.py akt_visible: {nazov} → má byť {'viditeľná' if vid else 'skončená'}")
+            if bool(gen.akt_for_web([a], now=t)) != vid:
+                raise Zlyhanie(f"generator.py akt_for_web: {nazov} → má byť {'viditeľná' if vid else 'skončená'}")
+            if self.akt_skoncena(a, t.date().isoformat(), t) == vid:
+                raise Zlyhanie(f"test akt_skoncena: {nazov} nesedí s generator.py")
+        # bez DO / vypnutá / OD — bez zmeny
+        t = datetime(2026, 11, 16, 13, 0, tzinfo=ba)
+        if not gen.akt_visible({"url": "x"}, now=t) or gen.akt_visible({"url": "x", "disabled": True}, now=t) \
+                or gen.akt_visible({"url": "x", "startsAt": "2026-11-17"}, now=t):
+            raise Zlyhanie("generator.py: položka bez DO / vypnutá / s OD sa správa inak než doteraz")
+
+        with open(os.path.join(repo, "index.html"), encoding="utf-8") as f:
+            ix = f.read()
+        m = re.search(r"function aktValidDate\(.*?(?=\n// bod 8 \(previerka 3\))", ix, re.S)
+        if not m or "function aktEnded(" not in m.group(0):
+            raise Zlyhanie("index.html: nenašiel som aktValidDate … aktState s aktEnded (Zadanie 56)")
+        js_app = m.group(0)
+        m = re.search(r"function aktEnd\(.*?(?=\n\s*function showAkt\()", gen.DYN_JS, re.S)
+        if not m:
+            raise Zlyhanie("generator.py DYN_JS: nenašiel som funkciu aktEnd (Zadanie 56)")
+        js_dyn = m.group(0)
+        js = js_app + "\n" + js_dyn + """
+        ;window.__z56 = function(P, rozbiIntl){
+          if(rozbiIntl) Intl.DateTimeFormat = function(){ throw new Error('bez Intl'); };
+          function loc(ms){ const d = new Date(ms); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+          return P.map(p => { const a = {url:'https://test.invalid/z56', endsAt:p.end}, t = loc(p.ms);
+            return {nazov:p.nazov, app:aktState(a, t, p.ms), dyn:aktEnd(a, t, p.ms), dnes:t}; });
+        };"""
+        vysl = []
+        for tz in ("Europe/Bratislava", "America/New_York"):
+            ctx = self.browser.new_context(timezone_id=tz)
+            ctx.route("**/*", lambda r: r.abort())      # žiadna sieť (ani reklamy, ani štatistiky)
+            try:
+                page = ctx.new_page()
+                chyby = []
+                page.on("pageerror", lambda e: chyby.append(str(e)))
+                page.add_script_tag(content=js)
+                for r, p in zip(page.evaluate("P => window.__z56(P, false)", pripady), pripady):
+                    # skončená podľa miestneho dátumu návštevníka (dnes > DO) alebo pondelkového
+                    # pravidla v čase Bratislavy (akt_skoncena je overená s generator.py vyššie)
+                    cak = not self.akt_skoncena({"endsAt": p["end"]}, r["dnes"],
+                                                datetime.fromtimestamp(p["ms"] / 1000, timezone.utc))
+                    if (r["app"] == "on") != cak or r["app"] not in ("on", "ended"):
+                        raise Zlyhanie(f"index.html aktState ({tz}): {r['nazov']} → {r['app']}, čakám {'on' if cak else 'ended'}")
+                    if r["dyn"] == cak:
+                        raise Zlyhanie(f"záložný skript aktEnd ({tz}): {r['nazov']} → skončená={r['dyn']}")
+                # Intl zlyhá → doterajšie pravidlo (celý deň DO), nič nespadne
+                for r, p in zip(page.evaluate("P => window.__z56(P, true)", pripady), pripady):
+                    cak = not (r["dnes"] > p["end"])
+                    if (r["app"] == "on") != cak or r["dyn"] == cak:
+                        raise Zlyhanie(f"bez Intl ({tz}): {r['nazov']} → app {r['app']}, záloha skončená={r['dyn']}")
+                if chyby:
+                    raise Zlyhanie(f"chyba JavaScriptu ({tz}): {chyby[0][:120]}")
+                vysl.append(tz.split("/")[1])
+            finally:
+                ctx.close()
+        return "ok", (f"{len(pripady)} prípadov (pondelok 11:59 viditeľná, 12:00 skončená, utorok 23:59 viditeľná, "
+                      f"nedeľa→pondelok skončená, aj leto): generator.py, appka aj záloha v pásme "
+                      f"{' a '.join(vysl)}; bez Intl celý deň ako doteraz")
+
     def spusti(self, od):
         self.cakaj_na_nasadenie(od)
         with sync_playwright() as p:
@@ -3009,6 +3126,7 @@ class Test:
                 self.kontrola("w) Ikonky až pri dorolovaní (dlhý zoznam, mobil)", self.ikonky_neskor)
                 self.kontrola("x) Tlačidlo „📲 APP“ v hlavičke (mobil, návod, PC, aplikácia)", self.app_tlacidlo)
                 self.kontrola("y) Bez lišty rolovania v aplikácii (prehliadač ju má)", self.lista_aplikacia)
+                self.kontrola("z) Aktuálne: DO v pondelok končí o 12:00 Bratislavy (Zadanie 56)", self.aktualne_pondelok)
             finally:
                 self.browser.close()
                 self.uprac_kopiu()

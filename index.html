@@ -4962,16 +4962,42 @@ function aktAll(){
   if(DB && Array.isArray(DB.aktualne)) return aktSorted(DB.aktualne); // záloha od generátora: odľahčený data.json / BOOT
   return aktSorted(BOOT_AKT || []);
 }
+// Zadanie 56: položka s DO (endsAt) v PONDELOK je skončená už v ten pondelok od 12:00
+// času Bratislavy (aj keď má návštevník iné časové pásmo). Ostatné dni: do konca dňa DO.
+// ROVNAKO ako akt_ended() v generator.py a aktEnd() v záložnom skripte statických stránok (DYN_JS).
+// Počítadlo mazania (aktDaysAfterEnd) sa ráta od dátumu DO ako doteraz.
+// aktBaNow(now) = {d:'RRRR-MM-DD', h:hodina} v Bratislave; now = čas v ms (len pre testy).
+// Keď Intl/timeZone v prehliadači zlyhá → null = doterajšie pravidlo (celý deň DO).
+function aktBaNow(now){
+  try{
+    const p = {};
+    new Intl.DateTimeFormat('en-GB', {timeZone:'Europe/Bratislava', year:'numeric', month:'2-digit',
+      day:'2-digit', hour:'2-digit', hourCycle:'h23'})
+      .formatToParts(new Date(now == null ? Date.now() : now)).forEach(x=>{ p[x.type] = x.value; });
+    const d = p.year+'-'+p.month+'-'+p.day, h = parseInt(p.hour, 10) % 24;
+    return (/^\d{4}-\d{2}-\d{2}$/.test(d) && h >= 0) ? {d:d, h:h} : null;
+  }catch(e){ return null; }
+}
+function aktEnded(a, today, now){
+  if(!a.endsAt) return false;
+  if(today > a.endsAt) return true;                       // po dni DO (miestny dátum) — ako doteraz
+  if(!aktValidDate(a.endsAt)) return false;
+  const p = a.endsAt.split('-').map(Number);
+  if(new Date(Date.UTC(p[0], p[1]-1, p[2])).getUTCDay() !== 1) return false;   // DO nie je pondelok
+  const ba = aktBaNow(now);
+  return !!ba && (ba.d > a.endsAt || (ba.d === a.endsAt && ba.h >= 12));
+}
 // stav položky: on = vidí ju verejnosť, wait = čaká na dátum OD, ended = po dátume DO, off = vypnutá
-function aktState(a, today){
+// (now = čas v ms len pre testy; inak teraz)
+function aktState(a, today, now){
   today = today || todayLocal();
   if(a.disabled === true) return 'off';
-  if(a.endsAt && today > a.endsAt) return 'ended';
+  if(aktEnded(a, today, now)) return 'ended';
   if(a.startsAt && today < a.startsAt) return 'wait';
   return 'on';
 }
 // bod 8 (previerka 3): adresa, z ktorej safeUrl() urobí '#' (javascript:, bez https…), sa nezobrazí
-function aktVisible(a, today){ return !!(a && a.url) && safeUrl(a.url) !== '#' && aktState(a, today) === 'on'; }
+function aktVisible(a, today, now){ return !!(a && a.url) && safeUrl(a.url) !== '#' && aktState(a, today, now) === 'on'; }
 function aktPublic(){ const t = todayLocal(); return aktAll().filter(a=>aktVisible(a, t)); }
 // kedy sa položka OBJAVILA verejnosti — od toho 24 h štítok NEW
 function aktShownAt(a){
