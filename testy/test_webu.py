@@ -1246,10 +1246,13 @@ class Test:
                     raise Zlyhanie("položka stĺpca nemá rozmery (nie je vidno)")
                 return b["x"] + b["width"] / 2, b["y"] + b["height"] / 2
 
-            # hlavná sekcia s najviac podpriečinkami — aby bol stĺpec 1 dlhý (rolovateľný)
+            # hlavná sekcia s najviac podpriečinkami — aby bol stĺpec 1 dlhý (rolovateľný).
+            # Aktuálne (LIVE_ID) sa vynechajú: tileKids(LIVE_ID) vracia linky, nie podpriečinky,
+            # a rátajú sa len podpriečinky (stĺpec 1 musí mať aspoň 2 priečinky).
             koren_id = page.evaluate(
-                "tileKids(null).filter(n => n.type === 'folder')"
-                ".sort((a, b) => tileKids(b.id).length - tileKids(a.id).length)[0].id")
+                "tileKids(null).filter(n => n.type === 'folder' && n.id !== LIVE_ID)"
+                ".sort((a, b) => tileKids(b.id).filter(x => x.type === 'folder').length"
+                " - tileKids(a.id).filter(x => x.type === 'folder').length)[0].id")
             koren = page.locator(f"#colsWrap .col[data-lv='0'] .cit[data-id='{koren_id}']")
             meno_koren = koren.locator(".nm").inner_text().strip()
             x, y = stred(koren)
