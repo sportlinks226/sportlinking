@@ -715,9 +715,32 @@ button#aktMoreBadge{-webkit-appearance:none;appearance:none;margin:0;border:0;fo
   padding:2px 6px;border-radius:8px;letter-spacing:.5px;
   box-shadow:0 2px 6px rgba(0,0,0,.4);pointer-events:none;
 }
-/* Desktop: Aktuálne sa zalamuje do riadkov — zobrazia sa VŠETKY linky, bez obmedzenia počtu riadkov (Miro 10.11.2026) */
+/* Zadanie 57 (13.11.2026): počítač (od 561 px) — Aktuálne ako STĹPCOVÝ ZOZNAM (CSS viac stĺpcov).
+   Zobrazia sa VŠETKY linky; poradie sa číta po stĺpcoch zhora nadol (prvá vľavo hore, druhá pod ňou).
+   Počet stĺpcov určuje šírka okna (column-width): pri okne 1536 px vyjde 5 stĺpcov aj s lištou
+   rolovania (285 px by dalo len 4 — pás má pri 1536 px šírku 1471–1488 px).
+   !important: #aktualneScroll má v HTML vlastný style (display:flex; overflow-x:auto) pre mobil.
+   Mobil (do 560 px) ostáva bez zmeny: vodorovný pás piluliek, štítok „+N ›“. */
 @media(min-width:561px){
-  #aktualneScroll{flex-wrap:wrap;overflow-x:visible}
+  #aktualneScroll{display:block!important;column-width:278px;column-gap:20px;overflow:visible!important}
+  #aktualneScroll .akt-card{
+    display:flex;gap:7px;break-inside:avoid;
+    background:none;border:0;border-radius:6px;padding:3px 6px;
+    font-size:.84rem;line-height:1.25;font-weight:400;white-space:nowrap;
+  }
+  #aktualneScroll .akt-card .akt-icon{font-size:.95rem;width:20px;text-align:center;flex-shrink:0}
+  /* názov vždy v jednom riadku; pridlhý sa skráti „…“ (celý je v bubline title) */
+  #aktualneScroll .akt-nm{min-width:0;overflow:hidden;text-overflow:ellipsis;font-weight:600}
+  /* šport pred „ – “ sivou a normálnou hrúbkou (kontrast #90a5b7 na #0f1923 ≈ 7 : 1) */
+  #aktualneScroll .akt-sp{color:var(--muted);font-weight:400}
+  /* NEW nad pravým horným rohom ikonky — nezaberá miesto v riadku, obrys farbou pozadia */
+  #aktualneScroll .akt-new{
+    top:-3px;left:15px;right:auto;font-size:7px;line-height:1;padding:1.5px 3px;
+    border-radius:5px;letter-spacing:.3px;box-shadow:0 0 0 1.5px var(--bg);
+  }
+}
+@media(min-width:561px) and (hover:hover){
+  #aktualneScroll .akt-card:hover{background:rgba(232,66,66,.18)}
 }
 
 ::-webkit-scrollbar{width:5px}
@@ -5592,22 +5615,34 @@ function renderAktualne(){
     const hid = st !== 'on';
     const isNew = !hid && aktIsNew(a, now);
     const desc = String((IS_EN && a.desc_en) ? a.desc_en : (a.desc||'')).trim();
-    const tip = hid ? stTxt[st]+' — verejnosť túto linku nevidí'+(desc?' · '+desc:'') : desc;
+    const name = String((IS_EN && a.name_en) ? a.name_en : (a.name||''));
+    // Zadanie 57: bez popisu je v bubline celý názov (na počítači sa pridlhý názov skráti „…“)
+    const tip = hid ? stTxt[st]+' — verejnosť túto linku nevidí'+(desc?' · '+desc:'') : (desc || name);
     return `
     <a class="akt-card${hid?' akt-expired':''}" href="${attrEsc(safeUrl(a.url))}" target="_blank" rel="noopener"${tip?' title="'+attrEsc(tip)+'"':''}>
       ${isNew?'<span class="akt-new">NEW</span>':''}
       <span class="akt-icon" aria-hidden="true">${attrEsc(a.icon||'📌')}</span>
-      <span>${attrEsc((IS_EN && a.name_en) ? a.name_en : a.name)}</span>
+      ${aktNameHtml(name)}
     </a>`;
   }).join('');
   updateAktFade();
+}
+
+// Zadanie 57: názov karty v lište — časť pred PRVÝM „ – “ (vrátane oddeľovača) = šport (na
+// počítači sivou), zvyšok = podujatie. ROVNAKO ako akt_name_html() v generator.py (zhodný DOM).
+function aktNameHtml(name){
+  const i = name.indexOf(' \u2013 ');
+  return i < 0 ? `<span class="akt-nm">${attrEsc(name)}</span>`
+    : `<span class="akt-nm"><span class="akt-sp">${attrEsc(name.slice(0, i + 3))}</span>${attrEsc(name.slice(i + 3))}</span>`;
 }
 
 // Gradient + štítok "+N ›" pri Aktuálnych (mobil) — zobrazí sa len keď sa dá scrollovať doprava
 function updateAktFade(){
   const s = document.getElementById('aktualneScroll');
   const w = document.getElementById('aktualneWrap');
-  const more = s.scrollWidth - s.clientWidth - s.scrollLeft > 8;
+  // Zadanie 57: na počítači (od 561 px) je lišta stĺpcový zoznam — nikdy has-more
+  const pc = window.matchMedia && window.matchMedia('(min-width:561px)').matches;
+  const more = !pc && s.scrollWidth - s.clientWidth - s.scrollLeft > 8;
   w.classList.toggle('has-more', more);
   if(more){
     // spočítaj karty, ktoré za pravým okrajom nie sú vidieť celé — skryté aj
