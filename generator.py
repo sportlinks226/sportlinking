@@ -1088,6 +1088,18 @@ def save_lastmod(new_state: dict) -> None:
 # ------------------------------------------------------------
 # AKTUÁLNE PRIAMO V HTML (od 2.10.2026)
 # ------------------------------------------------------------
+def akt_name_html(name: str) -> str:
+    """Zadanie 57: názov karty v lište Aktuálne — časť pred PRVÝM „ – “ (medzera, U+2013,
+    medzera) vrátane oddeľovača = šport (na počítači sivou), zvyšok = podujatie.
+    ROVNAKO ako aktNameHtml() v index.html (appka pri prevzatí nič neprekreslí inak)."""
+    name = str(name or "")
+    i = name.find(" \u2013 ")
+    if i < 0:
+        return '<span class="akt-nm">' + escape(name) + '</span>'
+    return ('<span class="akt-nm"><span class="akt-sp">' + escape(name[:i + 3]) + '</span>'
+            + escape(name[i + 3:]) + '</span>')
+
+
 def akt_static_html(aktualne: list):
     """Vráti (text počítadla, HTML kariet) PRESNE v značkovaní renderAktualne()
     v index.html (verejný režim: len viditeľné podľa akt_visible, NEW do 24 h
@@ -1104,13 +1116,14 @@ def akt_static_html(aktualne: list):
         is_new = bool(shown) and 0 <= (now_ms - shown) < 86400000
         name = (a.get("name_en") if (LANG == "en" and a.get("name_en")) else a.get("name")) or ""
         desc = ((a.get("desc_en") if (LANG == "en" and a.get("desc_en")) else a.get("desc")) or "").strip()
+        tip = desc or name   # Zadanie 57: bez popisu je v bubline celý názov
         parts.append(
             '\n    <a class="akt-card" href="' + escape(safe_url(a.get("url")), quote=True)
             + '" target="_blank" rel="noopener"'
-            + (' title="' + escape(desc, quote=True) + '"' if desc else '') + '>'
+            + (' title="' + escape(tip, quote=True) + '"' if tip else '') + '>'
             + '\n      ' + ('<span class="akt-new">NEW</span>' if is_new else '')
             + '\n      <span class="akt-icon" aria-hidden="true">' + escape(a.get("icon") or "📌") + '</span>'
-            + '\n      <span>' + escape(name) + '</span>'
+            + '\n      ' + akt_name_html(name)
             + '\n    </a>')
     return f"({len(items)})", "".join(parts)
 

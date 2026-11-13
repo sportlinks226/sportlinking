@@ -125,6 +125,15 @@ aktEnd v záložnom skripte statických stránok) v prehliadači v časovom pás
 plus záloha, keď Intl v prehliadači zlyhá. Stránka je prázdna (about:blank) — žiadna sieť, žiadne
 reklamy ani štatistiky. Živý web ani súbory sa nemenia.
 
+Kontrola aa) (13.11.2026, Zadanie 57): lišta Aktuálne na počítači je STĹPCOVÝ ZOZNAM — na LOKÁLNEJ KÓPII
+(ako s; kód z repozitára), SK aj EN, s podstrčeným aktualne.json (27 položiek len v prehliadači testu; Tipsport
+a GoatCounter blokované): pri šírke 1536 px 5 stĺpcov, poradie po stĺpcoch zhora nadol, všetky karty rovnako
+vysoké (jeden riadok), žiadna nepresahuje šírku stĺpca, lišta sa nedá rolovať vodorovne a nemá has-more,
+pri „Šport – podujatie“ je šport vyznačený (sivý, normálna hrúbka), bez oddeľovača celý názov tučný, pridlhý
+názov skrátený „…“ s celým názvom v bubline, štítok NEW nemení šírku ani výšku karty a v prvom riadku nie je
+orezaný; statický HTML z generator.py má rovnaké značkovanie ako appka. Na mobile 390 px ostáva vodorovne
+rolovateľný pás piluliek (border-radius 20 px) so štítkom „+N ›“.
+
 Spustenie (lokálne):  python testy/test_webu.py --url https://sportlinky.sk/
 Voliteľne:  --od 2026-11-02T02:30:00Z  (počkaj, kým živý web nemá novšiu verziu)
             --vystup test-vystup        (priečinok na snímky a zoznam chýb)
@@ -3078,6 +3087,171 @@ class Test:
                       f"nedeľa→pondelok skončená, aj leto): generator.py, appka aj záloha v pásme "
                       f"{' a '.join(vysl)}; bez Intl celý deň ako doteraz")
 
+    # ------------------------------------------------ aa) Aktuálne ako stĺpcový zoznam (Zadanie 57)
+    STLPCE_MERANIE_JS = """() => {
+      const s = document.getElementById('aktualneScroll'), w = document.getElementById('aktualneWrap');
+      const sr = s.getBoundingClientRect(), cs = getComputedStyle(s);
+      const k = [...s.querySelectorAll('.akt-card')];
+      const gap = parseFloat(cs.columnGap) || 0;
+      const karty = k.map(c => { const r = c.getBoundingClientRect(), nm = c.querySelector('.akt-nm'),
+            sp = c.querySelector('.akt-sp'), ccs = getComputedStyle(c);
+        return {href: c.getAttribute('href'), left: Math.round(r.left), top: Math.round(r.top),
+          w: r.width, h: r.height, title: c.getAttribute('title') || '',
+          nm: nm ? nm.textContent : '', nmTrunc: nm ? nm.scrollWidth > nm.clientWidth + 1 : null,
+          nmWeight: nm ? getComputedStyle(nm).fontWeight : '', nmLines: nm ? Math.round(nm.getBoundingClientRect().height / parseFloat(getComputedStyle(nm).lineHeight)) : 0,
+          sp: sp ? sp.textContent : null, spColor: sp ? getComputedStyle(sp).color : '', spWeight: sp ? getComputedStyle(sp).fontWeight : '',
+          radius: ccs.borderTopLeftRadius, border: ccs.borderTopWidth, bg: ccs.backgroundColor,
+          isNew: !!c.querySelector('.akt-new')}; });
+      const lefts = [...new Set(karty.map(x => x.left))].sort((a, b) => a - b);
+      // šírka stĺpca = (šírka lišty − medzery) / počet stĺpcov
+      const colW = lefts.length ? (s.clientWidth - gap * (lefts.length - 1)) / lefts.length : 0;
+      const muted = getComputedStyle(document.documentElement).getPropertyValue('--muted').trim();
+      const t = document.createElement('span'); t.style.color = muted; document.body.appendChild(t);
+      const mutedRgb = getComputedStyle(t).color; t.remove();
+      const before = s.scrollLeft; s.scrollLeft = 200; const posun = s.scrollLeft; s.scrollLeft = before;
+      // štítok NEW: nezaberá miesto (karta s ním aj bez neho rovnako veľká) a nie je orezaný
+      const nove = k.filter(c => c.querySelector('.akt-new')).map(c => {
+        const b = c.querySelector('.akt-new'), br = b.getBoundingClientRect(), r1 = c.getBoundingClientRect();
+        const x = br.left + br.width / 2, y = br.top + Math.min(2, br.height / 2);
+        // štítok má pointer-events:none — na meranie ho dočasne „zviditeľníme“ pre elementFromPoint
+        // (orezaný obsah sa nedá trafiť, takže to odhalí orezanie aj prekrytie)
+        b.style.pointerEvents = 'auto'; const hore = document.elementFromPoint(x, y); b.style.pointerEvents = '';
+        b.remove(); const r2 = c.getBoundingClientRect(); c.insertBefore(b, c.firstChild);
+        return {href: c.getAttribute('href'), dw: Math.abs(r1.width - r2.width), dh: Math.abs(r1.height - r2.height),
+                vidno: hore === b || b.contains(hore), hore: Math.round(br.top - sr.top)}; });
+      return {display: cs.display, overflowX: cs.overflowX, scrollW: s.scrollWidth, clientW: s.clientWidth,
+              posun, hasMore: w.classList.contains('has-more'), stlpce: lefts.length, colW, karty, nove, mutedRgb};
+    }"""
+
+    def aktualne_stlpce(self, pokus):
+        kopia = self.lokalna_kopia()
+        teraz = int(time.time() * 1000)
+        sporty = ["Futbal", "Tenis", "Hokej", "Basketbal", "Golf", "Šípky", "Padel", "Squash", "Snooker"]
+        items = []
+        for i in range(27):
+            sp = sporty[i % len(sporty)]
+            a = {"id": f"z57_{i}", "order": i, "icon": "🏅", "name": f"{sp} – Podujatie {i + 1}",
+                 "name_en": f"{sp} EN – Event {i + 1}", "url": f"https://test.invalid/z57/{i}",
+                 "desc": f"popis {i + 1}", "desc_en": f"desc {i + 1}", "addedAt": teraz - 5 * 86400_000}
+            items.append(a)
+        items[0].update(addedAt=teraz - 3600_000)                    # NEW v prvom riadku prvého stĺpca
+        items[13].update(addedAt=teraz - 3600_000)                   # NEW v strede zoznamu
+        items[1].update(name="OH mládeže TEST", name_en="Youth Olympic TEST", desc="", desc_en="")  # bez oddeľovača, bez popisu
+        dlhy = "Lyžovanie – Veľmi dlhý názov podujatia, ktorý sa do stĺpca nikdy nezmestí v jednom riadku"
+        items[5].update(name=dlhy, name_en=dlhy.replace("Lyžovanie", "Skiing"), desc="", desc_en="")
+        items[7].update(name="Hokej – MS – skupina A", name_en="Hockey – WCh – group A")  # delí sa podľa PRVÉHO „ – “
+        telo = json.dumps({"version": 1, "items": items}, ensure_ascii=False)
+        popis = []
+        for lang in ("sk", "en"):
+            en = lang == "en"
+            meno = lambda a: a["name_en"] if en else a["name"]
+            # --- počítač 1536 px
+            ctx = self.kontext(okno=(1536, 864))
+            try:
+                page = self.stranka(ctx)
+                # statický HTML z generator.py (skutočný aktualne.json kópie) = to isté, čo vykreslí appka
+                page.goto(kopia[lang], wait_until="load")
+                self.cakaj_na_appku(page)
+                page.wait_for_timeout(1500)
+                _, _, surovy = stiahni(kopia[lang], timeout=60)
+                zhoda = page.evaluate("""raw => { const n = h => h.replace(/\\s+/g, ' ').trim();
+                  const d = new DOMParser().parseFromString(raw, 'text/html').getElementById('aktualneScroll');
+                  return {stat: n(d.innerHTML), app: n(document.getElementById('aktualneScroll').innerHTML)}; }""", surovy)
+                if zhoda["stat"] != zhoda["app"]:
+                    raise Zlyhanie(f"{lang.upper()}: karty lišty z generator.py ≠ appka (preblikne pri prevzatí): "
+                                   f"{zhoda['stat'][:160]} … vs {zhoda['app'][:160]}")
+                page.close()
+
+                page = self.stranka(ctx)
+                page.route("**/aktualne.json*", lambda r: r.fulfill(status=200, content_type="application/json", body=telo,
+                                                                     headers={"Access-Control-Allow-Origin": "*"}))
+                page.goto(kopia[lang], wait_until="load")
+                self.cakaj_na_appku(page)
+                page.wait_for_function("() => document.querySelectorAll('#aktualneScroll a[href*=\"test.invalid/z57\"]').length === 27")
+                page.wait_for_timeout(400)
+                m = page.evaluate(self.STLPCE_MERANIE_JS)
+                self.snimka(page, f"aa-aktualne-stlpce-{lang}")
+                kde = f"{lang.upper()} PC 1536"
+                k = m["karty"]
+                if m["display"] != "block" or m["stlpce"] != 5:
+                    raise Zlyhanie(f"{kde}: lišta má {m['stlpce']} stĺpcov (display {m['display']}), čakám 5")
+                if [x["href"] for x in k] != [a["url"] for a in items]:
+                    raise Zlyhanie(f"{kde}: poradie kariet ≠ ručné poradie z aktualne.json")
+                # poradie po stĺpcoch: ďalšia karta je pod predošlou, alebo začína nový stĺpec vpravo hore
+                for a, b in zip(k, k[1:]):
+                    if not ((b["left"] == a["left"] and b["top"] > a["top"]) or (b["left"] > a["left"] and b["top"] <= k[0]["top"] + 1)):
+                        raise Zlyhanie(f"{kde}: poradie sa nečíta po stĺpcoch zhora nadol ({a['nm']} → {b['nm']})")
+                vysky = sorted({round(x["h"], 1) for x in k})
+                if vysky[-1] - vysky[0] > 0.5 or any(x["nmLines"] != 1 for x in k):
+                    raise Zlyhanie(f"{kde}: karty nemajú rovnakú výšku jedného riadku (výšky {vysky})")
+                siroke = [x["nm"] for x in k if x["w"] > m["colW"] + 0.5]
+                if siroke:
+                    raise Zlyhanie(f"{kde}: karta presahuje šírku stĺpca {m['colW']:.0f} px: {siroke[:3]}")
+                if m["scrollW"] > m["clientW"] + 1 or m["posun"] != 0 or m["overflowX"] not in ("visible",):
+                    raise Zlyhanie(f"{kde}: lišta sa dá rolovať vodorovne (scrollWidth {m['scrollW']} > {m['clientW']}, "
+                                   f"posun {m['posun']}, overflow-x {m['overflowX']})")
+                if m["hasMore"]:
+                    raise Zlyhanie(f"{kde}: lišta má triedu has-more (štítok „+N ›“ patrí len mobilu)")
+                zle = [x["nm"] for x in k if x["radius"] != "6px" or x["border"] != "0px"]
+                if zle:
+                    raise Zlyhanie(f"{kde}: karty nie sú riadky bez rámčeka s rohmi 6 px: {zle[:3]}")
+                for a, x in zip(items, k):
+                    nm = meno(a)
+                    i = nm.find(" \u2013 ")
+                    if i < 0:
+                        if x["sp"] is not None or int(x["nmWeight"]) < 600:
+                            raise Zlyhanie(f"{kde}: názov bez „ – “ ({nm}) má byť celý hrúbkou 600 bez časti športu")
+                    else:
+                        if x["sp"] != nm[:i + 3] or x["nm"] != nm:
+                            raise Zlyhanie(f"{kde}: šport „{x['sp']}“ ≠ „{nm[:i + 3]}“ (delí sa podľa prvého „ – “)")
+                        if x["spColor"] != m["mutedRgb"] or int(x["spWeight"]) >= 600 or int(x["nmWeight"]) < 600:
+                            raise Zlyhanie(f"{kde}: šport v „{nm}“ nie je sivý (--muted) a podujatie tučné")
+                    cak_title = (a["desc_en"] if en and a.get("desc_en") else a.get("desc")) or nm
+                    if x["title"] != cak_title:
+                        raise Zlyhanie(f"{kde}: bublina karty „{x['title']}“ ≠ „{cak_title}“")
+                if not k[5]["nmTrunc"] or any(x["nmTrunc"] for i, x in enumerate(k) if i != 5):
+                    raise Zlyhanie(f"{kde}: skrátený „…“ má byť len pridlhý názov")
+                if [x["isNew"] for x in k].count(True) != 2 or len(m["nove"]) != 2:
+                    raise Zlyhanie(f"{kde}: štítok NEW má byť pri 2 položkách pridaných pred < 24 h")
+                for n in m["nove"]:
+                    if n["dw"] > 0.5 or n["dh"] > 0.5:
+                        raise Zlyhanie(f"{kde}: štítok NEW mení veľkosť karty ({n['dw']:.1f}×{n['dh']:.1f} px)")
+                    if not n["vidno"] or n["hore"] < 0:
+                        raise Zlyhanie(f"{kde}: štítok NEW pri {n['href']} je orezaný alebo prekrytý")
+                self.over_chyby(page, kde)
+                popis.append(f"{kde}: 5 stĺpcov, {len(k)} kariet, výška {vysky[0]:.0f} px, NEW bez posunu")
+            finally:
+                ctx.close()
+            # --- mobil 390 px: pás piluliek bez zmeny
+            ctx = self.kontext(mobil=True)
+            try:
+                page = self.stranka(ctx)
+                page.route("**/aktualne.json*", lambda r: r.fulfill(status=200, content_type="application/json", body=telo,
+                                                                     headers={"Access-Control-Allow-Origin": "*"}))
+                page.goto(kopia[lang], wait_until="load")
+                self.cakaj_na_appku(page)
+                page.wait_for_function("() => document.querySelectorAll('#aktualneScroll a[href*=\"test.invalid/z57\"]').length === 27")
+                page.wait_for_timeout(400)
+                r = page.evaluate("""() => { const s = document.getElementById('aktualneScroll'), w = document.getElementById('aktualneWrap');
+                  const k = [...s.querySelectorAll('.akt-card')], c = getComputedStyle(k[0]), cs = getComputedStyle(s);
+                  const tops = new Set(k.map(x => Math.round(x.getBoundingClientRect().top)));
+                  s.scrollLeft = 300; const posun = s.scrollLeft; s.scrollLeft = 0;
+                  return {display: cs.display, posun, riadky: tops.size, radius: c.borderTopLeftRadius, border: c.borderTopWidth,
+                          hasMore: w.classList.contains('has-more'), stitok: document.getElementById('aktMoreBadge').textContent,
+                          clip: cs.clipPath}; }""")
+                kde = f"{lang.upper()} mobil 390"
+                if r["display"] != "flex" or r["posun"] <= 0 or r["riadky"] != 1:
+                    raise Zlyhanie(f"{kde}: pás nie je vodorovne rolovateľný v jednom riadku ({r})")
+                if r["radius"] != "20px" or r["border"] == "0px":
+                    raise Zlyhanie(f"{kde}: karty nie sú pilulky ako doteraz (rohy {r['radius']}, rámček {r['border']})")
+                if not r["hasMore"] or not r["stitok"].startswith("+") or r["clip"] in ("none", ""):
+                    raise Zlyhanie(f"{kde}: chýba has-more / štítok „+N ›“ / orezanie pásu ({r})")
+                self.over_chyby(page, kde)
+                popis.append(f"{kde}: pilulky, pás sa roluje, štítok {r['stitok']}")
+            finally:
+                ctx.close()
+        return "ok", "; ".join(popis)
+
     def spusti(self, od):
         self.cakaj_na_nasadenie(od)
         with sync_playwright() as p:
@@ -3127,6 +3301,7 @@ class Test:
                 self.kontrola("x) Tlačidlo „📲 APP“ v hlavičke (mobil, návod, PC, aplikácia)", self.app_tlacidlo)
                 self.kontrola("y) Bez lišty rolovania v aplikácii (prehliadač ju má)", self.lista_aplikacia)
                 self.kontrola("z) Aktuálne: DO v pondelok končí o 12:00 Bratislavy (Zadanie 56)", self.aktualne_pondelok)
+                self.kontrola("aa) Aktuálne na počítači: stĺpcový zoznam, mobil bez zmeny (Zadanie 57)", self.aktualne_stlpce)
             finally:
                 self.browser.close()
                 self.uprac_kopiu()
