@@ -5064,8 +5064,9 @@ function liveFit(head, list, tail, max){
   }
   return used;
 }
+// „Live výsledky dnes: futbal, hokej — sportlinky.sk“ — ROVNAKO ako live_title() / LIVE_TXT base v generator.py
 function liveTitle(){
-  const base = IS_EN ? 'Live This Week — live scores' : 'Aktuálne live výsledky', suf = ' — ' + LIVE_SITE;
+  const base = IS_EN ? 'Live scores today' : 'Live výsledky dnes', suf = ' — ' + LIVE_SITE;
   const used = liveFit(base + ': ', liveSportList(), suf, LIVE_TITLE_MAX);
   return used.length ? base + ': ' + used.join(', ') + suf : base + suf;
 }

@@ -134,6 +134,12 @@ názov skrátený „…“ s celým názvom v bubline, štítok NEW nemení š�
 orezaný; statický HTML z generator.py má rovnaké značkovanie ako appka. Na mobile 390 px ostáva vodorovne
 rolovateľný pás piluliek (border-radius 20 px) so štítkom „+N ›“.
 
+Kontrola ab) (14.11.2026, Zadanie 58): titulok stránky Aktuálne — na LOKÁLNEJ KÓPII (ako s; kód z repozitára),
+SK /aktualne/ aj EN /live-this-week/: statický <title> začína „Live výsledky dnes“ / „Live scores today“, má
+najviac 65 znakov, og:title je rovnaký a po prevzatí appkou je document.title rovnaký ako statický <title>;
+s podstrčeným prázdnym aktualne.json (len v prehliadači testu) „Live výsledky dnes — sportlinky.sk“ /
+„Live scores today — Sportlinking“. Tipsport a GoatCounter blokované.
+
 Spustenie (lokálne):  python testy/test_webu.py --url https://sportlinky.sk/
 Voliteľne:  --od 2026-11-02T02:30:00Z  (počkaj, kým živý web nemá novšiu verziu)
             --vystup test-vystup        (priečinok na snímky a zoznam chýb)
@@ -3252,6 +3258,74 @@ class Test:
                 ctx.close()
         return "ok", "; ".join(popis)
 
+    # ------------------------------------------------ ab) titulok stránky Aktuálne (Zadanie 58)
+    # ROVNAKO ako LIVE_TXT["base"] / LIVE_TITLE_MAX v generator.py a liveTitle() v index.html
+    LIVE_ZAKLAD = {"sk": ("Live výsledky dnes", "sportlinky.sk", "aktualne/"),
+                   "en": ("Live scores today", "Sportlinking", "live-this-week/")}
+    LIVE_TITULOK_MAX = 65
+
+    def aktualne_titulok(self, pokus):
+        """Titulok stránky Aktuálne (SK /aktualne/, EN /live-this-week/) na LOKÁLNEJ KÓPII (ako s;
+        kód z repozitára, Tipsport a GoatCounter blokované): statický <title> začína „Live výsledky
+        dnes“ / „Live scores today“, má najviac 65 znakov, og:title je rovnaký, a po prevzatí appkou
+        je document.title rovnaký ako statický <title>. Navyše s podstrčeným PRÁZDNYM aktualne.json
+        (len v prehliadači testu) appka dá „Live výsledky dnes — sportlinky.sk“ / „Live scores today
+        — Sportlinking“."""
+        kopia = self.lokalna_kopia()
+        # appka dostane TEN ISTÝ aktualne.json, z ktorého generator.py vyrobil statickú stránku
+        # (EN appka by ho inak sťahovala zo živého SK webu, kde môže byť iný) — len v prehliadači testu
+        akt_subor = os.path.join(self._kopia_dir, "src", "aktualne.json")
+        akt_telo = open(akt_subor, encoding="utf-8").read() if os.path.exists(akt_subor) else None
+        popis = []
+        for lang in ("sk", "en"):
+            zaklad, web, cesta = self.LIVE_ZAKLAD[lang]
+            kde = lang.upper() + " /" + cesta
+            url = kopia[lang] + cesta
+            kod, _, raw = stiahni(url, timeout=60)
+            if kod != 200:
+                raise Zlyhanie(f"{kde}: stránka vrátila HTTP {kod}")
+            titulok = titulok_z_html(raw)
+            if not (titulok.startswith(zaklad + ": ") or titulok == f"{zaklad} — {web}"):
+                raise Zlyhanie(f"{kde}: titulok „{titulok}“ nezačína „{zaklad}: …“ (ani nie je „{zaklad} — {web}“)")
+            if not titulok.endswith(" — " + web):
+                raise Zlyhanie(f"{kde}: titulok „{titulok}“ nekončí „ — {web}“")
+            if len(titulok) > self.LIVE_TITULOK_MAX:
+                raise Zlyhanie(f"{kde}: titulok má {len(titulok)} znakov (max {self.LIVE_TITULOK_MAX}): „{titulok}“")
+            og = meta_z_html(raw, "og:title")
+            if og != titulok:
+                raise Zlyhanie(f"{kde}: og:title „{og}“ ≠ <title> „{titulok}“")
+            ctx = self.kontext()
+            try:
+                page = self.stranka(ctx)
+                if akt_telo is not None:
+                    page.route("**/aktualne.json*", lambda r: r.fulfill(
+                        status=200, content_type="application/json", body=akt_telo,
+                        headers={"Access-Control-Allow-Origin": "*"}))
+                page.goto(url, wait_until="load")
+                page.wait_for_selector("#main .live-intro, #main .live-none, #main .card-link", state="attached")
+                page.wait_for_timeout(2500)          # aktualne.json sa sťahuje zvlášť
+                app = page.evaluate("document.title")
+                if app != titulok:
+                    raise Zlyhanie(f"{kde}: po prevzatí appkou je titulok „{app}“ ≠ statický „{titulok}“")
+                self.over_chyby(page, kde)
+                page.close()
+                # bez aktívnych položiek (prázdny aktualne.json len v tomto prehliadači)
+                page = self.stranka(ctx)
+                page.route("**/aktualne.json*", lambda r: r.fulfill(
+                    status=200, content_type="application/json", body='{"version": 1, "items": []}',
+                    headers={"Access-Control-Allow-Origin": "*"}))
+                page.goto(url, wait_until="load")
+                page.wait_for_selector("#main .live-none", state="attached", timeout=CAKANIE_MS)
+                page.wait_for_timeout(500)
+                prazdny = page.evaluate("document.title")
+                if prazdny != f"{zaklad} — {web}":
+                    raise Zlyhanie(f"{kde}: bez aktívnych položiek je titulok „{prazdny}“, čakám „{zaklad} — {web}“")
+                self.over_chyby(page, kde + " (prázdny aktualne.json)")
+            finally:
+                ctx.close()
+            popis.append(f"{kde}: „{titulok}“ ({len(titulok)} zn.), appka rovnako; prázdne: „{prazdny}“")
+        return "ok", "; ".join(popis)
+
     def spusti(self, od):
         self.cakaj_na_nasadenie(od)
         with sync_playwright() as p:
@@ -3302,6 +3376,7 @@ class Test:
                 self.kontrola("y) Bez lišty rolovania v aplikácii (prehliadač ju má)", self.lista_aplikacia)
                 self.kontrola("z) Aktuálne: DO v pondelok končí o 12:00 Bratislavy (Zadanie 56)", self.aktualne_pondelok)
                 self.kontrola("aa) Aktuálne na počítači: stĺpcový zoznam, mobil bez zmeny (Zadanie 57)", self.aktualne_stlpce)
+                self.kontrola("ab) Titulok stránky Aktuálne: „Live výsledky dnes“ / „Live scores today“ (Zadanie 58)", self.aktualne_titulok)
             finally:
                 self.browser.close()
                 self.uprac_kopiu()
