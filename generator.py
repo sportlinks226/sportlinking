@@ -466,11 +466,11 @@ LIVE_DESC_MAX = 155
 LIVE_DESC_BASE = 100   # na toľko sa skráti dlhá prvá veta, aby sa do popisu zmestili športy
 LIVE_SITE = "Sportlinking" if LANG == "en" else "sportlinky.sk"
 LIVE_TXT = {
-    "sk": {"base": "Aktuálne live výsledky", "lead": " Práve teraz: ",
+    "sk": {"base": "Live výsledky dnes", "lead": " Práve teraz: ",
            "fallback": "Live výsledky a výsledkové servisy športov, ktoré sa práve hrajú.",
            "none": "Práve teraz nie je nič aktívne, pozrite sa neskôr.",
            "footer": "Aktuálne – live výsledky", "head": "Aktuálne"},
-    "en": {"base": "Live This Week — live scores", "lead": " Live now: ",
+    "en": {"base": "Live scores today", "lead": " Live now: ",
            "fallback": "Live scores and results for the sports being played right now.",
            "none": "Nothing is live right now — check back later.",
            "footer": "Live This Week", "head": "Live This Week"},
@@ -507,7 +507,8 @@ def live_fit(head: str, lst: list, tail: str, mx: int) -> list:
 
 
 def live_title() -> str:
-    """„Aktuálne live výsledky: badminton, squash — sportlinky.sk“ (max ~65 znakov).
+    """„Live výsledky dnes: badminton, squash — sportlinky.sk“ / „Live scores today: …
+    — Sportlinking“ (max LIVE_TITLE_MAX = 65 znakov). ROVNAKO ako liveTitle() v index.html.
     Denný cron rebuild ho drží čerstvý (skončené udalosti vypadnú)."""
     base, suf = LIVE_TXT["base"], " — " + LIVE_SITE
     used = live_fit(base + ": ", live_sport_list(), suf, LIVE_TITLE_MAX)
