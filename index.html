@@ -4943,7 +4943,7 @@ function saveBannerSettings(){
 // PRAVIDLÁ ZOBRAZENIA — ROVNAKÉ ako akt_visible() v generator.py a v DYN_JS.
 const AKT_MASTER = "https://sportlinky.sk/aktualne.json"; // MUSÍ sedieť s AKT_MASTER_URL v generator.py
 const AKT_DAY = 86400000;
-const AKT_PURGE_DAYS = 7;          // skončené (nie vypnuté) sa samy zmažú 7 dní po dátume DO
+const AKT_PURGE_DAYS = 3;          // Zadanie 59: skončené (nie vypnuté) sa samy zmažú, keď od dátumu DO uplynú viac než 3 dni
 let AKT = null;                    // {version, items} z aktualne.json; null = (zatiaľ) nie je → DB.aktualne
 let AKT_ADMIN = false;             // true = AKT je pracovná kópia admina (návštevnícke sťahovanie ju neprepíše)
 let AKT_ADMIN_P = null;            // prebiehajúce načítanie pre admina (Promise)
@@ -4985,8 +4985,8 @@ function aktAll(){
   if(DB && Array.isArray(DB.aktualne)) return aktSorted(DB.aktualne); // záloha od generátora: odľahčený data.json / BOOT
   return aktSorted(BOOT_AKT || []);
 }
-// Zadanie 56: položka s DO (endsAt) v PONDELOK je skončená už v ten pondelok od 12:00
-// času Bratislavy (aj keď má návštevník iné časové pásmo). Ostatné dni: do konca dňa DO.
+// Zadanie 59 (nahrádza Zadanie 56): položka je skončená v deň DO (endsAt) od 12:00 času
+// Bratislavy — v KAŽDÝ deň v týždni (aj keď má návštevník iné časové pásmo) — a kedykoľvek po dni DO.
 // ROVNAKO ako akt_ended() v generator.py a aktEnd() v záložnom skripte statických stránok (DYN_JS).
 // Počítadlo mazania (aktDaysAfterEnd) sa ráta od dátumu DO ako doteraz.
 // aktBaNow(now) = {d:'RRRR-MM-DD', h:hodina} v Bratislave; now = čas v ms (len pre testy).
@@ -5005,9 +5005,7 @@ function aktEnded(a, today, now){
   if(!a.endsAt) return false;
   if(today > a.endsAt) return true;                       // po dni DO (miestny dátum) — ako doteraz
   if(!aktValidDate(a.endsAt)) return false;
-  const p = a.endsAt.split('-').map(Number);
-  if(new Date(Date.UTC(p[0], p[1]-1, p[2])).getUTCDay() !== 1) return false;   // DO nie je pondelok
-  const ba = aktBaNow(now);
+  const ba = aktBaNow(now);                               // Zadanie 59: všetky dni o 12:00
   return !!ba && (ba.d > a.endsAt || (ba.d === a.endsAt && ba.h >= 12));
 }
 // stav položky: on = vidí ju verejnosť, wait = čaká na dátum OD, ended = po dátume DO, off = vypnutá
@@ -5221,7 +5219,7 @@ function aktFromOld(arr){
 // prečísluje "order" podľa POZÍCIE v poli (pole je vždy v poradí zobrazenia —
 // pri načítaní ho zoradí aktFromOld, presuny ho preskladajú)
 function aktRenumber(){ AKT.items.forEach((a,i)=>{ a.order = i; }); }
-// SKONČENÉ položky (nie vypnuté) staršie než 7 dní po dátume DO sa vyhodia. Vráti zmazané.
+// SKONČENÉ položky (nie vypnuté), keď od dátumu DO uplynú viac než AKT_PURGE_DAYS (3) dni, sa vyhodia. Vráti zmazané.
 function aktDaysAfterEnd(a){ return Math.round((aktDayMs(todayLocal()) - aktDayMs(a.endsAt)) / AKT_DAY); }
 function aktPurge(){
   const gone = [];
@@ -5278,7 +5276,7 @@ function aktAdminLoad(){
     AKT_ADMIN = true;
     const gone = aktPurge();
     if(gone.length){
-      notes.push('🧹 Samy sa zmazali skončené položky (viac než '+AKT_PURGE_DAYS+' dní po dátume DO): '+
+      notes.push('🧹 Samy sa zmazali skončené položky (viac než '+AKT_PURGE_DAYS+(AKT_PURGE_DAYS>=2&&AKT_PURGE_DAYS<=4?' dni':' dní')+' po dátume DO): '+
                  gone.map(a=>attrEsc(a.name)).join(', ')+'.');
       take.dirty = true;
     }
@@ -5345,7 +5343,7 @@ function renderAktList(){
     else if(st==='wait') lbl = '<span class="akt-st">čaká od '+aktFmtDate(a.startsAt)+'</span>';
     else {
       const n = AKT_PURGE_DAYS + 1 - aktDaysAfterEnd(a);
-      lbl = '<span class="akt-st">⏱ skončené · zmaže sa '+(n<=1?'zajtra':'o '+n+' dní')+'</span>';
+      lbl = '<span class="akt-st">⏱ skončené · zmaže sa '+(n<=1?'zajtra':'o '+n+(n<=4?' dni':' dní'))+'</span>';
     }
     const dt = (a.startsAt||a.endsAt) ? ' · '+(a.startsAt?aktFmtDate(a.startsAt):'…')+' – '+(a.endsAt?aktFmtDate(a.endsAt):'…') : '';
     const sp = aktSport(a.sport);
