@@ -118,8 +118,8 @@ a lišta sa kreslí (clientWidth < innerWidth); v aplikácii (podstrčené navig
 má <html> triedu pwa-app, html/body scrollbar-width none, lišta nezaberá šírku a stránka sa dá dorolovať
 na koniec — na PC aj mobile, bez chýb v konzole. Starý web bez tejto úpravy = ✅ s poznámkou.
 
-Kontrola z) (12.11.2026, Zadanie 56): položka Aktuálnych s DO (endsAt) v PONDELOK je skončená už
-v ten pondelok od 12:00 času Bratislavy (ostatné dni do konca dňa DO). Overuje sa KÓD Z REPOZITÁRA
+Kontrola z) (12.11.2026, Zadanie 56; od 16.11.2026 Zadanie 59): položka Aktuálnych je skončená v deň
+DO (endsAt) od 12:00 času Bratislavy — VŠETKY dni v týždni — a po dni DO. Overuje sa KÓD Z REPOZITÁRA
 s podstrčeným časom — generator.py (akt_visible, akt_for_web) aj JavaScript (aktState v index.html,
 aktEnd v záložnom skripte statických stránok) v prehliadači v časovom pásme Bratislavy aj New Yorku,
 plus záloha, keď Intl v prehliadači zlyhá. Stránka je prázdna (about:blank) — žiadna sieť, žiadne
@@ -921,8 +921,8 @@ class Test:
     # ------------------------------------------------ k) Aktuálne (aktualne.json)
     @staticmethod
     def akt_skoncena(a, dnes, teraz=None):
-        """Zadanie 56: skončená = dnes > DO; keď je DO v PONDELOK, už v ten pondelok
-        od 12:00 času Bratislavy (ROVNAKO ako aktEnded v index.html, akt_ended v generator.py)."""
+        """Zadanie 59: skončená = dnes > DO, alebo v deň DO od 12:00 času Bratislavy
+        (všetky dni v týždni; ROVNAKO ako aktEnded v index.html, akt_ended v generator.py)."""
         end = str(a.get("endsAt") or "")
         if not end:
             return False
@@ -930,8 +930,7 @@ class Test:
             return True
         try:
             from datetime import date as _date
-            if _date.fromisoformat(end).weekday() != 0:
-                return False
+            _date.fromisoformat(end)            # neplatný dátum DO → nie je skončená
         except ValueError:
             return False
         teraz = (teraz or datetime.now(timezone.utc)).astimezone(ZoneInfo("Europe/Bratislava"))
@@ -3003,17 +3002,27 @@ class Test:
             br.close()
         return "ok", "; ".join(detail)
 
-    # ------------------------------------------------ z) Zadanie 56: DO v pondelok končí o 12:00
+    # ------------------------------------------------ z) Zadanie 59: DO končí o 12:00 (všetky dni)
     # (bratislavský čas, dátum DO, čakaný stav: True = viditeľná, popis)
+    # 16.11.2026 = pondelok, 18.11.2026 = streda, 22.11.2026 = nedeľa
     PONDELOK_PRIPADY = [
         ((2026, 11, 16, 11, 59), "2026-11-16", True,  "DO pondelok, pondelok 11:59"),
         ((2026, 11, 16, 12, 0),  "2026-11-16", False, "DO pondelok, pondelok 12:00"),
         ((2026, 11, 16, 23, 59), "2026-11-16", False, "DO pondelok, pondelok 23:59"),
         ((2026, 11, 16, 0, 0),   "2026-11-16", True,  "DO pondelok, pondelok 0:00"),
         ((2026, 11, 15, 23, 0),  "2026-11-16", True,  "DO pondelok, nedeľa 23:00"),
-        ((2026, 11, 17, 23, 59), "2026-11-17", True,  "DO utorok, utorok 23:59"),
-        ((2026, 11, 17, 12, 0),  "2026-11-17", True,  "DO utorok, utorok 12:00"),
+        ((2026, 11, 17, 23, 59), "2026-11-17", False, "DO utorok, utorok 23:59"),
+        ((2026, 11, 17, 12, 0),  "2026-11-17", False, "DO utorok, utorok 12:00"),
+        ((2026, 11, 17, 11, 59), "2026-11-17", True,  "DO utorok, utorok 11:59"),
         ((2026, 11, 18, 0, 0),   "2026-11-17", False, "DO utorok, streda 0:00"),
+        ((2026, 11, 18, 11, 59), "2026-11-18", True,  "DO streda, streda 11:59"),
+        ((2026, 11, 18, 12, 0),  "2026-11-18", False, "DO streda, streda 12:00"),
+        ((2026, 11, 17, 23, 59), "2026-11-18", True,  "DO streda, utorok 23:59"),
+        ((2026, 11, 19, 9, 0),   "2026-11-18", False, "DO streda, štvrtok 9:00"),
+        ((2026, 11, 22, 11, 59), "2026-11-22", True,  "DO nedeľa, nedeľa 11:59"),
+        ((2026, 11, 22, 12, 0),  "2026-11-22", False, "DO nedeľa, nedeľa 12:00"),
+        ((2026, 11, 21, 23, 59), "2026-11-22", True,  "DO nedeľa, sobota 23:59"),
+        ((2026, 11, 23, 8, 0),   "2026-11-22", False, "DO nedeľa, pondelok 8:00"),
         ((2026, 11, 16, 10, 0),  "2026-11-15", False, "DO nedeľa, pondelok 10:00"),
         ((2026, 6, 29, 11, 59),  "2026-06-29", True,  "DO pondelok v lete, 11:59"),
         ((2026, 6, 29, 12, 0),   "2026-06-29", False, "DO pondelok v lete, 12:00"),
@@ -3048,11 +3057,11 @@ class Test:
             ix = f.read()
         m = re.search(r"function aktValidDate\(.*?(?=\n// bod 8 \(previerka 3\))", ix, re.S)
         if not m or "function aktEnded(" not in m.group(0):
-            raise Zlyhanie("index.html: nenašiel som aktValidDate … aktState s aktEnded (Zadanie 56)")
+            raise Zlyhanie("index.html: nenašiel som aktValidDate … aktState s aktEnded (Zadanie 59)")
         js_app = m.group(0)
         m = re.search(r"function aktEnd\(.*?(?=\n\s*function showAkt\()", gen.DYN_JS, re.S)
         if not m:
-            raise Zlyhanie("generator.py DYN_JS: nenašiel som funkciu aktEnd (Zadanie 56)")
+            raise Zlyhanie("generator.py DYN_JS: nenašiel som funkciu aktEnd (Zadanie 59)")
         js_dyn = m.group(0)
         js = js_app + "\n" + js_dyn + """
         ;window.__z56 = function(P, rozbiIntl){
@@ -3071,8 +3080,8 @@ class Test:
                 page.on("pageerror", lambda e: chyby.append(str(e)))
                 page.add_script_tag(content=js)
                 for r, p in zip(page.evaluate("P => window.__z56(P, false)", pripady), pripady):
-                    # skončená podľa miestneho dátumu návštevníka (dnes > DO) alebo pondelkového
-                    # pravidla v čase Bratislavy (akt_skoncena je overená s generator.py vyššie)
+                    # skončená podľa miestneho dátumu návštevníka (dnes > DO) alebo pravidla
+                    # „deň DO od 12:00“ v čase Bratislavy (akt_skoncena je overená s generator.py vyššie)
                     cak = not self.akt_skoncena({"endsAt": p["end"]}, r["dnes"],
                                                 datetime.fromtimestamp(p["ms"] / 1000, timezone.utc))
                     if (r["app"] == "on") != cak or r["app"] not in ("on", "ended"):
@@ -3089,8 +3098,8 @@ class Test:
                 vysl.append(tz.split("/")[1])
             finally:
                 ctx.close()
-        return "ok", (f"{len(pripady)} prípadov (pondelok 11:59 viditeľná, 12:00 skončená, utorok 23:59 viditeľná, "
-                      f"nedeľa→pondelok skončená, aj leto): generator.py, appka aj záloha v pásme "
+        return "ok", (f"{len(pripady)} prípadov (pondelok/streda/nedeľa 11:59 viditeľná, 12:00 skončená, deň pred DO "
+                      f"23:59 viditeľná, deň po DO skončená, aj leto): generator.py, appka aj záloha v pásme "
                       f"{' a '.join(vysl)}; bez Intl celý deň ako doteraz")
 
     # ------------------------------------------------ aa) Aktuálne ako stĺpcový zoznam (Zadanie 57)
@@ -3374,7 +3383,7 @@ class Test:
                 self.kontrola("w) Ikonky až pri dorolovaní (dlhý zoznam, mobil)", self.ikonky_neskor)
                 self.kontrola("x) Tlačidlo „📲 APP“ v hlavičke (mobil, návod, PC, aplikácia)", self.app_tlacidlo)
                 self.kontrola("y) Bez lišty rolovania v aplikácii (prehliadač ju má)", self.lista_aplikacia)
-                self.kontrola("z) Aktuálne: DO v pondelok končí o 12:00 Bratislavy (Zadanie 56)", self.aktualne_pondelok)
+                self.kontrola("z) Aktuálne: v deň DO končí o 12:00 Bratislavy, všetky dni (Zadanie 59)", self.aktualne_pondelok)
                 self.kontrola("aa) Aktuálne na počítači: stĺpcový zoznam, mobil bez zmeny (Zadanie 57)", self.aktualne_stlpce)
                 self.kontrola("ab) Titulok stránky Aktuálne: „Live výsledky dnes“ / „Live scores today“ (Zadanie 58)", self.aktualne_titulok)
             finally:

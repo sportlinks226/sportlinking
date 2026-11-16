@@ -280,8 +280,8 @@ def visible(node: dict, lang: str = None) -> bool:
 # PRAVIDLÁ ZOBRAZENIA (rovnaké v appke = aktVisible() v index.html a v DYN_JS):
 #   verejnosť vidí položku, len ak NIE je disabled, startsAt je prázdne alebo
 #   <= dnes a endsAt je prázdne alebo >= dnes; poradie ručné podľa "order".
-#   Zadanie 56: keď endsAt pripadá na PONDELOK, položka je skončená už v ten
-#   pondelok od 12:00 času Bratislavy (akt_ended).
+#   Zadanie 59: položka je skončená v deň endsAt od 12:00 času Bratislavy
+#   (všetky dni v týždni) a kedykoľvek po dni endsAt (akt_ended).
 # Keď aktualne.json nie je alebo je pokazený, Aktuálne sú prázdne (pole "aktualne"
 # v data.json od 3.11.2026 nie je — vetva pre neho vypustená v Zadaní 36).
 # EN web (sportlinking): build si pred generátorom stiahne aktualne.json zo SK
@@ -349,8 +349,8 @@ def load_aktualne(data: dict):
 
 def akt_ended(a: dict, today: str = None, now: datetime = None) -> bool:
     """Je položka Aktuálnych skončená? (ROVNAKO ako aktEnded() v index.html a aktEnd() v DYN_JS)
-    Zadanie 56: DO (endsAt) v PONDELOK → skončená už v ten pondelok od 12:00 času
-    Bratislavy; ostatné dni do konca dňa DO (skončená = dnes > DO).
+    Zadanie 59: skončená v deň DO (endsAt) od 12:00 času Bratislavy — všetky dni
+    v týždni (nahrádza pondelkové pravidlo zo Zadania 56) — a kedykoľvek po dni DO.
     now = čas (len pre testy), inak teraz; today = dnešný dátum, inak dátum z now."""
     end = str(a.get("endsAt") or "")
     if not end:
@@ -361,8 +361,7 @@ def akt_ended(a: dict, today: str = None, now: datetime = None) -> bool:
         return True
     try:
         y, m, d = (int(x) for x in end.split("-"))
-        if date(y, m, d).weekday() != 0:        # DO nie je pondelok
-            return False
+        date(y, m, d)                           # neplatný dátum DO → nie je skončená (ako doteraz)
     except (TypeError, ValueError):
         return False
     ba = now.date().isoformat()
@@ -426,7 +425,7 @@ def akt_for_web(items: list, today: str = None, now: datetime = None) -> list:
     keys = AKT_KEYS + (("name_en", "desc_en") if LANG == "en" else ())
     out = []
     for a in items:
-        if a.get("disabled") is True or akt_ended(a, today, now):   # Zadanie 56: aj pondelok 12:00
+        if a.get("disabled") is True or akt_ended(a, today, now):   # Zadanie 59: v deň DO od 12:00
             continue
         out.append({k: a[k] for k in keys if k in a and a[k] not in (None, "")})
     return out
@@ -1888,15 +1887,14 @@ function __dyn(){
     }
     // Aktuálne: čerstvý aktualne.json (EN: najprv SK web, potom kópia z buildu);
     // keď nepríde, pole "aktualne" z data.json. Pravidlá ako akt_visible v generator.py.
-    // Zadanie 56: DO (endsAt) v PONDELOK → skončená už v pondelok od 12:00 času Bratislavy
+    // Zadanie 59: skončená v deň DO (endsAt) od 12:00 času Bratislavy, všetky dni v týždni
     // (ROVNAKO ako aktEnded v index.html a akt_ended v generator.py). Keď Intl/timeZone
     // zlyhá → doterajšie pravidlo (celý deň DO). now = čas v ms len pre testy.
     function aktEnd(a,today,now){
       if(!a.endsAt)return false;
       if(today>a.endsAt)return true;
+      if(!/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(String(a.endsAt)))return false;
       try{
-        var q=String(a.endsAt).split("-");
-        if(new Date(Date.UTC(+q[0],q[1]-1,+q[2])).getUTCDay()!==1)return false;
         var p={};
         new Intl.DateTimeFormat("en-GB",{timeZone:"Europe/Bratislava",year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",hourCycle:"h23"})
           .formatToParts(new Date(now==null?Date.now():now)).forEach(function(x){p[x.type]=x.value});
