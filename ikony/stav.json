@@ -1,6 +1,6 @@
 {
  "info": "Stav ikoniek webov (ikony.py). Generuje GitHub Actions — ručne nemeniť.",
- "obnova": {"den": "2026-11-16", "obnovene": 0},
+ "obnova": {"den": "2026-11-17", "obnovene": 0},
  "hosty": {
   "1-division.dk": {"datum": "2026-11-03", "vysledok": "ok", "zdroj": "google"},
   "1.fc-magdeburg.de": {"datum": "2026-11-03", "vysledok": "ok", "zdroj": "google"},
@@ -3634,6 +3634,7 @@
   "thmeythmey.com": {"datum": "2026-11-02", "vysledok": "ok", "zdroj": "google"},
   "thunder.theaihl.com": {"datum": "2026-11-02", "vysledok": "ok", "zdroj": "yandex"},
   "thunders.kbl.or.kr": {"datum": "2026-11-02", "vysledok": "ok", "zdroj": "google"},
+  "ticker.ehf.eu": {"datum": "2026-11-17", "vysledok": "ok", "zdroj": "google"},
   "tiebreakertimes.com.ph": {"datum": "2026-11-02", "vysledok": "ok", "zdroj": "google"},
   "tiempo.hn": {"datum": "2026-11-14", "vysledok": "ok", "zdroj": "google"},
   "tienphong.vn": {"datum": "2026-11-02", "vysledok": "ok", "zdroj": "google"},
