@@ -1,6 +1,6 @@
 {
  "info": "Stav ikoniek webov (ikony.py). Generuje GitHub Actions — ručne nemeniť.",
- "obnova": {"den": "2026-11-17", "obnovene": 0},
+ "obnova": {"den": "2026-11-20", "obnovene": 0},
  "hosty": {
   "1-division.dk": {"datum": "2026-11-03", "vysledok": "ok", "zdroj": "google"},
   "1.fc-magdeburg.de": {"datum": "2026-11-03", "vysledok": "ok", "zdroj": "google"},
@@ -1932,6 +1932,7 @@
   "indyfuelhockey.com": {"datum": "2026-11-03", "vysledok": "ok", "zdroj": "google"},
   "inews.co.uk": {"datum": "2026-11-03", "vysledok": "ok", "zdroj": "google"},
   "inewsguyana.com": {"datum": "2026-11-16", "vysledok": "ok", "zdroj": "google"},
+  "info.ianseo.net": {"datum": "2026-11-20", "vysledok": "ok", "zdroj": "google"},
   "informsports.kz": {"datum": "2026-11-03", "vysledok": "ok", "zdroj": "google"},
   "infostart.hu": {"datum": "2026-11-03", "vysledok": "ok", "zdroj": "google"},
   "ingulets.club": {"datum": "2026-11-03", "vysledok": "ok", "zdroj": "google"},
@@ -4163,6 +4164,7 @@
   "www.abnamro-open.nl": {"datum": "2026-11-02", "vysledok": "ok", "zdroj": "yandex"},
   "www.abola.pt": {"datum": "2026-11-02", "vysledok": "ok", "zdroj": "google"},
   "www.abs-cbn.com": {"datum": "2026-11-02", "vysledok": "ok", "zdroj": "google"},
+  "www.abudhabi.live.worldrallyraidchampionship.com": {"datum": "2026-11-20", "vysledok": "ok", "zdroj": "google"},
   "www.academiapuertocabello.com": {"datum": "2026-11-02", "vysledok": "ok", "zdroj": "google"},
   "www.academica-oaf.pt": {"datum": "2026-11-02", "vysledok": "ok", "zdroj": "google"},
   "www.acb.com": {"datum": "2026-11-02", "vysledok": "ok", "zdroj": "google"},
