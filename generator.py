@@ -764,17 +764,23 @@ ORDER_EN = {}
 
 
 def gen_meta(ids) -> dict:
-    """Kľúče _titleNoSport, _titleNameOnly, _slugFix a _orderEn obmedzené na dané
-    id-čka (BOOT, mini-balík; _orderEn podľa id rodiča). ids=None = všetko
-    (odľahčený data.json)."""
+    """Kľúče _titleNoSport, _titleNameOnly, _slugFix, _orderEn a _titles (Zadanie 61,
+    len keď sú titulky zo súboru) obmedzené na dané id-čka (BOOT, mini-balík;
+    _orderEn podľa id rodiča). ids=None = všetko (odľahčený data.json)."""
     if ids is None:
-        return {"_titleNoSport": sorted(TITLE_NOSPORT), "_titleNameOnly": sorted(TITLE_NAMEONLY),
-                "_slugFix": dict(sorted(SLUG_FIX.items())), "_orderEn": dict(sorted(ORDER_EN.items()))}
+        m = {"_titleNoSport": sorted(TITLE_NOSPORT), "_titleNameOnly": sorted(TITLE_NAMEONLY),
+             "_slugFix": dict(sorted(SLUG_FIX.items())), "_orderEn": dict(sorted(ORDER_EN.items()))}
+        if TITLE_FILE:
+            m["_titles"] = dict(sorted(TITLE_FILE.items()))
+        return m
     ids = set(ids)
-    return {"_titleNoSport": sorted(i for i in TITLE_NOSPORT if i in ids),
-            "_titleNameOnly": sorted(i for i in TITLE_NAMEONLY if i in ids),
-            "_slugFix": {k: v for k, v in sorted(SLUG_FIX.items()) if k in ids},
-            "_orderEn": {k: v for k, v in sorted(ORDER_EN.items()) if k in ids}}
+    m = {"_titleNoSport": sorted(i for i in TITLE_NOSPORT if i in ids),
+         "_titleNameOnly": sorted(i for i in TITLE_NAMEONLY if i in ids),
+         "_slugFix": {k: v for k, v in sorted(SLUG_FIX.items()) if k in ids},
+         "_orderEn": {k: v for k, v in sorted(ORDER_EN.items()) if k in ids}}
+    if TITLE_FILE:
+        m["_titles"] = {k: v for k, v in sorted(TITLE_FILE.items()) if k in ids}
+    return m
 
 
 def build_boot(data: dict, children: dict, lcnt: dict) -> dict:
@@ -2193,8 +2199,38 @@ TITLES = {}             # id priečinka -> titulok (bez HTML escapovania)
 TITLE_NOSPORT = set()   # id priečinkov, ktorým sa šport z titulku vynechal
 TITLE_NAMEONLY = set()  # id priečinkov s titulkom len „{názov} — {web}"
 
+# TITULKY PRIEČINKOV ZO SÚBORU (Zadanie 61, len EN web): seo-titulky-en.json v koreni
+# repozitára = {"id": {"title": "hotový titulok", "name_en": "EN názov v čase prípravy"}}.
+# Priečinok zo súboru dostane PRESNE "title" (bez „ — Sportlinking“), ak platia poistky
+# v compute_titles(): a) priečinok existuje a má titulok, b) node_name(…, "en") == "name_en",
+# c) 1 až TITLE_MAX znakov, d) titulok je na celom webe jedinečný. Inak ostáva vypočítaný
+# titulok (s VAROVANÍM). Použité titulky dostane appka ako mapu "_titles" (ako _titleNoSport).
+# Do data-full.json sa NEPÍŠE. VYPNUTIE: zmazať súbor (alebo dať doň {}) = titulky ako predtým.
+TITLE_FILE_NAME = "seo-titulky-en.json"
+TITLE_FILE = {}         # id priečinka -> titulok zo súboru, ktorý sa naozaj použil
 
-def compute_titles(folder_ids, by_id, site_title: str, home: str):
+
+def load_title_file(path: str = TITLE_FILE_NAME) -> dict:
+    """Načíta seo-titulky-en.json (len pre EN build). Chýbajúci, prázdny alebo
+    pokazený súbor build nezhodí — vráti {} a vypíše 1 riadok upozornenia."""
+    if LANG != "en":
+        return {}
+    try:
+        with open(path, encoding="utf-8") as f:
+            d = json.load(f)
+    except FileNotFoundError:
+        print(f"UPOZORNENIE: {path} nie je — titulky priečinkov sa vypočítajú ako doteraz.")
+        return {}
+    except (OSError, ValueError) as e:
+        print(f"UPOZORNENIE: {path} sa nedá prečítať ({type(e).__name__}) — titulky ako doteraz.")
+        return {}
+    if not isinstance(d, dict) or not d:
+        print(f"UPOZORNENIE: {path} je prázdny alebo nie je slovník — titulky ako doteraz.")
+        return {}
+    return d
+
+
+def compute_titles(folder_ids, by_id, site_title: str, home: str, from_file=None, file_stats=None):
     """Vypočíta titulky všetkých priečinkov (folder_ids = všetky priečinky, na
     ktoré sa dá v appke prekliknúť, aj tie bez statickej stránky) a rozhodne,
     ktorým sa vynechá šport. Vracia (titulky, množina id bez športu).
@@ -2204,7 +2240,13 @@ def compute_titles(folder_ids, by_id, site_title: str, home: str):
     ani ako titulok domova. Kontroluje sa opakovane, kým sa nič nemení
     (stránka, ktorej sa skrátenie zamietne, sa vráti o stupeň: z „{názov} — {web}"
     na titulok bez športu, z neho na plný titulok).
-    Vracia (titulky, množina id bez športu, množina id „{názov} — {web}")."""
+    Vracia (titulky, množina id bez športu, množina id „{názov} — {web}").
+
+    from_file (Zadanie 61) = obsah seo-titulky-en.json: priečinok, ktorý prejde
+    poistkami a)–d), dostane titulok zo súboru (nie je potom ani bez športu, ani
+    „{názov} — {web}"). Titulok zo súboru, ktorý by sa na webe opakoval, sa
+    odmietne skôr než skrátené titulky iných stránok. Ak je zadaný file_stats
+    (slovník), naplní sa: "used" {id: titulok} a počty odmietnutých podľa poistky."""
     full, short, bare = {}, {}, {}
     for fid in folder_ids:
         n = by_id[fid]
@@ -2231,7 +2273,35 @@ def compute_titles(folder_ids, by_id, site_title: str, home: str):
     # stupeň: 2 = „{názov} — {web}", 1 = bez športu, 0 = plný titulok
     level = {fid: (2 if fid in bare else 1 if fid in short else 0) for fid in folder_ids}
 
+    # Zadanie 61: titulky zo súboru — poistky a) b) c); d) jedinečnosť nižšie v cykle
+    fixed = {}
+    stats = {"used": {}, "a_chyba": 0, "b_name_en": 0, "c_dlzka": 0, "d_duplicita": 0, "zle": 0}
+    known = set(folder_ids)
+    for fid, e in (from_file or {}).items():
+        if not isinstance(e, dict) or not isinstance(e.get("title"), str):
+            stats["zle"] += 1
+            print(f"VAROVANIE titulky zo súboru: {fid} — záznam nemá textové pole \"title\", ignorujem")
+            continue
+        t = e["title"]
+        if fid not in known or fid == LIVE_ID:
+            stats["a_chyba"] += 1
+            print(f"VAROVANIE titulky zo súboru: {fid} — priečinok nie je (alebo nemá titulok), ignorujem")
+            continue
+        if node_name(by_id[fid], "en") != e.get("name_en"):
+            stats["b_name_en"] += 1
+            print(f"VAROVANIE titulky zo súboru: {fid} — EN názov sa zmenil "
+                  f"(„{e.get('name_en')}“ → „{node_name(by_id[fid], 'en')}“), ostáva vypočítaný titulok")
+            continue
+        if not 1 <= len(t) <= TITLE_MAX:
+            stats["c_dlzka"] += 1
+            print(f"VAROVANIE titulky zo súboru: {fid} — titulok má {len(t)} znakov "
+                  f"(povolené 1–{TITLE_MAX}), ostáva vypočítaný titulok")
+            continue
+        fixed[fid] = t
+
     def title_of(fid):
+        if fid in fixed:
+            return fixed[fid]
         lv = level[fid]
         return bare[fid] if lv == 2 else short[fid] if lv == 1 else full[fid]
 
@@ -2241,7 +2311,16 @@ def compute_titles(folder_ids, by_id, site_title: str, home: str):
             t = title_of(fid)
             cnt[t] = cnt.get(t, 0) + 1
         cnt[home] = cnt.get(home, 0) + 1
-        bad = [fid for fid in folder_ids if level[fid] and cnt[title_of(fid)] > 1]
+        # d) titulok zo súboru, ktorý sa na webe opakuje → späť na vypočítaný
+        bad_fixed = [fid for fid in fixed if cnt[fixed[fid]] > 1]
+        if bad_fixed:
+            for fid in bad_fixed:
+                stats["d_duplicita"] += 1
+                print(f"VAROVANIE titulky zo súboru: {fid} — titulok „{fixed[fid]}“ už na webe je, "
+                      f"ostáva vypočítaný titulok")
+                del fixed[fid]
+            continue
+        bad = [fid for fid in folder_ids if fid not in fixed and level[fid] and cnt[title_of(fid)] > 1]
         if not bad:
             break
         for fid in bad:   # o stupeň nižšie (bez športu sa preskočí, ak ho priečinok nemá)
@@ -2249,8 +2328,12 @@ def compute_titles(folder_ids, by_id, site_title: str, home: str):
             if level[fid] == 1 and fid not in short:
                 level[fid] = 0
     titles = {fid: title_of(fid) for fid in folder_ids}
-    return (titles, {fid for fid in folder_ids if level[fid] == 1},
-            {fid for fid in folder_ids if level[fid] == 2})
+    if file_stats is not None:
+        stats["used"] = dict(fixed)
+        file_stats.clear()
+        file_stats.update(stats)
+    return (titles, {fid for fid in folder_ids if fid not in fixed and level[fid] == 1},
+            {fid for fid in folder_ids if fid not in fixed and level[fid] == 2})
 
 
 def render_page(node, path, children, by_id, paths, site_title, alt_url=None, page_boot="", lcnt=None):
@@ -2684,13 +2767,25 @@ def main():
     # bod 23: titulky všetkých priečinkov (aj bez statickej stránky — appka ich
     # tiež ukazuje) a zoznam tých, ktorým sa vynechá šport
     n_links = count_links(children, paths)
-    titles, nosport, nameonly = compute_titles(list(all_paths), by_id, site_title, home_title(n_links))
+    # Zadanie 61: titulky zo súboru seo-titulky-en.json (len EN; inak {})
+    title_file = load_title_file()
+    tf_stats = {}
+    titles, nosport, nameonly = compute_titles(list(all_paths), by_id, site_title, home_title(n_links),
+                                               from_file=title_file, file_stats=tf_stats)
     TITLES.clear(); TITLES.update(titles)
     TITLE_NOSPORT.clear(); TITLE_NOSPORT.update(nosport)
     TITLE_NAMEONLY.clear(); TITLE_NAMEONLY.update(nameonly)
+    TITLE_FILE.clear(); TITLE_FILE.update(tf_stats.get("used", {}))
     n_long = sum(1 for fid in paths if len(titles[fid]) > TITLE_MAX)
     print(f"titulky: {len(nosport)} priečinkov bez športu v titulku, {len(nameonly)} len "
           f"„názov — web“ (statických stránok s titulkom nad {TITLE_MAX} znakov ostáva: {n_long})")
+
+    if title_file:
+        n_stat = sum(1 for fid in TITLE_FILE if fid in paths)
+        print(f"titulky zo súboru {TITLE_FILE_NAME}: v súbore {len(title_file)}, použitých {len(TITLE_FILE)} "
+              f"(so statickou stránkou {n_stat}); odmietnuté — a) priečinok nie je: {tf_stats['a_chyba']}, "
+              f"b) iný EN názov: {tf_stats['b_name_en']}, c) dĺžka: {tf_stats['c_dlzka']}, "
+              f"d) duplicita: {tf_stats['d_duplicita']}, zlý záznam: {tf_stats['zle']}")
 
     # bod 17 (Zadanie 33): hotové EN poradie detí kontinentov pre appku (_orderEn)
     ORDER_EN.clear()

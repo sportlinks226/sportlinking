@@ -140,6 +140,12 @@ najviac 65 znakov, og:title je rovnaký a po prevzatí appkou je document.title 
 s podstrčeným prázdnym aktualne.json (len v prehliadači testu) „Live výsledky dnes — sportlinky.sk“ /
 „Live scores today — Sportlinking“. Tipsport a GoatCounter blokované.
 
+Kontrola ac) (21.11.2026, Zadanie 61): titulky EN priečinkov zo súboru seo-titulky-en.json — na LOKÁLNEJ
+KÓPII (ako s; kód z repozitára): 3 náhodné priečinky zo súboru majú na EN webe statický <title> aj og:title
+presne podľa "title" a appka po prevzatí rovnaký document.title aj og:title; 1 ligový priečinok, ktorý v súbore
+nie je, má starý tvar; na SK webe majú tie priečinky starý tvar a SK data.json nemá _titles. Id sa berú zo
+súboru; keď súbor v repozitári nie je, kontrola sa preskočí. Tipsport a GoatCounter blokované.
+
 Spustenie (lokálne):  python testy/test_webu.py --url https://sportlinky.sk/
 Voliteľne:  --od 2026-11-02T02:30:00Z  (počkaj, kým živý web nemá novšiu verziu)
             --vystup test-vystup        (priečinok na snímky a zoznam chýb)
@@ -2190,7 +2196,8 @@ class Test:
         self._servery = []
         src = os.path.join(tmp, "src")
         os.makedirs(src)
-        for f in ("generator.py", "index.html", "aktualne.json", "favicon.ico", "apple-touch-icon.png", "og-image.png"):
+        for f in ("generator.py", "index.html", "aktualne.json", "favicon.ico", "apple-touch-icon.png", "og-image.png",
+                  "seo-titulky-en.json"):   # Zadanie 61: titulky EN priečinkov zo súboru
             if os.path.exists(os.path.join(repo, f)):
                 shutil.copy(os.path.join(repo, f), src)
         if os.path.isdir(os.path.join(repo, "pwa")):   # Zadanie 50: ikonky aplikácie
@@ -3335,6 +3342,120 @@ class Test:
             popis.append(f"{kde}: „{titulok}“ ({len(titulok)} zn.), appka rovnako; prázdne: „{prazdny}“")
         return "ok", "; ".join(popis)
 
+    # ------------------------------------------------ ac) titulky priečinkov zo súboru (Zadanie 61)
+    TITULKY_SUBOR = "seo-titulky-en.json"
+
+    @staticmethod
+    def stranky_kopie(koren):
+        """{id priečinka: (cesta, <title>, og:title)} statických stránok lokálnej kópie (id z pageBoot)."""
+        out = {}
+        for dir_, _, subory in os.walk(koren):
+            if "index.html" not in subory:
+                continue
+            with open(os.path.join(dir_, "index.html"), encoding="utf-8") as f:
+                t = f.read()
+            m = re.search(r'"full":\["([^"]+)"\]', t)
+            if m:
+                cesta = os.path.relpath(dir_, koren).replace(os.sep, "/") + "/"
+                out[m.group(1)] = (cesta, titulok_z_html(t), meta_z_html(t, "og:title"))
+        return out
+
+    def titulky_zo_suboru(self, pokus):
+        """Zadanie 61 na LOKÁLNEJ KÓPII (ako s; kód z repozitára, Tipsport a GoatCounter blokované):
+        EN — 3 náhodné priečinky zo seo-titulky-en.json (EN názov v dátach = name_en zo súboru) majú
+        statický <title> aj og:title presne podľa "title" a po prevzatí appkou je document.title aj og:title
+        rovnaký; 1 ligový priečinok, ktorý v súbore nie je, má starý tvar „{názov} — … — Sportlinking“.
+        SK — tie isté priečinky majú titulok „{názov} — … — {web}“ (nie zo súboru) a SK data.json nemá
+        _titles. Id sa berú zo súboru; keď súbor v repozitári nie je, kontrola sa preskočí."""
+        repo = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        cesta = os.path.join(repo, self.TITULKY_SUBOR)
+        if not os.path.exists(cesta):
+            return "ok", f"{self.TITULKY_SUBOR} v repozitári nie je — kontrola preskočená"
+        with open(cesta, encoding="utf-8") as f:
+            subor = json.load(f)
+        if not isinstance(subor, dict) or not subor:
+            return "ok", f"{self.TITULKY_SUBOR} je prázdny — kontrola preskočená"
+        kopia = self.lokalna_kopia()
+        with open(os.path.join(self._kopia_dir, "src", "data.json"), encoding="utf-8") as f:
+            uzly = {n.get("id"): n for n in json.load(f).get("nodes", [])}
+
+        def meno(n, lang):
+            v = (n.get("name_en") or "").strip() if lang == "en" else ""
+            return v or (n.get("name") or "").strip()
+
+        en = self.stranky_kopie(os.path.join(self._kopia_dir, "en"))
+        sk = self.stranky_kopie(os.path.join(self._kopia_dir, "sk"))
+        with open(os.path.join(self._kopia_dir, "en", "data.json"), encoding="utf-8") as f:
+            en_titles = json.load(f).get("_titles") or {}
+        kandidati = sorted(fid for fid, e in subor.items()
+                           if fid in en and fid in uzly and isinstance(e, dict) and meno(uzly[fid], "en") == e.get("name_en"))
+        if not kandidati:
+            raise Zlyhanie(f"žiadny priečinok zo {self.TITULKY_SUBOR} nemá v EN kópii stránku so zhodným EN názvom")
+        vyber = random.sample(kandidati, min(3, len(kandidati)))
+        popis, varov = [], []
+        # appka dostane TEN ISTÝ aktualne.json ako generátor (EN appka by ho inak sťahovala zo SK webu)
+        akt_subor = os.path.join(self._kopia_dir, "src", "aktualne.json")
+        akt_telo = open(akt_subor, encoding="utf-8").read() if os.path.exists(akt_subor) else None
+        ctx = self.kontext()
+        if akt_telo is not None:
+            ctx.route("**/aktualne.json*", lambda r: r.fulfill(
+                status=200, content_type="application/json", body=akt_telo,
+                headers={"Access-Control-Allow-Origin": "*"}))
+        try:
+            for fid in vyber:
+                chcem = subor[fid]["title"]
+                c, ti, og = en[fid]
+                if ti != chcem or og != chcem:
+                    if fid not in en_titles:   # generátor ho odmietol poistkou (napr. duplicita) — varovanie
+                        varov.append(f"{fid}: generátor titulok zo súboru nepoužil (poistka), statický „{ti}“")
+                        continue
+                    raise Zlyhanie(f"EN /{c}: <title> „{ti}“ / og:title „{og}“ ≠ zo súboru „{chcem}“")
+                page = self.stranka(ctx)
+                page.goto(kopia["en"] + c, wait_until="load")
+                self.cakaj_na_appku(page)
+                try:   # celé dáta (titulok sa nastaví aj po ich príchode)
+                    page.wait_for_function("() => typeof DB !== 'undefined' && DB && DB.nodes && !DB._partial",
+                                           timeout=60_000)
+                except Exception:
+                    pass
+                page.wait_for_timeout(1000)
+                app = page.evaluate("[document.title, (document.querySelector('meta[property=\"og:title\"]')||{}).content]")
+                if app != [chcem, chcem]:
+                    raise Zlyhanie(f"EN /{c}: po prevzatí appkou titulok „{app[0]}“, og:title „{app[1]}“ ≠ „{chcem}“")
+                self.over_chyby(page, "EN /" + c)
+                page.close()
+                popis.append(f"EN {fid}: „{chcem}“ (statika aj appka)")
+                # SK: ten istý priečinok má starý tvar (nie zo súboru)
+                if fid in sk and fid in uzly:
+                    tsk = sk[fid][1]
+                    if tsk == chcem or not tsk.startswith(meno(uzly[fid], "sk") + " — "):
+                        raise Zlyhanie(f"SK /{sk[fid][0]}: titulok „{tsk}“ nemá starý tvar „{{názov}} — … — {{web}}“")
+            # ligový priečinok, ktorý v súbore NIE JE → starý tvar
+            ligy = sorted(fid for fid in en if fid not in subor and fid in uzly and re.search(r"_l\d+$", fid))
+            if ligy:
+                fid = random.choice(ligy)
+                c, ti, og = en[fid]
+                if not (ti.startswith(meno(uzly[fid], "en") + " — ") and ti.endswith(" — Sportlinking")) or og != ti:
+                    raise Zlyhanie(f"EN /{c} (nie je v súbore): titulok „{ti}“ / og:title „{og}“ nemá starý tvar")
+                page = self.stranka(ctx)
+                page.goto(kopia["en"] + c, wait_until="load")
+                self.cakaj_na_appku(page)
+                page.wait_for_timeout(1500)
+                app = page.evaluate("document.title")
+                if app != ti:
+                    raise Zlyhanie(f"EN /{c} (nie je v súbore): titulok appky „{app}“ ≠ statický „{ti}“")
+                page.close()
+                popis.append(f"EN {fid} (nie je v súbore): „{ti}“")
+        finally:
+            ctx.close()
+        with open(os.path.join(self._kopia_dir, "sk", "data.json"), encoding="utf-8") as f:
+            if "_titles" in json.load(f):
+                raise Zlyhanie("SK data.json má kľúč _titles (slovenský web má ostať bez zmeny)")
+        popis.append(f"EN data.json: _titles {len(en_titles)} z {len(subor)}; SK bez _titles")
+        if varov:
+            return "warn", "; ".join(varov + popis)
+        return "ok", "; ".join(popis)
+
     def spusti(self, od):
         self.cakaj_na_nasadenie(od)
         with sync_playwright() as p:
@@ -3386,6 +3507,7 @@ class Test:
                 self.kontrola("z) Aktuálne: v deň DO končí o 12:00 Bratislavy, všetky dni (Zadanie 59)", self.aktualne_pondelok)
                 self.kontrola("aa) Aktuálne na počítači: stĺpcový zoznam, mobil bez zmeny (Zadanie 57)", self.aktualne_stlpce)
                 self.kontrola("ab) Titulok stránky Aktuálne: „Live výsledky dnes“ / „Live scores today“ (Zadanie 58)", self.aktualne_titulok)
+                self.kontrola("ac) Titulky EN priečinkov zo súboru seo-titulky-en.json (Zadanie 61)", self.titulky_zo_suboru)
             finally:
                 self.browser.close()
                 self.uprac_kopiu()
