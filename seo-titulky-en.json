@@ -1,0 +1,1578 @@
+{
+"f_alb_l1": {
+"name_en": "Abissnet Superiore",
+"title": "Abissnet Superiore – Albania Football League Clubs & Standings"
+},
+"f_ang_l1": {
+"name_en": "League One",
+"title": "League One – England Football 3rd Division Clubs & Standings"
+},
+"f_ang_l2": {
+"name_en": "League Two",
+"title": "League Two – England Football 4th Division Clubs & Standings"
+},
+"f_ang_nl": {
+"name_en": "National League",
+"title": "National League – England Football 5th Division Clubs & Standings"
+},
+"f_ang_pl": {
+"name_en": "Premier League",
+"title": "Premier League – England Football Clubs & Standings"
+},
+"f_are_l1": {
+"name_en": "UAE Pro League (ADNOC Pro League)",
+"title": "UAE Pro League (ADNOC Pro League) – Football Clubs & Standings"
+},
+"f_arg_l2": {
+"name_en": "Primera Nacional",
+"title": "Primera Nacional – Argentina Football 2nd Division Clubs"
+},
+"f_arg_l3a": {
+"name_en": "Torneo Federal A",
+"title": "Torneo Federal A – Argentina Football 3rd Division Clubs"
+},
+"f_arm_l1": {
+"name_en": "Premier League",
+"title": "Premier League – Armenia Football Clubs & Standings"
+},
+"f_aru_l1": {
+"name_en": "Division di Honor",
+"title": "Division di Honor – Aruba Football League Clubs & Standings"
+},
+"f_aus_l2": {
+"name_en": "Australian Championship",
+"title": "Australian Championship – Australia Soccer 2nd Division Teams"
+},
+"f_aut_l2": {
+"name_en": "2. Liga",
+"title": "2. Liga – Austria Football 2nd Division Clubs & Standings"
+},
+"f_aut_l3ost": {
+"name_en": "Regionalliga Ost",
+"title": "Regionalliga Ost – Austria Football 3rd Division Clubs"
+},
+"f_aze_l1": {
+"name_en": "Premier League",
+"title": "Premier League – Azerbaijan Football Clubs & Standings"
+},
+"f_bah_l1": {
+"name_en": "BFA Senior League",
+"title": "BFA Senior League – Bahamas Football Clubs & Standings"
+},
+"f_bas_aus_l1": {
+"name_en": "NBL",
+"title": "NBL – Australia Basketball League Teams & Standings"
+},
+"f_bas_aus_l2": {
+"name_en": "WNBL (women)",
+"title": "WNBL – Australia Women's Basketball League Teams & Standings"
+},
+"f_bas_aut_l1": {
+"name_en": "Basketball Superliga",
+"title": "Basketball Superliga – Austria Basketball League Teams"
+},
+"f_bas_bel_l1": {
+"name_en": "BNXT League",
+"title": "BNXT League – Belgium Basketball Teams & Standings"
+},
+"f_bas_bra_l1": {
+"name_en": "NBB",
+"title": "NBB – Brazil Basketball League Teams & Standings"
+},
+"f_bas_bra_l2": {
+"name_en": "LBF (women)",
+"title": "LBF – Brazil Women's Basketball League Teams & Standings"
+},
+"f_bas_chi_l1": {
+"name_en": "Liga Nacional",
+"title": "Liga Chery – Chile Basketball League Teams & Standings"
+},
+"f_bas_chn_l1": {
+"name_en": "CBA",
+"title": "CBA – China Basketball League Teams & Standings"
+},
+"f_bas_civ_l1": {
+"name_en": "Ligue d'Or",
+"title": "Ligue d'Or – Ivory Coast Basketball League Teams & Standings"
+},
+"f_bas_cze_l1": {
+"name_en": "NBL",
+"title": "NBL – Czechia Basketball League Teams & Standings"
+},
+"f_bas_cze_l3": {
+"name_en": "ŽBL (women)",
+"title": "ŽBL – Czechia Women's Basketball League Teams & Standings"
+},
+"f_bas_den_l1": {
+"name_en": "Basketligaen",
+"title": "Basketligaen – Denmark Basketball League Teams & Standings"
+},
+"f_bas_dom_l1": {
+"name_en": "LNB",
+"title": "LNB – Dominican Republic Basketball League Teams & Standings"
+},
+"f_bas_esp_l1": {
+"name_en": "Liga ACB",
+"title": "Liga ACB – Spain Basketball League Teams & Standings"
+},
+"f_bas_fin_l3": {
+"name_en": "Naisten Korisliiga (women)",
+"title": "Naisten Korisliiga – Finland Women's Basketball League Teams"
+},
+"f_bas_fra_l3": {
+"name_en": "La Boulangère Wonderligue (women)",
+"title": "La Boulangère Wonderligue – France Women's Basketball League"
+},
+"f_bas_gbr_l1": {
+"name_en": "Super League Basketball",
+"title": "Super League Basketball – Great Britain Basketball Teams"
+},
+"f_bas_ger_l3": {
+"name_en": "1. DBBL (women)",
+"title": "1. DBBL – Germany Women's Basketball League Teams & Standings"
+},
+"f_bas_gre_l3": {
+"name_en": "A1 Ethniki Gynaikon (women)",
+"title": "A1 Ethniki Gynaikon – Greece Women's Basketball League Teams"
+},
+"f_bas_hkg_l1": {
+"name_en": "A1 Division",
+"title": "A1 Division – Hong Kong Basketball League Teams & Standings"
+},
+"f_bas_hun_l1": {
+"name_en": "NB I/A",
+"title": "NB I/A – Hungary Basketball League Teams & Standings"
+},
+"f_bas_hun_l3": {
+"name_en": "NB I/A (women)",
+"title": "NB I/A – Hungary Women's Basketball League Teams & Standings"
+},
+"f_bas_ind_l1": {
+"name_en": "InBL Pro",
+"title": "InBL Pro – India Basketball League Teams & Standings"
+},
+"f_bas_irn_l1": {
+"name_en": "Super League",
+"title": "Super League – Iran Basketball Teams & Standings"
+},
+"f_bas_irq_l1": {
+"name_en": "Premier League",
+"title": "Premier League – Iraq Basketball Teams & Standings"
+},
+"f_bas_isl_l3": {
+"name_en": "Úrvalsdeild kvenna (women)",
+"title": "Úrvalsdeild kvenna – Iceland Women's Basketball League Teams"
+},
+"f_bas_ita_l3": {
+"name_en": "Serie A1 (women)",
+"title": "Serie A1 – Italy Women's Basketball League Teams & Standings"
+},
+"f_bas_jor_l1": {
+"name_en": "Premier League",
+"title": "Premier League – Jordan Basketball Teams & Standings"
+},
+"f_bas_ken_l1": {
+"name_en": "Premier League",
+"title": "Premier League – Kenya Basketball Teams & Standings"
+},
+"f_bas_klu_eu_aze": {
+"name_en": "Azerbaijan",
+"title": "Azerbaijan Basketball League – Teams & Standings"
+},
+"f_bas_klu_eu_est": {
+"name_en": "Estonia",
+"title": "Estonia Basketball League – Teams & Standings"
+},
+"f_bas_klu_eu_geo": {
+"name_en": "Georgia",
+"title": "Georgia Basketball League – Teams & Standings"
+},
+"f_bas_klu_eu_irl": {
+"name_en": "Ireland",
+"title": "Ireland Basketball League – Teams & Standings"
+},
+"f_bas_klu_eu_lat": {
+"name_en": "Latvia",
+"title": "Latvia Basketball League – Teams & Standings"
+},
+"f_bas_klu_eu_lux": {
+"name_en": "Luxembourg",
+"title": "Luxembourg Basketball League – Teams & Standings"
+},
+"f_bas_klu_eu_mda": {
+"name_en": "Moldova",
+"title": "Moldova Basketball League – Teams"
+},
+"f_bas_klu_eu_nor": {
+"name_en": "Norway",
+"title": "Norway Basketball League – Teams & Standings"
+},
+"f_bas_klu_eu_rus": {
+"name_en": "Russia",
+"title": "Russia Basketball League – Teams & Standings"
+},
+"f_bas_klu_eu_ukr": {
+"name_en": "Ukraine",
+"title": "Ukraine Basketball League – Teams & Standings"
+},
+"f_bas_klu_usa_nba": {
+"name_en": "NBA",
+"title": "NBA – USA Basketball League Teams & Standings"
+},
+"f_bas_klu_usa_wnba": {
+"name_en": "WNBA",
+"title": "WNBA – USA Women's Basketball League Teams & Standings"
+},
+"f_bas_kor_l1": {
+"name_en": "KBL",
+"title": "KBL – South Korea Basketball League Teams & Standings"
+},
+"f_bas_kor_l2": {
+"name_en": "WKBL (women)",
+"title": "WKBL – South Korea Women's Basketball League Teams & Standings"
+},
+"f_bas_ltu_l1": {
+"name_en": "Lietuvos krepšinio lyga (LKL)",
+"title": "Lietuvos krepšinio lyga (LKL) – Lithuania Basketball League Teams"
+},
+"f_bas_mar_l1": {
+"name_en": "Division Excellence",
+"title": "Division Excellence – Morocco Basketball League Teams & Standings"
+},
+"f_bas_mex_l1": {
+"name_en": "LNBP",
+"title": "LNBP – Mexico Basketball League Teams & Standings"
+},
+"f_bas_mng_l1": {
+"name_en": "The League",
+"title": "The League – Mongolia Basketball Teams & Standings"
+},
+"f_bas_ncaam_b10": {
+"name_en": "Big Ten",
+"title": "Big Ten – NCAA Men's Basketball Teams & Standings"
+},
+"f_bas_ncaam_b12": {
+"name_en": "Big 12",
+"title": "Big 12 – NCAA Men's Basketball Teams & Standings"
+},
+"f_bas_ncaaw_acc": {
+"name_en": "ACC",
+"title": "ACC – NCAA Women's Basketball Teams & Standings"
+},
+"f_bas_ned_l1": {
+"name_en": "BNXT League",
+"title": "BNXT League – Netherlands Basketball Teams & Standings"
+},
+"f_bas_ned_l3": {
+"name_en": "WBL (women)",
+"title": "WBL – Netherlands Women's Basketball League Teams & Standings"
+},
+"f_bas_nzl_l2": {
+"name_en": "Tauihi (women)",
+"title": "Tauihi – New Zealand Women's Basketball League Teams & Standings"
+},
+"f_bas_par_l1": {
+"name_en": "Liga Nacional",
+"title": "Liga Nacional – Paraguay Basketball League Teams & Standings"
+},
+"f_bas_pol_l1": {
+"name_en": "Polska Liga Koszykówki (PLK)",
+"title": "Polska Liga Koszykówki (PLK) – Poland Basketball League Teams"
+},
+"f_bas_pri_l1": {
+"name_en": "BSN",
+"title": "BSN – Puerto Rico Basketball League Teams & Standings"
+},
+"f_bas_rou_l3": {
+"name_en": "Liga Națională (women)",
+"title": "Liga Națională – Romania Women's Basketball League Teams"
+},
+"f_bas_rwa_l1": {
+"name_en": "Rwanda Basketball League",
+"title": "Rwanda Basketball League – Teams & Standings"
+},
+"f_bas_sau_l1": {
+"name_en": "SBL",
+"title": "SBL – Saudi Arabia Basketball League Teams & Standings"
+},
+"f_bas_sen_l1": {
+"name_en": "Nationale 1",
+"title": "Nationale 1 – Senegal Basketball League Teams & Standings"
+},
+"f_bas_srb_l3": {
+"name_en": "1. ŽLS (women)",
+"title": "1. ŽLS – Serbia Women's Basketball League Teams & Standings"
+},
+"f_bas_svk_l3": {
+"name_en": "Extraliga (women)",
+"title": "Extraliga – Slovakia Women's Basketball League Teams & Standings"
+},
+"f_bas_swe_l1": {
+"name_en": "Basketligan",
+"title": "Basketligan – Sweden Basketball League Teams & Standings"
+},
+"f_bas_swe_l3": {
+"name_en": "SBL Dam (women)",
+"title": "SBL Dam – Sweden Women's Basketball League Teams & Standings"
+},
+"f_bas_syr_l1": {
+"name_en": "SBL",
+"title": "SBL – Syria Basketball League Teams & Standings"
+},
+"f_bas_tha_l1": {
+"name_en": "BTL",
+"title": "BTL – Thailand Basketball League Teams & Standings"
+},
+"f_bas_tpe_l1": {
+"name_en": "TPBL",
+"title": "TPBL – Taiwan Basketball League Teams & Standings"
+},
+"f_bas_tpe_l2": {
+"name_en": "WSBL (women)",
+"title": "WSBL – Taiwan Women's Basketball League Teams & Standings"
+},
+"f_bas_tun_l1": {
+"name_en": "Pro A",
+"title": "Pro A – Tunisia Basketball League Teams & Standings"
+},
+"f_bas_ven_l1": {
+"name_en": "SuperLiga",
+"title": "SuperLiga – Venezuela Basketball League Teams & Standings"
+},
+"f_bel_l2": {
+"name_en": "Challenger Pro League",
+"title": "Challenger Pro League – Belgium Football 2nd Division Clubs"
+},
+"f_ben_l1": {
+"name_en": "Ligue 1 (Championnat National)",
+"title": "Ligue 1 (Championnat National) – Benin Football League Clubs"
+},
+"f_ber_l1": {
+"name_en": "Premier Division",
+"title": "Premier Division – Bermuda Football League Clubs & Standings"
+},
+"f_bfa_l1": {
+"name_en": "Premier League",
+"title": "Premier League – Burkina Faso Football Clubs & Standings"
+},
+"f_bgd_l1": {
+"name_en": "Bangladesh Football League (BFL)",
+"title": "Bangladesh Football League (BFL) – Clubs & Standings"
+},
+"f_bih_l1": {
+"name_en": "Premijer liga BiH",
+"title": "Premijer liga BiH – Bosnia Football League Clubs"
+},
+"f_boe_l1": {
+"name_en": "Kampionato (Bonaire League)",
+"title": "Kampionato (Bonaire League) – Football Clubs & Standings"
+},
+"f_bra_l2": {
+"name_en": "Série B",
+"title": "Série B – Brazil Football 2nd Division Clubs & Standings"
+},
+"f_bra_l3": {
+"name_en": "Série C",
+"title": "Série C – Brazil Football 3rd Division Clubs & Standings"
+},
+"f_btn_l1": {
+"name_en": "BOB Bhutan Premier League",
+"title": "BOB Bhutan Premier League – Football Clubs & Standings"
+},
+"f_bul_l1": {
+"name_en": "efbet League (Parva liga)",
+"title": "efbet League (Parva liga) – Bulgaria Football Clubs & Standings"
+},
+"f_can_l1": {
+"name_en": "Canadian Premier League",
+"title": "Canadian Premier League – Canada Soccer Teams & Standings"
+},
+"f_chl_l2": {
+"name_en": "Liga de Ascenso",
+"title": "Liga de Ascenso – Chile Football 2nd Division Clubs & Standings"
+},
+"f_civ_l1": {
+"name_en": "Ligue 1",
+"title": "Ligue 1 – Ivory Coast Football League Clubs & Standings"
+},
+"f_cmr_l2": {
+"name_en": "Elite Two",
+"title": "Elite Two – Cameroon Football 2nd Division Clubs & Standings"
+},
+"f_col_l1": {
+"name_en": "Categoría Primera A",
+"title": "Categoría Primera A – Colombia Football League Clubs & Standings"
+},
+"f_com_l1": {
+"name_en": "D1 Ngazidja",
+"title": "D1 Ngazidja – Comoros Football League Clubs & Standings"
+},
+"f_cpv_l1": {
+"name_en": "Campeonato Nacional",
+"title": "Campeonato Nacional – Cape Verde Football League Clubs"
+},
+"f_cro_l3": {
+"name_en": "Druga NL",
+"title": "Druga NL – Croatia Football 3rd Division Clubs & Standings"
+},
+"f_cze_l1": {
+"name_en": "Chance Liga",
+"title": "Chance Liga – Czechia Football League Clubs & Standings"
+},
+"f_cze_l2": {
+"name_en": "Chance Národní Liga",
+"title": "Chance Národní Liga – Czechia Football 2nd Division Clubs"
+},
+"f_dnk_l2": {
+"name_en": "1st Division",
+"title": "1st Division – Denmark Football 2nd Division Clubs & Standings"
+},
+"f_dom_l1": {
+"name_en": "Liga Dominicana de Fútbol",
+"title": "Liga Dominicana de Fútbol – Dominican Republic Football League"
+},
+"f_ecu_l1": {
+"name_en": "Serie A",
+"title": "Serie A – Ecuador Football League Clubs & Standings"
+},
+"f_ecu_l2": {
+"name_en": "Serie B",
+"title": "Serie B – Ecuador Football 2nd Division Clubs & Standings"
+},
+"f_egy_l1": {
+"name_en": "Egyptian Premier League",
+"title": "Egyptian Premier League – Egypt Football Clubs & Standings"
+},
+"f_egy_l2": {
+"name_en": "Egyptian Second Division A",
+"title": "Egyptian Second Division A – Egypt Football 2nd Division Clubs"
+},
+"f_esp_r2": {
+"name_en": "Primera RFEF – Group 2",
+"title": "Primera RFEF – Group 2 – Spain Football 3rd Division Clubs"
+},
+"f_fij_l1": {
+"name_en": "Premier League",
+"title": "Premier League – Fiji Football Clubs & Standings"
+},
+"f_fin_l1": {
+"name_en": "Veikkausliiga",
+"title": "Veikkausliiga – Finland Football League Clubs & Standings"
+},
+"f_fra_l2": {
+"name_en": "Ligue 2",
+"title": "Ligue 2 – France Football 2nd Division Clubs & Standings"
+},
+"f_fra_l3": {
+"name_en": "Ligue 3",
+"title": "Ligue 3 – France Football 3rd Division Clubs & Standings"
+},
+"f_fro_l1": {
+"name_en": "Meistaradeildin menn",
+"title": "Meistaradeildin menn – Faroe Islands Football League Clubs"
+},
+"f_fut_klu_eu_lie": {
+"name_en": "Liechtenstein",
+"title": "Liechtenstein Football Clubs & Liechtenstein Cup"
+},
+"f_gab_l1": {
+"name_en": "National Foot 1",
+"title": "National Foot 1 – Gabon Football League Clubs & Standings"
+},
+"f_geo_l1": {
+"name_en": "Crystalbet Erovnuli Liga",
+"title": "Crystalbet Erovnuli Liga – Georgia Football League Clubs"
+},
+"f_geo_l2": {
+"name_en": "Crystalbet Erovnuli Liga 2",
+"title": "Crystalbet Erovnuli Liga 2 – Georgia Football 2nd Division Clubs"
+},
+"f_ger_l3": {
+"name_en": "3. Liga",
+"title": "3. Liga – Germany Football 3rd Division Clubs & Standings"
+},
+"f_ger_rw": {
+"name_en": "Regionalliga West",
+"title": "Regionalliga West – Germany Football 4th Division Clubs"
+},
+"f_gha_l1": {
+"name_en": "Premier League",
+"title": "Premier League – Ghana Football Clubs & Standings"
+},
+"f_gib_l1": {
+"name_en": "Gibraltar Football League",
+"title": "Gibraltar Football League – Clubs & Standings"
+},
+"f_glp_l1": {
+"name_en": "Régionale 1",
+"title": "Régionale 1 – Guadeloupe Football League Clubs & Standings"
+},
+"f_gmb_l1": {
+"name_en": "GFA League",
+"title": "GFA League – Gambia Football Clubs"
+},
+"f_gre_l1": {
+"name_en": "Super League 1",
+"title": "Super League 1 – Greece Football Clubs & Standings"
+},
+"f_grn_l1": {
+"name_en": "GFA Premier League",
+"title": "GFA Premier League – Grenada Football Clubs & Standings"
+},
+"f_guf_l1": {
+"name_en": "Régional 1",
+"title": "Régional 1 – French Guiana Football League Clubs & Standings"
+},
+"f_gum_l1": {
+"name_en": "Budweiser G League",
+"title": "Budweiser G League – Guam Soccer Teams & Standings"
+},
+"f_guy_l1": {
+"name_en": "GFF Elite League",
+"title": "GFF Elite League – Guyana Football Clubs & Standings"
+},
+"f_had_ang_l1": {
+"name_en": "Premier Handball League",
+"title": "Premier Handball League – England Handball Teams"
+},
+"f_had_aus_l1": {
+"name_en": "Australian Handball Club Championship",
+"title": "Australian Handball Club Championship – Australia Handball Teams"
+},
+"f_had_aut_l1": {
+"name_en": "HLA Meisterliga",
+"title": "HLA Meisterliga – Austria Handball League Teams & Standings"
+},
+"f_had_bel_l1": {
+"name_en": "Super Handball League",
+"title": "Super Handball League – Belgium Handball Teams & Standings"
+},
+"f_had_bgr_l1": {
+"name_en": "A RHG",
+"title": "A RHG – Bulgaria Handball League Teams"
+},
+"f_had_bih_l1": {
+"name_en": "Premijer liga",
+"title": "Premijer liga – Bosnia Handball League Teams & Standings"
+},
+"f_had_bra_l2": {
+"name_en": "Liga Nacional (women)",
+"title": "Liga Nacional – Brazil Women's Handball League Teams & Standings"
+},
+"f_had_cyp_l1": {
+"name_en": "First Division",
+"title": "First Division – Cyprus Handball League Teams"
+},
+"f_had_cze_l2": {
+"name_en": "1. liga",
+"title": "1. liga – Czechia Handball 2nd Division Teams & Standings"
+},
+"f_had_deu_l1": {
+"name_en": "Handball-Bundesliga",
+"title": "Handball-Bundesliga – Germany Handball League Teams & Standings"
+},
+"f_had_deu_l3": {
+"name_en": "Handball-Bundesliga (women)",
+"title": "Handball-Bundesliga – Germany Women's Handball League Teams"
+},
+"f_had_dnk_l2": {
+"name_en": "1. division",
+"title": "1. division – Denmark Handball 2nd Division Teams & Standings"
+},
+"f_had_esp_l2": {
+"name_en": "División de Honor Plata",
+"title": "División de Honor Plata – Spain Handball 2nd Division Teams"
+},
+"f_had_est_l1": {
+"name_en": "Meistriliiga",
+"title": "Meistriliiga – Estonia Handball League Teams & Standings"
+},
+"f_had_fra_l2": {
+"name_en": "Proligue",
+"title": "Proligue – France Handball 2nd Division Teams & Standings"
+},
+"f_had_fro_l1": {
+"name_en": "Faroese Championship (men)",
+"title": "Faroese Championship – Faroe Islands Handball Teams"
+},
+"f_had_hrv_l1": {
+"name_en": "Premier League",
+"title": "Premier League – Croatia Handball Teams & Standings"
+},
+"f_had_hun_l1": {
+"name_en": "NB I",
+"title": "NB I – Hungary Handball League Teams & Standings"
+},
+"f_had_hun_l2": {
+"name_en": "NB I (women)",
+"title": "NB I – Hungary Women's Handball League Teams & Standings"
+},
+"f_had_isl_l1": {
+"name_en": "Urvalsdeild karla",
+"title": "Urvalsdeild karla – Iceland Handball League Teams & Standings"
+},
+"f_had_isr_l1": {
+"name_en": "Ligat Ha'Al",
+"title": "Ligat Ha'Al – Israel Handball League Teams & Standings"
+},
+"f_had_ita_l1": {
+"name_en": "Serie A Gold",
+"title": "Serie A Gold – Italy Handball League Teams & Standings"
+},
+"f_had_kor_l1": {
+"name_en": "H League",
+"title": "H League – South Korea Handball Teams & Standings"
+},
+"f_had_kor_l2": {
+"name_en": "H League (women)",
+"title": "H League – South Korea Women's Handball Teams & Standings"
+},
+"f_had_kwt_l1": {
+"name_en": "Kuwait Handball League",
+"title": "Kuwait Handball League – Teams & Standings"
+},
+"f_had_ltu_l1": {
+"name_en": "Lithuanian Handball League",
+"title": "Lithuanian Handball League – Lithuania Handball Teams & Standings"
+},
+"f_had_lux_l1": {
+"name_en": "AXA League",
+"title": "AXA League – Luxembourg Handball Teams & Standings"
+},
+"f_had_lva_l1": {
+"name_en": "SynotTip Virslīga",
+"title": "SynotTip Virslīga – Latvia Handball League Teams & Standings"
+},
+"f_had_mlt_l1": {
+"name_en": "Championship League",
+"title": "Championship League – Malta Handball Teams"
+},
+"f_had_nor_l3": {
+"name_en": "Eliteserien (women)",
+"title": "Eliteserien – Norway Women's Handball League Teams & Standings"
+},
+"f_had_prt_l1": {
+"name_en": "Andebol 1",
+"title": "Andebol 1 – Portugal Handball League Teams & Standings"
+},
+"f_had_qat_l1": {
+"name_en": "Qatar Handball League",
+"title": "Qatar Handball League – Teams & Standings"
+},
+"f_had_rou_l2": {
+"name_en": "Liga Florilor (women)",
+"title": "Liga Florilor – Romania Women's Handball League Teams & Standings"
+},
+"f_had_rus_l1": {
+"name_en": "Superleague",
+"title": "Superleague – Russia Handball League Teams & Standings"
+},
+"f_had_rus_l2": {
+"name_en": "Superleague (women)",
+"title": "Superleague – Russia Women's Handball League Teams & Standings"
+},
+"f_had_sau_l1": {
+"name_en": "Saudi Handball League",
+"title": "Saudi Handball League – Saudi Arabia Handball Teams"
+},
+"f_had_srb_l1": {
+"name_en": "ARKUS League",
+"title": "ARKUS League – Serbia Handball Teams & Standings"
+},
+"f_had_svk_l1": {
+"name_en": "Handball Extraliga",
+"title": "Handball Extraliga – Slovakia Handball League Teams & Standings"
+},
+"f_had_swe_l1": {
+"name_en": "Handbollsligan",
+"title": "Handbollsligan – Sweden Handball League Teams & Standings"
+},
+"f_had_usa_l1": {
+"name_en": "US Open Championships",
+"title": "US Open Championships – USA Handball Teams"
+},
+"f_hkg_l1": {
+"name_en": "Hong Kong Premier League",
+"title": "Hong Kong Premier League – Football Clubs & Standings"
+},
+"f_hok_klu_ao_jpn_l1": {
+"name_en": "Asia League",
+"title": "Asia League – Japan Hockey Teams & Standings"
+},
+"f_hok_klu_ao_nzl_l1": {
+"name_en": "New Zealand Ice Hockey League",
+"title": "New Zealand Ice Hockey League – Teams & Standings"
+},
+"f_hok_klu_eu_aut_l1": {
+"name_en": "Austrian ICE Hockey League",
+"title": "ICE Hockey League (ICEHL) – Austria Hockey Teams & Standings"
+},
+"f_hok_klu_eu_bel_l1": {
+"name_en": "Belgian Division 1",
+"title": "Belgian Division 1 – Belgium Hockey League Teams & Standings"
+},
+"f_hok_klu_eu_bgr_l1": {
+"name_en": "Bulgarian Hockey League",
+"title": "Bulgarian Hockey League – Bulgaria Hockey Teams & Standings"
+},
+"f_hok_klu_eu_bih_l1": {
+"name_en": "Bosnia and Herzegovina Hockey League",
+"title": "Bosnia Hockey League – Sarajevo Blue Bulls, Teams & Standings"
+},
+"f_hok_klu_eu_blr_l1": {
+"name_en": "Belarusian Extraleague",
+"title": "Belarusian Extraleague – Belarus Hockey League Teams & Standings"
+},
+"f_hok_klu_eu_cze_l1": {
+"name_en": "Czech Extraliga",
+"title": "Czech Extraliga – Czech Republic Hockey League Teams & Standings"
+},
+"f_hok_klu_eu_cze_l2": {
+"name_en": "Czech Maxa Liga",
+"title": "Czech Maxa Liga – Czech Republic Hockey 2nd Division Teams"
+},
+"f_hok_klu_eu_deu_l1": {
+"name_en": "German DEL",
+"title": "German DEL – Germany Hockey League Teams & Standings"
+},
+"f_hok_klu_eu_dnk_l1": {
+"name_en": "Danish Metal Ligaen",
+"title": "Danish Metal Ligaen – Denmark Hockey League Teams & Standings"
+},
+"f_hok_klu_eu_esp_l1": {
+"name_en": "Spanish Liga Nacional",
+"title": "Spanish Liga Nacional – Spain Hockey League Teams & Standings"
+},
+"f_hok_klu_eu_est_l1": {
+"name_en": "Estonian Meistriliiga",
+"title": "Estonian Meistriliiga – Estonia Hockey League Teams"
+},
+"f_hok_klu_eu_fin_l2": {
+"name_en": "Finnish Mestis",
+"title": "Finnish Mestis – Finland Hockey 2nd Division Teams & Standings"
+},
+"f_hok_klu_eu_fra_l2": {
+"name_en": "French Division 1",
+"title": "French Division 1 – France Hockey 2nd Division Teams & Standings"
+},
+"f_hok_klu_eu_ita_l1": {
+"name_en": "Italian IHL Serie A",
+"title": "Italian IHL Serie A – Italy Hockey League Teams & Standings"
+},
+"f_hok_klu_eu_kaz_l1": {
+"name_en": "Kazakh Pro Hokei Ligasy",
+"title": "Kazakh Pro Hokei Ligasy – Kazakhstan Hockey League Teams"
+},
+"f_hok_klu_eu_ltu_l1": {
+"name_en": "Lithuanian clubs in the Optibet Hokeja līga",
+"title": "Lithuania Hockey Teams – Clubs in Optibet Hokeja līga (OHL)"
+},
+"f_hok_klu_eu_lux_l1": {
+"name_en": "Luxembourg clubs abroad",
+"title": "Luxembourg Hockey Teams – Clubs Playing Abroad"
+},
+"f_hok_klu_eu_lva_l1": {
+"name_en": "Latvian Optibet Hokeja līga",
+"title": "OHL Latvia – Optibet Hokeja līga Teams & Standings"
+},
+"f_hok_klu_eu_rou_l1": {
+"name_en": "Romanian Liga Națională",
+"title": "Romanian Liga Națională – Romania Hockey League Teams & Standings"
+},
+"f_hok_klu_eu_svn_l1": {
+"name_en": "Slovenian Ice Hockey League",
+"title": "Slovenian Ice Hockey League – Slovenia Hockey Teams & Standings"
+},
+"f_hok_klu_eu_swe_l2": {
+"name_en": "Swedish HockeyAllsvenskan",
+"title": "Swedish HockeyAllsvenskan – Sweden Hockey 2nd Division Teams"
+},
+"f_hok_klu_eu_tur_l1": {
+"name_en": "Turkish Süper Lig",
+"title": "Turkish Süper Lig – Turkey Hockey League Teams & Standings"
+},
+"f_hok_klu_eu_ukr_l1": {
+"name_en": "Ukrainian Hockey League",
+"title": "Ukrainian Hockey League – Ukraine Hockey Teams & Standings"
+},
+"f_hok_klu_na_bchl": {
+"name_en": "BCHL",
+"title": "BCHL – Hockey Teams & Standings"
+},
+"f_hok_klu_na_echl": {
+"name_en": "ECHL",
+"title": "ECHL – Hockey Teams & Standings"
+},
+"f_hok_klu_na_lnah": {
+"name_en": "LNAH",
+"title": "LNAH – Hockey Teams & Standings"
+},
+"f_hok_klu_na_nahl": {
+"name_en": "NAHL",
+"title": "NAHL – Hockey Teams & Standings"
+},
+"f_hok_klu_na_ncdc": {
+"name_en": "NCDC",
+"title": "NCDC – Hockey Teams & Standings"
+},
+"f_hok_klu_na_pwhl": {
+"name_en": "PWHL",
+"title": "PWHL – Women's Hockey Teams & Standings"
+},
+"f_hok_klu_na_ushl": {
+"name_en": "USHL",
+"title": "USHL – Hockey Teams"
+},
+"f_hon_l1": {
+"name_en": "Liga Nacional de Honduras",
+"title": "Liga Nacional de Honduras – Football Clubs & Standings"
+},
+"f_hun_l2": {
+"name_en": "NB II",
+"title": "NB II – Hungary Football 2nd Division Clubs & Standings"
+},
+"f_idn_l1": {
+"name_en": "Super League",
+"title": "Super League – Indonesia Football Clubs & Standings"
+},
+"f_ind_l1": {
+"name_en": "Indian Super League",
+"title": "Indian Super League – India Football Clubs & Standings"
+},
+"f_ind_l2": {
+"name_en": "I-League",
+"title": "I-League – India Football 2nd Division Clubs & Standings"
+},
+"f_irl_l1": {
+"name_en": "Premier Division",
+"title": "Premier Division – Ireland Football League Clubs & Standings"
+},
+"f_irq_l1": {
+"name_en": "Stars League",
+"title": "Stars League – Iraq Football Clubs & Standings"
+},
+"f_isl_l1": {
+"name_en": "Besta deild karla",
+"title": "Besta deild karla – Iceland Football League Clubs"
+},
+"f_isl_l2": {
+"name_en": "1. deild karla",
+"title": "1. deild karla – Iceland Football 2nd Division Clubs & Standings"
+},
+"f_ita_l1": {
+"name_en": "Serie A",
+"title": "Serie A – Italy Football League Clubs & Standings"
+},
+"f_ita_l2": {
+"name_en": "Serie B",
+"title": "Serie B – Italy Football 2nd Division Clubs & Standings"
+},
+"f_ita_l3c": {
+"name_en": "Serie C – Group C",
+"title": "Serie C – Group C – Italy Football 3rd Division Clubs & Standings"
+},
+"f_jor_l1": {
+"name_en": "Premier League",
+"title": "Premier League – Jordan Football Clubs & Standings"
+},
+"f_kaz_l1": {
+"name_en": "Premier League",
+"title": "Premier League – Kazakhstan Football Clubs & Standings"
+},
+"f_kaz_l2": {
+"name_en": "First League",
+"title": "First League – Kazakhstan Football 2nd Division Clubs & Standings"
+},
+"f_kgz_l1": {
+"name_en": "Kyrgyz Premier League",
+"title": "Kyrgyz Premier League – Kyrgyzstan Football Clubs & Standings"
+},
+"f_kor_l1": {
+"name_en": "K League 1",
+"title": "K League 1 – South Korea Football Clubs & Standings"
+},
+"f_kor_l2": {
+"name_en": "K League 2",
+"title": "K League 2 – South Korea Football 2nd Division Clubs & Standings"
+},
+"f_kwt_l1": {
+"name_en": "Kuwait Premier League",
+"title": "Kuwait Premier League – Football Clubs & Standings"
+},
+"f_lao_l1": {
+"name_en": "Lao League",
+"title": "Lao League – Laos Football Clubs & Standings"
+},
+"f_lbr_l1": {
+"name_en": "LFA First Division",
+"title": "LFA First Division – Liberia Football League Clubs & Standings"
+},
+"f_lca_l1": {
+"name_en": "SPFL Premier League",
+"title": "SPFL Premier League – Saint Lucia Football Clubs & Standings"
+},
+"f_lso_l1": {
+"name_en": "Premier League",
+"title": "Premier League – Lesotho Football Clubs & Standings"
+},
+"f_ltu_l1": {
+"name_en": "TOPLYGA",
+"title": "TOPLYGA – Lithuania Football League Clubs & Standings"
+},
+"f_ltu_l2": {
+"name_en": "I lyga",
+"title": "I lyga – Lithuania Football 2nd Division Clubs & Standings"
+},
+"f_lux_l1": {
+"name_en": "BGL Ligue",
+"title": "BGL Ligue – Luxembourg Football League Clubs & Standings"
+},
+"f_lva_l2": {
+"name_en": "Nākotnes līga",
+"title": "Nākotnes līga – Latvia Football 2nd Division Clubs & Standings"
+},
+"f_mac_l1": {
+"name_en": "Liga de Elite",
+"title": "Liga de Elite – Macau Football League Clubs & Standings"
+},
+"f_mar_l2": {
+"name_en": "Botola Pro 2",
+"title": "Botola Pro 2 – Morocco Football 2nd Division Clubs & Standings"
+},
+"f_mex_l1": {
+"name_en": "Liga MX",
+"title": "Liga MX – Mexico Football League Clubs & Standings"
+},
+"f_mex_l2": {
+"name_en": "Liga de Expansión MX (2nd tier)",
+"title": "Liga de Expansión MX – Mexico Football 2nd Division Clubs"
+},
+"f_mkd_l1": {
+"name_en": "1. MFL",
+"title": "1. MFL (Prva MFL) – North Macedonia Football League Clubs"
+},
+"f_mkd_l2": {
+"name_en": "2. MFL",
+"title": "2. MFL – North Macedonia Football 2nd Division Clubs & Standings"
+},
+"f_mli_l1": {
+"name_en": "Ligue 1",
+"title": "Ligue 1 – Mali Football League Clubs & Standings"
+},
+"f_mmr_l1": {
+"name_en": "Myanmar National League",
+"title": "Myanmar National League – Football Clubs & Standings"
+},
+"f_mne_l2": {
+"name_en": "Druga Crnogorska Liga",
+"title": "Druga Crnogorska Liga – Montenegro Football 2nd Division Clubs"
+},
+"f_mnp_l1": {
+"name_en": "Marianas Soccer League",
+"title": "Marianas Soccer League – N. Mariana Islands Soccer Teams"
+},
+"f_moz_l1": {
+"name_en": "Mocambola",
+"title": "Mocambola – Mozambique Football League Clubs & Standings"
+},
+"f_mwi_l1": {
+"name_en": "FDH Bank Premiership",
+"title": "FDH Bank Premiership – Malawi Football League Clubs & Standings"
+},
+"f_nam_l1": {
+"name_en": "Namibia Premiership",
+"title": "Namibia Premiership – Football Clubs & Standings"
+},
+"f_ncl_l1": {
+"name_en": "Super Ligue",
+"title": "Super Ligue – New Caledonia Football League Clubs & Standings"
+},
+"f_ned_l3": {
+"name_en": "Tweede Divisie",
+"title": "Tweede Divisie – Netherlands Football 3rd Division Clubs"
+},
+"f_ned_l4a": {
+"name_en": "Derde Divisie A",
+"title": "Derde Divisie A – Netherlands Football 4th Division Clubs"
+},
+"f_nor_l2": {
+"name_en": "OBOS-ligaen",
+"title": "OBOS-ligaen – Norway Football 2nd Division Clubs & Standings"
+},
+"f_nor_l3a": {
+"name_en": "2. divisjon avd. 1",
+"title": "2. divisjon avd. 1 – Norway Football 3rd Division Clubs"
+},
+"f_npl_l1": {
+"name_en": "ANFA National League",
+"title": "ANFA National League – Nepal Football Clubs & Standings"
+},
+"f_nzl_l1": {
+"name_en": "Dettol National League — Northern League",
+"title": "Dettol National League Northern – New Zealand Football Clubs"
+},
+"f_pan_l1": {
+"name_en": "Liga Panameña de Fútbol (LPF)",
+"title": "Liga Panameña de Fútbol (LPF) – Panama Football League Clubs"
+},
+"f_par_l1": {
+"name_en": "Copa de Primera (Primera División)",
+"title": "Copa de Primera (Primera División) – Paraguay Football League"
+},
+"f_per_l1": {
+"name_en": "Liga 1",
+"title": "Liga 1 – Peru Football League Clubs & Standings"
+},
+"f_phl_l1": {
+"name_en": "PFL",
+"title": "PFL – Philippines Football League Clubs & Standings"
+},
+"f_pol_l2": {
+"name_en": "I liga",
+"title": "I liga – Poland Football 2nd Division Clubs & Standings"
+},
+"f_pol_l3": {
+"name_en": "II liga",
+"title": "II liga – Poland Football 3rd Division Clubs & Standings"
+},
+"f_prt_l1": {
+"name_en": "Liga Portugal",
+"title": "Liga Portugal – Football Clubs & Standings"
+},
+"f_rou_l2": {
+"name_en": "Liga 2",
+"title": "Liga 2 – Romania Football 2nd Division Clubs & Standings"
+},
+"f_rus_l1": {
+"name_en": "Premier League",
+"title": "Premier League – Russia Football Clubs & Standings"
+},
+"f_rwa_l1": {
+"name_en": "Rwanda Premier League",
+"title": "Rwanda Premier League – Football Clubs & Standings"
+},
+"f_sau_l1": {
+"name_en": "Saudi Pro League",
+"title": "Saudi Pro League – Saudi Arabia Football Clubs & Standings"
+},
+"f_sco_l2": {
+"name_en": "Championship",
+"title": "Championship – Scotland Football 2nd Division Clubs & Standings"
+},
+"f_sco_l3": {
+"name_en": "League One",
+"title": "League One – Scotland Football 3rd Division Clubs & Standings"
+},
+"f_sen_l1": {
+"name_en": "Ligue 1",
+"title": "Ligue 1 – Senegal Football League Clubs & Standings"
+},
+"f_sgp_l1": {
+"name_en": "Singapore Premier League",
+"title": "Singapore Premier League – Football Clubs & Standings"
+},
+"f_slb_l1": {
+"name_en": "S-League",
+"title": "S-League – Solomon Islands Football Clubs & Standings"
+},
+"f_slv_l1": {
+"name_en": "Primera División de El Salvador",
+"title": "Primera División de El Salvador – Football Clubs & Standings"
+},
+"f_smr_l1": {
+"name_en": "Campionato Sammarinese",
+"title": "Campionato Sammarinese – San Marino Football League Clubs"
+},
+"f_stp_l2": {
+"name_en": "Campeonato Nacional — Príncipe Group",
+"title": "Campeonato Nacional, Príncipe Group – São Tomé Football League"
+},
+"f_svk_l1": {
+"name_en": "Niké liga",
+"title": "Niké liga – Slovakia Football League Clubs & Standings"
+},
+"f_svk_l2": {
+"name_en": "2. Liga",
+"title": "2. Liga – Slovakia Football 2nd Division Clubs & Standings"
+},
+"f_svn_l1": {
+"name_en": "Prva Liga",
+"title": "Prva Liga – Slovenia Football League Clubs & Standings"
+},
+"f_svn_l2": {
+"name_en": "2. SNL",
+"title": "2. SNL – Slovenia Football 2nd Division Clubs & Standings"
+},
+"f_swe_l1": {
+"name_en": "Allsvenskan",
+"title": "Allsvenskan – Sweden Football League Clubs & Standings"
+},
+"f_swe_l2": {
+"name_en": "Superettan",
+"title": "Superettan – Sweden Football 2nd Division Clubs & Standings"
+},
+"f_swe_l3s": {
+"name_en": "Ettan Södra",
+"title": "Ettan Södra – Sweden Football 3rd Division Clubs & Standings"
+},
+"f_syc_l1": {
+"name_en": "Premier League",
+"title": "Premier League – Seychelles Football Clubs & Standings"
+},
+"f_tah_l1": {
+"name_en": "Ligue 1",
+"title": "Ligue 1 – Tahiti Football League Clubs"
+},
+"f_tca_l1": {
+"name_en": "Provo Premier League",
+"title": "Provo Premier League – Turks & Caicos Football Clubs & Standings"
+},
+"f_tgo_l1": {
+"name_en": "Championnat National",
+"title": "Championnat National – Togo Football League Clubs & Standings"
+},
+"f_tha_l1": {
+"name_en": "Thai League 1",
+"title": "Thai League 1 – Thailand Football Clubs & Standings"
+},
+"f_tls_l1": {
+"name_en": "Liga Futebol Timor-Leste",
+"title": "Liga Futebol Timor-Leste – East Timor Football League Clubs"
+},
+"f_ton_l1": {
+"name_en": "Major League",
+"title": "Major League – Tonga Football Clubs & Standings"
+},
+"f_tri_l1": {
+"name_en": "TT Premier Football League (TTPFL)",
+"title": "TT Premier Football League (TTPFL) – Trinidad & Tobago Clubs"
+},
+"f_tur_l2": {
+"name_en": "1. Lig",
+"title": "1. Lig – Turkey Football 2nd Division Clubs & Standings"
+},
+"f_tur_l3b": {
+"name_en": "2. Lig - Beyaz Grup",
+"title": "2. Lig - Beyaz Grup – Turkey Football 3rd Division Clubs"
+},
+"f_tur_l3k": {
+"name_en": "2. Lig - Kırmızı Grup",
+"title": "2. Lig - Kırmızı Grup – Turkey Football 3rd Division Clubs"
+},
+"f_tza_l1": {
+"name_en": "Premier League",
+"title": "Premier League – Tanzania Football Clubs & Standings"
+},
+"f_ukr_l1": {
+"name_en": "Premier liha",
+"title": "Premier liha – Ukraine Football League Clubs & Standings"
+},
+"f_uru_l1": {
+"name_en": "Liga AUF Uruguaya",
+"title": "Liga AUF Uruguaya – Uruguay Football League Clubs & Standings"
+},
+"f_usa_l1": {
+"name_en": "MLS",
+"title": "MLS – USA Soccer League Teams & Standings"
+},
+"f_usa_l2": {
+"name_en": "USL Championship",
+"title": "USL Championship – USA Soccer 2nd Division Teams & Standings"
+},
+"f_ven_l1": {
+"name_en": "Primera División",
+"title": "Primera División – Venezuela Football League Clubs & Standings"
+},
+"f_ven_l2": {
+"name_en": "Segunda División",
+"title": "Segunda División – Venezuela Football 2nd Division Clubs"
+},
+"f_vin_l1": {
+"name_en": "SVGFF Premier Division",
+"title": "SVGFF Premier Division – St. Vincent Football League Clubs"
+},
+"f_vnm_l1": {
+"name_en": "V.League 1",
+"title": "V.League 1 – Vietnam Football Clubs & Standings"
+},
+"f_vol_klu_af_benin_m1": {
+"name_en": "Beninese Men’s Volleyball League",
+"title": "Beninese Men’s Volleyball League – Benin Volleyball Teams"
+},
+"f_vol_klu_af_cameroon_m1": {
+"name_en": "Cameroonian Men’s Volleyball League",
+"title": "Cameroonian Men’s Volleyball League – Cameroon Volleyball Teams"
+},
+"f_vol_klu_af_cape-verde_m1": {
+"name_en": "Cape Verdean Men’s Volleyball Championship",
+"title": "Cape Verdean Men’s Volleyball Championship – Cape Verde Teams"
+},
+"f_vol_klu_af_egypt_m1": {
+"name_en": "Egyptian Men’s Volleyball League",
+"title": "Egyptian Men’s Volleyball League – Egypt Volleyball Teams"
+},
+"f_vol_klu_af_egypt_z1": {
+"name_en": "Egyptian Women’s Volleyball League",
+"title": "Egyptian Women’s Volleyball League – Egypt Volleyball Teams"
+},
+"f_vol_klu_af_libya_m1": {
+"name_en": "Libyan Men’s Volleyball League",
+"title": "Libyan Men’s Volleyball League – Libya Volleyball Teams"
+},
+"f_vol_klu_af_morocco_m1": {
+"name_en": "Moroccan Men’s Volleyball League",
+"title": "Moroccan Men’s Volleyball League – Morocco Volleyball Teams"
+},
+"f_vol_klu_af_morocco_z1": {
+"name_en": "Moroccan Women’s Volleyball League",
+"title": "Moroccan Women’s Volleyball League – Morocco Volleyball Teams"
+},
+"f_vol_klu_af_rwanda_m1": {
+"name_en": "Rwandan Men’s Volleyball League",
+"title": "Rwandan Men’s Volleyball League – Rwanda Volleyball Teams"
+},
+"f_vol_klu_af_tunisia_z1": {
+"name_en": "Tunisian Women’s Volleyball League",
+"title": "Tunisian Women’s Volleyball League – Tunisia Volleyball Teams"
+},
+"f_vol_klu_ao_bahrain_m1": {
+"name_en": "Bahraini Men's Volleyball League",
+"title": "Bahraini Men's Volleyball League – Bahrain Volleyball Teams"
+},
+"f_vol_klu_ao_hong-kong_m1": {
+"name_en": "Division A1 Men",
+"title": "Division A1 – Hong Kong Men's Volleyball League Teams & Standings"
+},
+"f_vol_klu_ao_hong-kong_z1": {
+"name_en": "Division A1 Women",
+"title": "Division A1 – Hong Kong Women's Volleyball League Teams"
+},
+"f_vol_klu_ao_india_m1": {
+"name_en": "Prime Volleyball League Men",
+"title": "Prime Volleyball League – India Men's Volleyball Teams"
+},
+"f_vol_klu_ao_iran_m1": {
+"name_en": "Super League Men",
+"title": "Super League – Iran Men's Volleyball Teams & Standings"
+},
+"f_vol_klu_ao_iraq_m1": {
+"name_en": "Iraqi Men's Volleyball League",
+"title": "Iraqi Men's Volleyball League – Iraq Volleyball Teams & Standings"
+},
+"f_vol_klu_ao_japan_z1": {
+"name_en": "SV.League Women",
+"title": "SV.League – Japan Women's Volleyball Teams & Standings"
+},
+"f_vol_klu_ao_kazakhstan_m1": {
+"name_en": "National League Men",
+"title": "National League – Kazakhstan Men's Volleyball Teams & Standings"
+},
+"f_vol_klu_ao_nepal_z1": {
+"name_en": "Everest Women's Volleyball League",
+"title": "Everest Women's Volleyball League – Nepal Volleyball Teams"
+},
+"f_vol_klu_ao_new-zealand_z1": {
+"name_en": "Club Championships Women",
+"title": "Club Championships – New Zealand Women's Volleyball Teams"
+},
+"f_vol_klu_ao_oman_m1": {
+"name_en": "Omani Men's Volleyball League",
+"title": "Omani Men's Volleyball League – Oman Volleyball Teams & Standings"
+},
+"f_vol_klu_ao_philippines_m1": {
+"name_en": "Spikers' Turf Men",
+"title": "Spikers' Turf – Philippines Men's Volleyball League Teams"
+},
+"f_vol_klu_ao_qatar_m1": {
+"name_en": "Qatar Volleyball League Men",
+"title": "Qatar Volleyball League – Men's Teams & Standings"
+},
+"f_vol_klu_ao_thailand_m1": {
+"name_en": "Thailand League Men",
+"title": "Thailand League – Men's Volleyball Teams & Standings"
+},
+"f_vol_klu_ao_vietnam_m1": {
+"name_en": "Volleyball Vietnam League Men",
+"title": "Volleyball Vietnam League – Men's Teams & Standings"
+},
+"f_vol_klu_ao_vietnam_z1": {
+"name_en": "Volleyball Vietnam League Women",
+"title": "Volleyball Vietnam League – Women's Teams & Standings"
+},
+"f_vol_klu_eu_albania_z1": {
+"name_en": "Superliga Women",
+"title": "Superliga – Albania Women's Volleyball League Teams & Standings"
+},
+"f_vol_klu_eu_azerbaijan_m1": {
+"name_en": "Yüksək Liqa Men",
+"title": "Yüksək Liqa – Azerbaijan Men's Volleyball League Teams"
+},
+"f_vol_klu_eu_azerbaijan_z1": {
+"name_en": "Yüksək Liqa Women",
+"title": "Yüksək Liqa – Azerbaijan Women's Volleyball League Teams"
+},
+"f_vol_klu_eu_belgium_m1": {
+"name_en": "Belgian Liga (men)",
+"title": "Belgian Liga – Belgium Men's Volleyball League Teams & Standings"
+},
+"f_vol_klu_eu_bosniaandherzegovina_m1": {
+"name_en": "Premijer liga Men",
+"title": "Premijer liga – Bosnia Men's Volleyball League Teams & Standings"
+},
+"f_vol_klu_eu_bosniaandherzegovina_z1": {
+"name_en": "Premijer liga Women",
+"title": "Premijer liga – Bosnia Women's Volleyball League Teams"
+},
+"f_vol_klu_eu_bulgaria_m1": {
+"name_en": "Bulgarian Super Volley (men)",
+"title": "Bulgarian Super Volley – Bulgaria Men's Volleyball League Teams"
+},
+"f_vol_klu_eu_bulgaria_z1": {
+"name_en": "Bulgarian Super League (women)",
+"title": "Bulgarian Super League – Bulgaria Women's Volleyball Teams"
+},
+"f_vol_klu_eu_cyprus_z1": {
+"name_en": "First Division Women",
+"title": "First Division – Cyprus Women's Volleyball League Teams"
+},
+"f_vol_klu_eu_czechia_m1": {
+"name_en": "Czech Extraliga (men)",
+"title": "Czech Extraliga – Czechia Men's Volleyball League Teams"
+},
+"f_vol_klu_eu_czechia_z1": {
+"name_en": "Czech Extraliga (women)",
+"title": "Czech Extraliga – Czechia Women's Volleyball League Teams"
+},
+"f_vol_klu_eu_denmark_m1": {
+"name_en": "Volleyligaen Men",
+"title": "Volleyligaen – Denmark Men's Volleyball League Teams & Standings"
+},
+"f_vol_klu_eu_denmark_z1": {
+"name_en": "Volleyligaen Women",
+"title": "Volleyligaen – Denmark Women's Volleyball League Teams"
+},
+"f_vol_klu_eu_england_m1": {
+"name_en": "Super League Men",
+"title": "Super League – England Men's Volleyball Teams & Standings"
+},
+"f_vol_klu_eu_estonia_m1": {
+"name_en": "Meistriliiga Men",
+"title": "Meistriliiga – Estonia Men's Volleyball League Teams & Standings"
+},
+"f_vol_klu_eu_france_m1": {
+"name_en": "Volstar (men)",
+"title": "Volstar – France Men's Volleyball League Teams & Standings"
+},
+"f_vol_klu_eu_france_z1": {
+"name_en": "Volstar (women)",
+"title": "Volstar – France Women's Volleyball League Teams & Standings"
+},
+"f_vol_klu_eu_germany_z1": {
+"name_en": "1. Bundesliga (women)",
+"title": "1. Bundesliga – Germany Women's Volleyball League Teams"
+},
+"f_vol_klu_eu_greece_z1": {
+"name_en": "Volley League (women)",
+"title": "Volley League – Greece Women's Volleyball Teams & Standings"
+},
+"f_vol_klu_eu_hungary_m1": {
+"name_en": "Hungarian Extraliga (men)",
+"title": "Hungarian Extraliga – Hungary Men's Volleyball League Teams"
+},
+"f_vol_klu_eu_hungary_z1": {
+"name_en": "Hungarian Extraliga (women)",
+"title": "Hungarian Extraliga – Hungary Women's Volleyball League Teams"
+},
+"f_vol_klu_eu_ireland_m1": {
+"name_en": "Premier Division Men",
+"title": "Premier Division – Ireland Men's Volleyball League Teams"
+},
+"f_vol_klu_eu_italy_m2": {
+"name_en": "Serie A2 Men",
+"title": "Serie A2 – Italy Men's Volleyball 2nd Division Teams & Standings"
+},
+"f_vol_klu_eu_italy_z1": {
+"name_en": "Serie A1 Women",
+"title": "Serie A1 – Italy Women's Volleyball League Teams & Standings"
+},
+"f_vol_klu_eu_italy_z2": {
+"name_en": "Serie A2 Women",
+"title": "Serie A2 – Italy Women's Volleyball 2nd Division Teams"
+},
+"f_vol_klu_eu_kosovo_m1": {
+"name_en": "Raiffeisen Superliga A Men",
+"title": "Raiffeisen Superliga A – Kosovo Men's Volleyball League Teams"
+},
+"f_vol_klu_eu_kosovo_z1": {
+"name_en": "Raiffeisen Superliga A Women",
+"title": "Raiffeisen Superliga A – Kosovo Women's Volleyball League Teams"
+},
+"f_vol_klu_eu_latvia_m1": {
+"name_en": "Latvian Championship Men",
+"title": "Latvian Championship – Latvia Men's Volleyball Teams & Standings"
+},
+"f_vol_klu_eu_lithuania_z1": {
+"name_en": "Lithuanian Championship Women",
+"title": "Lithuanian Championship – Lithuania Women's Volleyball Teams"
+},
+"f_vol_klu_eu_luxembourg_m1": {
+"name_en": "Luxembourg Division Nationale (men)",
+"title": "Luxembourg Division Nationale – Men's Volleyball Teams"
+},
+"f_vol_klu_eu_luxembourg_z1": {
+"name_en": "Luxembourg Division Nationale (women)",
+"title": "Luxembourg Division Nationale – Women's Volleyball Teams"
+},
+"f_vol_klu_eu_montenegro_z1": {
+"name_en": "EPCG Superliga Women",
+"title": "EPCG Superliga – Montenegro Women's Volleyball League Teams"
+},
+"f_vol_klu_eu_northmacedonia_m1": {
+"name_en": "First League Men",
+"title": "First League – North Macedonia Men's Volleyball Teams & Standings"
+},
+"f_vol_klu_eu_northmacedonia_z1": {
+"name_en": "First League Women",
+"title": "First League – North Macedonia Women's Volleyball Teams"
+},
+"f_vol_klu_eu_norway_m1": {
+"name_en": "Mizunoligaen Men",
+"title": "Mizunoligaen – Norway Men's Volleyball League Teams & Standings"
+},
+"f_vol_klu_eu_norway_z1": {
+"name_en": "Mizunoligaen Women",
+"title": "Mizunoligaen – Norway Women's Volleyball League Teams & Standings"
+},
+"f_vol_klu_eu_poland_m2": {
+"name_en": "TAURON 1. Liga (men)",
+"title": "TAURON 1. Liga – Poland Men's Volleyball 2nd Division Teams"
+},
+"f_vol_klu_eu_poland_z1": {
+"name_en": "TAURON Liga Kobiet (women)",
+"title": "TAURON Liga Kobiet – Poland Women's Volleyball League Teams"
+},
+"f_vol_klu_eu_portugal_m1": {
+"name_en": "First Division Men",
+"title": "First Division – Portugal Men's Volleyball League Teams"
+},
+"f_vol_klu_eu_portugal_z1": {
+"name_en": "First Division Women",
+"title": "First Division – Portugal Women's Volleyball League Teams"
+},
+"f_vol_klu_eu_scotland_m1": {
+"name_en": "Scottish Volleyball League Premier (men)",
+"title": "Scottish Volleyball League Premier – Scotland Men's Volleyball"
+},
+"f_vol_klu_eu_scotland_z1": {
+"name_en": "Scottish Volleyball League Premier (women)",
+"title": "Scottish Volleyball League Premier – Scotland Women's Volleyball"
+},
+"f_vol_klu_eu_slovenia_m1": {
+"name_en": "Slovenian Superliga (men)",
+"title": "Slovenian Superliga – Slovenia Men's Volleyball League Teams"
+},
+"f_vol_klu_eu_slovenia_z1": {
+"name_en": "Slovenian Superliga (women)",
+"title": "Slovenian Superliga – Slovenia Women's Volleyball League Teams"
+},
+"f_vol_klu_eu_spain_m1": {
+"name_en": "Superliga (men)",
+"title": "Superliga – Spain Men's Volleyball League Teams & Standings"
+},
+"f_vol_klu_eu_spain_z1": {
+"name_en": "Superliga (women)",
+"title": "Superliga – Spain Women's Volleyball League Teams & Standings"
+},
+"f_vol_klu_eu_switzerland_z1": {
+"name_en": "Nationalliga A Women",
+"title": "Nationalliga A – Switzerland Women's Volleyball League Teams"
+},
+"f_vol_klu_eu_turkiye_z1": {
+"name_en": "Sultanlar Ligi (women)",
+"title": "Sultanlar Ligi – Turkey Women's Volleyball League Teams"
+},
+"f_vol_klu_eu_ukraine_m1": {
+"name_en": "Super League Men",
+"title": "Super League – Ukraine Men's Volleyball Teams & Standings"
+},
+"f_vol_klu_ja_bolivia_m1": {
+"name_en": "Liga Superior Men",
+"title": "Liga Superior – Bolivia Men's Volleyball League Teams & Standings"
+},
+"f_vol_klu_ja_brazil_m1": {
+"name_en": "Superliga (men)",
+"title": "Superliga – Brazil Men's Volleyball League Teams & Standings"
+},
+"f_vol_klu_ja_brazil_z1": {
+"name_en": "Superliga (women)",
+"title": "Superliga – Brazil Women's Volleyball League Teams & Standings"
+},
+"f_vol_klu_ja_chile_z1": {
+"name_en": "Liga A1 Women",
+"title": "Liga A1 – Chile Women's Volleyball League Teams & Standings"
+},
+"f_vol_klu_ja_colombia_m1": {
+"name_en": "Superliga (men)",
+"title": "Superliga – Colombia Men's Volleyball League Teams & Standings"
+},
+"f_vol_klu_ja_colombia_z1": {
+"name_en": "Superliga (women)",
+"title": "Superliga – Colombia Women's Volleyball League Teams & Standings"
+},
+"f_vol_klu_ja_peru_z1": {
+"name_en": "Liga Peruana de Vóley (women)",
+"title": "Liga Peruana de Vóley – Peru Women's Volleyball League Teams"
+},
+"f_vol_klu_na_guadeloupe_m1": {
+"name_en": "Régionale 1 (men)",
+"title": "Régionale 1 – Guadeloupe Men's Volleyball League Teams"
+},
+"f_vol_klu_na_mexico_m1": {
+"name_en": "Liga de Voleibol Profesional (men)",
+"title": "Liga de Voleibol Profesional – Mexico Men's Volleyball League"
+},
+"f_vol_klu_na_puerto-rico_m1": {
+"name_en": "Liga de Voleibol Superior (men)",
+"title": "Liga de Voleibol Superior – Puerto Rico Men's Volleyball League"
+},
+"f_vol_klu_na_puerto-rico_z1": {
+"name_en": "Liga de Voleibol Superior (women)",
+"title": "Liga de Voleibol Superior – Puerto Rico Women's Volleyball League"
+},
+"f_vol_klu_na_suriname_m1": {
+"name_en": "Hoofdklasse (men)",
+"title": "Hoofdklasse – Suriname Men's Volleyball League Teams & Standings"
+},
+"f_vol_klu_na_suriname_z1": {
+"name_en": "Hoofdklasse (women)",
+"title": "Hoofdklasse – Suriname Women's Volleyball League Teams"
+},
+"f_vol_klu_na_united-states_m1": {
+"name_en": "Volleyball League of America — Tier 1 (men)",
+"title": "Volleyball League of America, Tier 1 – USA Men's Volleyball Teams"
+},
+"f_wal_l1": {
+"name_en": "Cymru Premier",
+"title": "Cymru Premier – Wales Football League Clubs & Standings"
+},
+"f_wal_l2s": {
+"name_en": "Cymru South",
+"title": "Cymru South – Wales Football 2nd Division Clubs & Standings"
+},
+"f_wsm_l1": {
+"name_en": "National League",
+"title": "National League – Samoa Football Clubs & Standings"
+},
+"f_zaf_l1": {
+"name_en": "Betway Premiership",
+"title": "Betway Premiership – South Africa Football League Clubs"
+},
+"f_zmb_l1": {
+"name_en": "Super League",
+"title": "Super League – Zambia Football Clubs & Standings"
+},
+"f_zwe_l1": {
+"name_en": "Premier Soccer League",
+"title": "Premier Soccer League – Zimbabwe Football Clubs & Standings"
+}
+}
