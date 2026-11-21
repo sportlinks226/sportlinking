@@ -38,6 +38,9 @@ KONTROLY
      adresu a titulok VŠETKÝCH priečinkov (svojimi vlastnými funkciami urlForId
      a updateHead — slugify, nodeSlugBase, _slugFix, _titleNoSport, liveTitle);
      porovnanie so sitemap.xml a <title> statických stránok — rozdiel = ❌.
+     Zadanie 61 (EN web): priečinky zo seo-titulky-en.json — stránka so statickým titulkom
+     zo súboru musí mať v appke rovnaký document.title aj og:title (inak ❌); koľko stránok
+     titulok zo súboru má, sa vypíše (stránky bez neho = len upozornenie). Bez súboru sa preskočí.
      Stránky, ktoré generátor zámerne vynecháva (prázdne priečinky, enOnly /
      en:false, Aktuálne bez položiek), sa nehlásia — len ich počet.
   h) Obsah stránok appka ↔ statika (previerka 3, bod 41): pre VŠETKY stránky priečinkov
@@ -954,6 +957,7 @@ class Test:
           r.empty = emptyFolder(n);
           r.url = urlForId(n.id);
           curId = n.id; updateHead(); r.title = document.title;
+          const og = document.querySelector('meta[property="og:title"]'); r.og = og ? og.content : null;
         }
         out.push(r);
       }
@@ -997,6 +1001,18 @@ class Test:
                 return fn(page)
             finally:
                 browser.close()
+
+    TITULKY_SUBOR = "seo-titulky-en.json"
+
+    def titulky_subor(self):
+        """Obsah seo-titulky-en.json z repozitára (Zadanie 61); {} keď nie je alebo sa nedá prečítať."""
+        cesta = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), self.TITULKY_SUBOR)
+        try:
+            with open(cesta, encoding="utf-8") as f:
+                d = json.load(f)
+            return d if isinstance(d, dict) else {}
+        except (OSError, ValueError):
+            return {}
 
     def zrkadlo(self, pokus):
         if not self.stranky:
@@ -1050,6 +1066,29 @@ class Test:
                 rozdiely.append(f"{r['id']} „{r['name']}“: " + "; ".join(chyba))
             else:
                 zhoda += 1
+        # Zadanie 61: titulky EN priečinkov zo súboru seo-titulky-en.json (id zo súboru v repozitári;
+        # keď súbor nie je alebo je web SK, preskočí sa). Stránka, ktorej statický titulok je zo súboru,
+        # musí mať v appke rovnaký document.title (porovnané vyššie) aj og:title. Stránky zo súboru
+        # s iným titulkom (poistka v generátore, web ešte bez nasadenia) = len upozornenie.
+        subor_t, tf_info, tf_bez = self.titulky_subor(), "", []
+        if subor_t and getattr(self, "lang", "sk") == "en":
+            app_by = {r["id"]: r for r in app["nodes"]}
+            pouz = 0
+            for fid, e in sorted(subor_t.items()):
+                g = gen.get(fid)
+                if not g or not isinstance(e, dict):
+                    continue
+                if g[1] != e.get("title"):
+                    tf_bez.append(f"{fid}: statický titulok „{g[1]}“ (zo súboru „{e.get('title')}“)")
+                    continue
+                pouz += 1
+                a = app_by.get(fid)
+                if a and a.get("og") is not None and a["og"] != g[1]:
+                    rozdiely.append(f"{fid} „{a['name']}“: og:title appky „{a['og']}“ ≠ titulok zo súboru „{g[1]}“")
+            tf_info = f"; titulky zo súboru: {pouz} z {len(subor_t)}"
+            self.info.append(f"**Titulky zo súboru (Zadanie 61):** {pouz} z {len(subor_t)} stránok má titulok zo "
+                             f"{self.TITULKY_SUBOR} (statika aj appka)")
+            self.zoznam("g) Priečinky zo seo-titulky-en.json bez titulku zo súboru — len upozornenie", tf_bez)
         navyse = sorted(gen_cesty - app_cesty)   # stránky generátora, ktoré appka nevyrába
         rozdiely += [f"sitemap.xml má {c}, appka takú stránku nevyrába" for c in navyse]
         self.zoznam("g) Rozdiely appka ↔ generátor (adresa / titulok)", rozdiely)
@@ -1059,7 +1098,7 @@ class Test:
                          f"zámerne vynechané generátorom (nehlásia sa): {vyn}"
                          + (f"; stránok bez pageBoot (porovnaná len adresa): {len(bez_id)}" if bez_id else ""))
         detail = (f"zhoda {zhoda} stránok, rozdielov {len(rozdiely)}; vynechané: {vyn}"
-                  + ("" if app["mamFix"] else "; appka nedostala mapu _slugFix"))
+                  + ("" if app["mamFix"] else "; appka nedostala mapu _slugFix") + tf_info)
         if rozdiely:
             return "fail", detail
         if bezfix:

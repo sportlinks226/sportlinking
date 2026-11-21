@@ -4,6 +4,8 @@
 #     Dáta: data.json z repozitára; kde nie je (EN repozitár), stiahne sa zo sportlinky.sk.
 #   - testy/test_strazca.py: test strážcu liniek (len ak je v repozitári strazca_liniek.py).
 #   - testy/test_ikony.py: denný limit obnovy ikoniek v ikony.py (bez siete, v dočasnom priečinku).
+#   - testy/test_titulky_zo_suboru.py: titulky priečinkov zo seo-titulky-en.json (Zadanie 61) —
+#     poistky compute_titles() a build nanečisto (zlé name_en, duplicita, chýbajúci súbor, SK bez zmeny).
 # Beží pri pull requeste alebo pushi do main, ktorý mení generátor, appku alebo testy,
 # a ručne (Actions → „Rýchle testy" → Run workflow). Nič nemení ani necommituje.
 # Súbor je ROVNAKÝ v sport-linky aj sportlinking.
@@ -12,10 +14,10 @@ name: Rýchle testy
 on:
   workflow_dispatch:
   pull_request:
-    paths: [generator.py, index.html, strazca_liniek.py, testy/**, .github/workflows/test-rychle.yml]
+    paths: [generator.py, index.html, strazca_liniek.py, seo-titulky-en.json, testy/**, .github/workflows/test-rychle.yml]
   push:
     branches: [main]
-    paths: [generator.py, index.html, strazca_liniek.py, testy/**, .github/workflows/test-rychle.yml]
+    paths: [generator.py, index.html, strazca_liniek.py, seo-titulky-en.json, testy/**, .github/workflows/test-rychle.yml]
 
 permissions:
   contents: read
@@ -50,3 +52,7 @@ jobs:
       - name: Test denného limitu obnovy ikoniek (ikony.py)
         if: ${{ !cancelled() }}
         run: python testy/test_ikony.py
+
+      - name: Test titulkov zo súboru seo-titulky-en.json (Zadanie 61)
+        if: ${{ !cancelled() }}
+        run: python testy/test_titulky_zo_suboru.py

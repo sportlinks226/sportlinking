@@ -725,7 +725,7 @@ button#aktMoreBadge{-webkit-appearance:none;appearance:none;margin:0;border:0;fo
   #aktualneScroll{display:block!important;column-width:278px;column-gap:20px;overflow:visible!important}
   #aktualneScroll .akt-card{
     display:flex;gap:7px;break-inside:avoid;
-    background:none;border:0;border-radius:6px;padding:3px 6px;
+    background:none;border:0;border-radius:6px;padding:6px 6px 0;
     font-size:.84rem;line-height:1.25;font-weight:400;white-space:nowrap;
   }
   #aktualneScroll .akt-card .akt-icon{font-size:.95rem;width:20px;text-align:center;flex-shrink:0}
@@ -734,8 +734,10 @@ button#aktMoreBadge{-webkit-appearance:none;appearance:none;margin:0;border:0;fo
   /* šport pred „ – “ sivou a normálnou hrúbkou (kontrast #90a5b7 na #0f1923 ≈ 7 : 1) */
   #aktualneScroll .akt-sp{color:var(--muted);font-weight:400}
   /* NEW nad pravým horným rohom ikonky — nezaberá miesto v riadku, obrys farbou pozadia */
+  /* Zadanie 60: štítok NEW nesmie vytŕčať nad kartu — v CSS stĺpcoch by sa jeho kúsok vykreslil
+     na spodok predchádzajúceho stĺpca (preto karta má hore padding 6px a štítok top:0) */
   #aktualneScroll .akt-new{
-    top:-3px;left:15px;right:auto;font-size:7px;line-height:1;padding:1.5px 3px;
+    top:0;left:15px;right:auto;font-size:7px;line-height:1;padding:1.5px 3px;
     border-radius:5px;letter-spacing:.3px;box-shadow:0 0 0 1.5px var(--bg);
   }
 }
@@ -1726,13 +1728,16 @@ let SLUG_FIX = null;                 // {id: slug}; null = mapa nie je (lokálne
 const TITLE_NOSPORT = new Set();     // id priečinkov s titulkom bez športu
 const TITLE_NAMEONLY = new Set();    // id priečinkov s titulkom „{názov} — {web}" (Zadanie 33, bod 24)
 let ORDER_EN = null;                 // {id rodiča: [id detí]} — EN poradie krajín (Zadanie 33, bod 17)
+const TITLE_FILE = new Map();        // {id: hotový titulok} zo seo-titulky-en.json (Zadanie 61, len EN web)
 function takeGenMeta(o){
   if(!o || typeof o !== 'object') return;
   if(o._slugFix && typeof o._slugFix === 'object') SLUG_FIX = Object.assign(SLUG_FIX || {}, o._slugFix);
   if(Array.isArray(o._titleNoSport)) o._titleNoSport.forEach(id => TITLE_NOSPORT.add(id));
   if(Array.isArray(o._titleNameOnly)) o._titleNameOnly.forEach(id => TITLE_NAMEONLY.add(id));
   if(o._orderEn && typeof o._orderEn === 'object') ORDER_EN = Object.assign(ORDER_EN || {}, o._orderEn);
-  delete o._slugFix; delete o._titleNoSport; delete o._titleNameOnly; delete o._orderEn;
+  if(o._titles && typeof o._titles === 'object')
+    Object.keys(o._titles).forEach(id => { if(typeof o._titles[id] === 'string') TITLE_FILE.set(id, o._titles[id]); });
+  delete o._slugFix; delete o._titleNoSport; delete o._titleNameOnly; delete o._orderEn; delete o._titles;
 }
 // Migrácia: doplní slug všetkým priečinkom, ktoré ho ešte nemajú.
 // Deterministická (prechádza deti podľa order) — rovnaký výsledok pre každého.
@@ -2228,6 +2233,7 @@ function nodeIcon(n){
 // keď statická SEO stránka odovzdá miesto appke, titulok musí zostať sekčný
 // („Plážový futbal — Športové Linky"), nie všeobecný názov webu.
 let ORIG_DESC = null;
+let ORIG_OG_TITLE = null;   // Zadanie 61
 function updateHead(){
   const site = nazovWebu();
   const n = curId ? DB.nodes.find(x=>x.id===curId) : null;
@@ -2249,8 +2255,17 @@ function updateHead(){
   // Zadanie 33 (bod 24): druhý stupeň — zoznam TITLE_NAMEONLY = titulok „{názov} — {web}".
   const ctxT = (n && TITLE_NAMEONLY.has(n.id)) ? [] : (n && TITLE_NOSPORT.has(n.id)) ? ctx.slice(0, 1) : ctx;
   const ctxStr = ctxT.length ? ' — ' + ctxT.join(' · ') : '';
-  document.title = (n && n.id===LIVE_ID) ? liveTitle()   // stránka Aktuálne: titulok zo športov (Zadanie 17)
+  // Zadanie 61: hotový titulok zo súboru seo-titulky-en.json (rozhodol generátor) — presne ten
+  const fileT = (n && TITLE_FILE.has(n.id)) ? TITLE_FILE.get(n.id) : null;
+  document.title = fileT ? fileT
+    : (n && n.id===LIVE_ID) ? liveTitle()   // stránka Aktuálne: titulok zo športov (Zadanie 17)
     : n ? (nName(n) + ctxStr + (site ? ' — ' + site : '')) : (HOME_TITLE || site || document.title);
+  // og:title: pri titulku zo súboru ten istý ako na statickej stránke, inak pôvodný (ako doteraz)
+  const ogT = document.querySelector('meta[property="og:title"]');
+  if(ogT){
+    if(ORIG_OG_TITLE === null) ORIG_OG_TITLE = ogT.content;
+    ogT.content = fileT || ORIG_OG_TITLE;
+  }
   // Bod 10 (previerka 3): počas hľadania titulok „Hľadanie: kosice — Športové Linky“
   const qv = (document.getElementById('srch').value || '').trim();
   const favT = FAV_VIEW && !qv && !adminMode;
